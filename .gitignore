@@ -1,0 +1,23 @@
+# 本地配置（数据库密码、SMTP 授权码等），只提交 *.example 模板
+application-local.yml
+.env.local
+.env.*.local
+
+# 后端
+backend/target/
+backend/uploads/
+*.class
+*.log
+
+# 前端
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+
+# IDE 和系统文件
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
