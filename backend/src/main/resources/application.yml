@@ -1,0 +1,47 @@
+# 公共配置。数据库密码、SMTP 授权码这类本机才有的东西，放在 application-local.yml（不提交，模板见 application-local.example.yml）
+server:
+  port: 8090              # 8080 在开发机上被 Steam 占用了
+
+spring:
+  application:
+    name: team-match
+  profiles:
+    active: local
+  datasource:
+    url: jdbc:mysql://localhost:3306/team_match?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    username: root
+    password: ${DB_PASSWORD:}
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  timeout: 2592000          # 登录有效期 30 天
+  is-concurrent: true       # 允许同一账号多处登录
+  is-share: false
+  token-style: uuid
+  is-read-cookie: false
+  is-log: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  mail:
+    mode: log               # log：验证码打印在控制台，开发用；smtp：真的发邮件，要配 spring.mail
+    from: ""
+  code:
+    ttl-minutes: 10
+    resend-seconds: 60
+    max-attempts: 5

@@ -1,0 +1,19 @@
+# 复制一份，改名为 application-local.yml，填上本机的配置。这个文件已经在 .gitignore 里，不会被提交。
+spring:
+  datasource:
+    username: root
+    password: 你的 MySQL 密码
+
+  # 想真的发邮件时再配。以 QQ 邮箱为例：在 QQ 邮箱设置里开启 SMTP 服务，拿到"授权码"填在 password 里
+  # mail:
+  #   host: smtp.qq.com
+  #   port: 465
+  #   username: 你的邮箱@qq.com
+  #   password: SMTP 授权码
+  #   properties:
+  #     mail.smtp.ssl.enable: true
+
+# app:
+#   mail:
+#     mode: smtp
+#     from: 你的邮箱@qq.com
