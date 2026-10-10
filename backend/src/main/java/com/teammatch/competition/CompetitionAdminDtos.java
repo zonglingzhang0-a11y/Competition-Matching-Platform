@@ -62,4 +62,42 @@ public final class CompetitionAdminDtos {
 
     public record NodesForm(@NotNull @Valid @Size(max = 30, message = "节点太多了") List<NodeForm> nodes) {
     }
+
+    /** 管理端列表的一行：比赛的全部字段（编辑表单直接用）+ 所有届次 */
+    public record AdminCompetitionRow(
+            Long id,
+            String name,
+            String shortName,
+            String organizer,
+            String category,
+            Competition.Level level,
+            boolean inCaheList,
+            String officialUrl,
+            String description,
+            Long roleTemplateId,
+            Competition.MatchPreset matchPreset,
+            List<AdminEditionRow> editions) {
+    }
+
+    /** teams：这一届建了几支队（不含已解散的）；nodes：官方时间节点个数 */
+    public record AdminEditionRow(
+            Long id,
+            Integer year,
+            String title,
+            Integer teamMin,
+            Integer teamMax,
+            boolean sameSchoolRequired,
+            boolean advisorRequired,
+            boolean englishRequired,
+            LocalDateTime registrationStart,
+            LocalDateTime registrationEnd,
+            String noticeUrl,
+            CompetitionEdition.Status status,
+            EditionPhase phase,
+            long teams,
+            long nodes) {
+    }
+
+    public record RoleTemplateView(Long id, String name, List<String> roles) {
+    }
 }

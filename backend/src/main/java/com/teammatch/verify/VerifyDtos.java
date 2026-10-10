@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public final class VerifyDtos {
 
@@ -28,5 +29,14 @@ public final class VerifyDtos {
             String schoolName,
             LocalDate verifiedUntil,
             String message) {
+    }
+
+    /** 最近一次认证申请 */
+    public record LatestRequest(
+            VerificationRequest.Status status,
+            String eduEmail,
+            String reviewNote,
+            LocalDateTime reviewedAt,
+            LocalDateTime createdAt) {
     }
 }

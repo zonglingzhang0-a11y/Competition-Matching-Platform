@@ -1,6 +1,7 @@
 package com.teammatch.verify;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.teammatch.code.CodePurpose;
 import com.teammatch.code.EmailCodeService;
 import com.teammatch.common.BizException;
@@ -8,6 +9,7 @@ import com.teammatch.school.School;
 import com.teammatch.school.SchoolResolver;
 import com.teammatch.user.SysUser;
 import com.teammatch.user.SysUserMapper;
+import com.teammatch.verify.VerifyDtos.LatestRequest;
 import com.teammatch.verify.VerifyDtos.VerifyResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -75,9 +77,26 @@ public class EduVerifyService {
             result = new VerifyResult(SysUser.VerifyStatus.PENDING, null, null,
                     "邮箱已验证。平台还没收录这所学校的邮箱，管理员确认后会通知你");
         }
+        // 以前还在排队的申请作废，一个人同时只留一条待审核
+        requestMapper.update(new LambdaUpdateWrapper<VerificationRequest>()
+                .eq(VerificationRequest::getUserId, userId)
+                .eq(VerificationRequest::getStatus, VerificationRequest.Status.PENDING)
+                .set(VerificationRequest::getStatus, VerificationRequest.Status.REJECTED)
+                .set(VerificationRequest::getReviewNote, "已用新的邮箱重新提交")
+                .set(VerificationRequest::getReviewedAt, now));
         requestMapper.insert(request);
         userMapper.updateById(update);
         return result;
+    }
+
+    /** 最近一次提交的认证申请，页面上用来显示"没通过的原因"；没提交过返回 null */
+    public LatestRequest latest(long userId) {
+        VerificationRequest r = requestMapper.selectOne(new LambdaQueryWrapper<VerificationRequest>()
+                .eq(VerificationRequest::getUserId, userId)
+                .orderByDesc(VerificationRequest::getId)
+                .last("LIMIT 1"));
+        return r == null ? null
+                : new LatestRequest(r.getStatus(), r.getEduEmail(), r.getReviewNote(), r.getReviewedAt(), r.getCreatedAt());
     }
 
     /** 认证有效到这一学年结束（8 月 31 日），下一学年要重新认证 */

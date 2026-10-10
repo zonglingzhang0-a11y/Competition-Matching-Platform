@@ -66,4 +66,42 @@ public final class CompetitionMappers {
         record FollowerCount(Long editionId, Long followers) {
         }
     }
+
+    /** 管理端要的统计：每届几支队、几个节点；分工模板 */
+    @Mapper
+    public interface AdminStatMapper {
+
+        @Select("""
+                <script>
+                SELECT edition_id AS editionId, COUNT(*) AS cnt FROM team
+                WHERE deleted = 0 AND status &lt;&gt; 'DISBANDED' AND edition_id IN
+                <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+                GROUP BY edition_id
+                </script>
+                """)
+        List<EditionCount> teamCounts(@Param("ids") Collection<Long> editionIds);
+
+        @Select("""
+                <script>
+                SELECT edition_id AS editionId, COUNT(*) AS cnt FROM competition_node
+                WHERE edition_id IN
+                <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+                GROUP BY edition_id
+                </script>
+                """)
+        List<EditionCount> nodeCounts(@Param("ids") Collection<Long> editionIds);
+
+        @Select("""
+                SELECT t.id AS templateId, t.name AS templateName, i.name AS roleName
+                FROM role_template t LEFT JOIN role_template_item i ON i.template_id = t.id
+                ORDER BY t.id, i.sort, i.id
+                """)
+        List<RoleRow> roleTemplates();
+
+        record EditionCount(Long editionId, Long cnt) {
+        }
+
+        record RoleRow(Long templateId, String templateName, String roleName) {
+        }
+    }
 }

@@ -2,9 +2,16 @@ package com.teammatch.competition;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.teammatch.common.BizException;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.teammatch.common.PageResult;
+import com.teammatch.competition.CompetitionAdminDtos.AdminCompetitionRow;
+import com.teammatch.competition.CompetitionAdminDtos.AdminEditionRow;
 import com.teammatch.competition.CompetitionAdminDtos.CompetitionForm;
 import com.teammatch.competition.CompetitionAdminDtos.EditionForm;
 import com.teammatch.competition.CompetitionAdminDtos.NodeForm;
+import com.teammatch.competition.CompetitionAdminDtos.RoleTemplateView;
+import com.teammatch.competition.CompetitionDtos.NodeView;
+import com.teammatch.competition.CompetitionMappers.AdminStatMapper;
 import com.teammatch.competition.CompetitionMappers.CompetitionMapper;
 import com.teammatch.competition.CompetitionMappers.EditionMapper;
 import com.teammatch.competition.CompetitionMappers.NodeMapper;
@@ -12,9 +19,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 比赛库：管理员的录入和修改。
@@ -26,6 +41,63 @@ public class CompetitionAdminService {
     private final CompetitionMapper competitionMapper;
     private final EditionMapper editionMapper;
     private final NodeMapper nodeMapper;
+    private final AdminStatMapper statMapper;
+    private final Clock clock;
+
+    /** 管理端列表：包括草稿和已归档的届次，最新录入的比赛在前 */
+    public PageResult<AdminCompetitionRow> list(String keyword, int page, int size) {
+        LambdaQueryWrapper<Competition> where = new LambdaQueryWrapper<>();
+        if (StringUtils.hasText(keyword)) {
+            String kw = keyword.trim();
+            where.and(w -> w.like(Competition::getName, kw).or().like(Competition::getShortName, kw));
+        }
+        where.orderByDesc(Competition::getId);
+        Page<Competition> p = competitionMapper.selectPage(Page.of(page, size), where);
+        List<Long> ids = p.getRecords().stream().map(Competition::getId).toList();
+        List<CompetitionEdition> editions = ids.isEmpty() ? List.of()
+                : editionMapper.selectList(new LambdaQueryWrapper<CompetitionEdition>()
+                        .in(CompetitionEdition::getCompetitionId, ids)
+                        .orderByDesc(CompetitionEdition::getYear)
+                        .orderByDesc(CompetitionEdition::getId));
+        List<Long> editionIds = editions.stream().map(CompetitionEdition::getId).toList();
+        Map<Long, Long> teams = counts(editionIds, statMapper::teamCounts);
+        Map<Long, Long> nodes = counts(editionIds, statMapper::nodeCounts);
+        LocalDateTime now = LocalDateTime.now(clock);
+        Map<Long, List<AdminEditionRow>> byCompetition = editions.stream().collect(Collectors.groupingBy(
+                CompetitionEdition::getCompetitionId,
+                Collectors.mapping(e -> new AdminEditionRow(e.getId(), e.getYear(), e.getTitle(), e.getTeamMin(),
+                        e.getTeamMax(), Boolean.TRUE.equals(e.getSameSchoolRequired()),
+                        Boolean.TRUE.equals(e.getAdvisorRequired()), Boolean.TRUE.equals(e.getEnglishRequired()),
+                        e.getRegistrationStart(), e.getRegistrationEnd(), e.getNoticeUrl(), e.getStatus(),
+                        EditionPhase.of(e.getRegistrationStart(), e.getRegistrationEnd(), now),
+                        teams.getOrDefault(e.getId(), 0L), nodes.getOrDefault(e.getId(), 0L)), Collectors.toList())));
+        return PageResult.of(p, c -> new AdminCompetitionRow(c.getId(), c.getName(), c.getShortName(), c.getOrganizer(),
+                c.getCategory(), c.getLevel(), Boolean.TRUE.equals(c.getInCaheList()), c.getOfficialUrl(),
+                c.getDescription(), c.getRoleTemplateId(), c.getMatchPreset(),
+                byCompetition.getOrDefault(c.getId(), List.of())));
+    }
+
+    public List<RoleTemplateView> roleTemplates() {
+        Map<Long, RoleTemplateView> result = new LinkedHashMap<>();
+        for (AdminStatMapper.RoleRow r : statMapper.roleTemplates()) {
+            RoleTemplateView t = result.computeIfAbsent(r.templateId(),
+                    id -> new RoleTemplateView(id, r.templateName(), new ArrayList<>()));
+            if (r.roleName() != null) {
+                t.roles().add(r.roleName());
+            }
+        }
+        return List.copyOf(result.values());
+    }
+
+    /** 一届的官方时间节点，按时间排 */
+    public List<NodeView> nodes(long editionId) {
+        requireEdition(editionId);
+        return nodeMapper.selectList(new LambdaQueryWrapper<CompetitionNode>()
+                        .eq(CompetitionNode::getEditionId, editionId)
+                        .orderByAsc(CompetitionNode::getStartAt)
+                        .orderByAsc(CompetitionNode::getSort))
+                .stream().map(NodeView::of).toList();
+    }
 
     public long createCompetition(CompetitionForm form) {
         Competition c = new Competition();
@@ -48,8 +120,21 @@ public class CompetitionAdminService {
         }
     }
 
+    /** 有队伍的不能删，只能把届次归档；没有队伍的连同届次一起删（逻辑删除） */
+    @Transactional
     public void deleteCompetition(long id) {
         requireCompetition(id);
+        List<Long> editionIds = editionMapper.selectList(new LambdaQueryWrapper<CompetitionEdition>()
+                        .select(CompetitionEdition::getId)
+                        .eq(CompetitionEdition::getCompetitionId, id))
+                .stream().map(CompetitionEdition::getId).toList();
+        long teams = counts(editionIds, statMapper::teamCounts).values().stream().mapToLong(Long::longValue).sum();
+        if (teams > 0) {
+            throw new BizException(409, "这个比赛下已经有 " + teams + " 支队伍，不能删除。不想让学生看到的话，可以把届次改成已归档");
+        }
+        if (!editionIds.isEmpty()) {
+            editionMapper.deleteByIds(editionIds);
+        }
         competitionMapper.deleteById(id);
     }
 
@@ -79,6 +164,10 @@ public class CompetitionAdminService {
 
     public void deleteEdition(long id) {
         requireEdition(id);
+        long teams = counts(List.of(id), statMapper::teamCounts).getOrDefault(id, 0L);
+        if (teams > 0) {
+            throw new BizException(409, "这一届已经有 " + teams + " 支队伍，不能删除。不想让学生看到的话，可以改成已归档");
+        }
         editionMapper.deleteById(id);
     }
 
@@ -188,6 +277,15 @@ public class CompetitionAdminService {
             throw new BizException(404, "这一届比赛不存在");
         }
         return e;
+    }
+
+    private static Map<Long, Long> counts(List<Long> editionIds,
+                                          Function<Collection<Long>, List<AdminStatMapper.EditionCount>> query) {
+        if (editionIds.isEmpty()) {
+            return Map.of();
+        }
+        return query.apply(editionIds).stream()
+                .collect(Collectors.toMap(AdminStatMapper.EditionCount::editionId, AdminStatMapper.EditionCount::cnt));
     }
 
     private static String blankToNull(String s) {

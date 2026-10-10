@@ -2,10 +2,14 @@ package com.teammatch.competition;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
 import cn.dev33.satoken.stp.StpUtil;
+import com.teammatch.common.PageResult;
 import com.teammatch.common.Result;
+import com.teammatch.competition.CompetitionAdminDtos.AdminCompetitionRow;
 import com.teammatch.competition.CompetitionAdminDtos.CompetitionForm;
 import com.teammatch.competition.CompetitionAdminDtos.EditionForm;
 import com.teammatch.competition.CompetitionAdminDtos.NodesForm;
+import com.teammatch.competition.CompetitionAdminDtos.RoleTemplateView;
+import com.teammatch.competition.CompetitionDtos.NodeView;
 import com.teammatch.competition.CompetitionDtos.CompetitionDetail;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -16,10 +20,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
- * 管理员维护比赛库。管理页面在 M6 做，接口先备好。
+ * 管理员维护比赛库：比赛、届次、官方时间节点。
  */
 @RestController
 @RequestMapping("/api/admin")
@@ -29,6 +36,24 @@ public class CompetitionAdminController {
 
     private final CompetitionAdminService adminService;
     private final CompetitionService competitionService;
+
+    @GetMapping("/competitions")
+    public Result<PageResult<AdminCompetitionRow>> list(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return Result.ok(adminService.list(keyword, Math.max(page, 1), Math.clamp(size, 1, 50)));
+    }
+
+    @GetMapping("/role-templates")
+    public Result<List<RoleTemplateView>> roleTemplates() {
+        return Result.ok(adminService.roleTemplates());
+    }
+
+    @GetMapping("/editions/{id}/nodes")
+    public Result<List<NodeView>> nodes(@PathVariable long id) {
+        return Result.ok(adminService.nodes(id));
+    }
 
     /** 和学生端的详情一样，但包括还没发布的届次 */
     @GetMapping("/competitions/{id}")
