@@ -53,6 +53,16 @@ cd frontend && npm install && npm run dev
 
 打开 <http://localhost:5173>。
 
+## 演示数据
+
+想直接看到推荐效果，在 `seed.sql` 之后再导入演示数据：
+
+```bash
+mysql -uroot -p < sql/demo.sql
+```
+
+导入后会有 9 个演示账号、4 支队伍、问卷答案，还有一条待处理的入队申请。账号、身份和统一密码都写在 [sql/demo.sql](sql/demo.sql) 开头的注释里。只用于本地演示，不要导入正式环境。
+
 ## 开发时的验证码
 
 默认不真的发邮件，验证码打印在**后端控制台**，像这样：
