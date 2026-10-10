@@ -1,0 +1,85 @@
+package com.teammatch.profile;
+
+import com.teammatch.user.MeResponse;
+import com.teammatch.user.SysUser;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
+import java.util.List;
+
+public final class ProfileDtos {
+
+    private ProfileDtos() {
+    }
+
+    public record ProfileResponse(
+            String email,
+            String nickname,
+            SysUser.VerifyStatus verifyStatus,
+            MeResponse.SchoolBrief school,
+            String realName,
+            String gender,
+            String major,
+            Integer enrollYear,
+            String degree,
+            String bio,
+            String contactWechat,
+            String contactQq,
+            List<SkillLevel> skills,
+            List<Experience> experiences) {
+    }
+
+    public record SkillLevel(Long skillId, String name, String category, Integer level) {
+    }
+
+    public record Experience(
+            Long id,
+            Long competitionId,
+            String title,
+            Integer year,
+            String award,
+            String proofUrl,
+            UserExperience.Source source,
+            boolean verified) {
+    }
+
+    public record ProfileForm(
+            @NotBlank(message = "请填写昵称") @Size(max = 16, message = "昵称最多 16 个字") String nickname,
+            @Size(max = 32, message = "姓名最多 32 个字") String realName,
+            @Pattern(regexp = "|MALE|FEMALE|OTHER", message = "性别选项不对") String gender,
+            @Size(max = 64, message = "专业最多 64 个字") String major,
+            @Min(value = 2000, message = "入学年份不对") @Max(value = 2100, message = "入学年份不对") Integer enrollYear,
+            @Pattern(regexp = "|JUNIOR_COLLEGE|UNDERGRAD|MASTER|PHD", message = "学历选项不对") String degree,
+            @Size(max = 500, message = "个人简介最多 500 个字") String bio,
+            @Size(max = 64, message = "微信号太长了") String contactWechat,
+            @Pattern(regexp = "|\\d{5,12}", message = "QQ 号应该是 5 到 12 位数字") String contactQq) {
+    }
+
+    public record SkillLevelInput(
+            @NotNull(message = "技能不能为空") Long skillId,
+            @NotNull(message = "请选择熟练度") @Min(value = 1, message = "熟练度是 1 到 3") @Max(value = 3, message = "熟练度是 1 到 3")
+            Integer level) {
+    }
+
+    public record SkillsForm(
+            @NotNull @Valid @Size(max = 20, message = "最多填 20 项技能") List<SkillLevelInput> skills) {
+    }
+
+    public record ExperienceForm(
+            Long competitionId,
+            @NotBlank(message = "请填写比赛名称") @Size(max = 100, message = "比赛名称最多 100 个字") String title,
+            @NotNull(message = "请填写年份") @Min(value = 2000, message = "年份不对") @Max(value = 2100, message = "年份不对")
+            Integer year,
+            @Size(max = 32, message = "奖项最多 32 个字") String award,
+            @Size(max = 255, message = "链接太长了") String proofUrl) {
+    }
+
+    /** 技能字典里的一项 */
+    public record SkillOption(Long id, String name, String category) {
+    }
+}

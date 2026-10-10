@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowDown } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
@@ -6,6 +7,9 @@ import { useUserStore } from '@/stores/user'
 const route = useRoute()
 const router = useRouter()
 const user = useUserStore()
+
+/** 比赛详情页也高亮"比赛库" */
+const activeMenu = computed(() => (route.path.startsWith('/competitions') ? '/competitions' : route.path))
 
 async function logout() {
   await user.logout()
@@ -17,8 +21,10 @@ async function logout() {
   <el-container class="layout">
     <el-header class="header">
       <router-link to="/" class="brand">竞赛组队</router-link>
-      <el-menu mode="horizontal" router :default-active="route.path" :ellipsis="false" class="menu">
+      <el-menu mode="horizontal" router :default-active="activeMenu" :ellipsis="false" class="menu">
         <el-menu-item index="/">首页</el-menu-item>
+        <el-menu-item index="/competitions">比赛库</el-menu-item>
+        <el-menu-item index="/profile">我的档案</el-menu-item>
         <el-menu-item index="/verify">身份认证</el-menu-item>
       </el-menu>
       <div class="right">

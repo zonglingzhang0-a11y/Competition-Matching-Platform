@@ -13,7 +13,10 @@ spring:
   #   properties:
   #     mail.smtp.ssl.enable: true
 
-# app:
+app:
+  # 用这些邮箱注册的账号自动成为管理员；已经注册过的，下次启动后端时升级
+  admin-emails:
+    - 你的邮箱@example.com
 #   mail:
 #     mode: smtp
 #     from: 你的邮箱@qq.com

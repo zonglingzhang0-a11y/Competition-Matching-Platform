@@ -11,6 +11,10 @@ spring:
     url: jdbc:mysql://localhost:3306/team_match?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
     password: ${DB_PASSWORD:}
+  jackson:
+    deserialization:
+      # Jackson 3 默认在 boolean、int 这类字段缺省时直接报错；这里改回缺省就取默认值（false / 0）
+      fail-on-null-for-primitives: false
 
 mybatis-plus:
   configuration:
@@ -45,3 +49,4 @@ app:
     ttl-minutes: 10
     resend-seconds: 60
     max-attempts: 5
+  admin-emails: []          # 用这些邮箱注册的账号自动成为管理员，在 application-local.yml 里填

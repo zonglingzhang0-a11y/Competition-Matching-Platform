@@ -37,6 +37,8 @@ mysql -uroot -p < sql/seed.sql
 
 把 `backend/src/main/resources/application-local.example.yml` 复制一份，改名为 `application-local.yml`，填上 MySQL 密码。这个文件不会被提交。
 
+想要管理员账号，就在同一个文件的 `app.admin-emails` 里写上你的邮箱：用这个邮箱注册的账号自动成为管理员；如果已经注册过了，重启后端后会自动升级。
+
 ```bash
 cd backend && ./mvnw spring-boot:run
 ```
@@ -85,8 +87,8 @@ cd frontend && npm run build
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | M1 | 项目骨架、注册登录、教育邮箱认证 | ✅ |
-| M2 | 比赛库、个人档案和技能 | 进行中 |
-| M3 | 队伍、招募需求、申请和邀请、站内信 | |
+| M2 | 比赛库（列表、详情、关注，管理员录入接口）、个人档案、技能和履历 | ✅ |
+| M3 | 队伍、招募需求、申请和邀请、站内信 | 进行中 |
 | M4 | 问卷、匹配打分、推荐理由 | |
 | M5 | 日历三图层、撞期检测、截止提醒 | |
 | M6 | 管理后台、数据看板 | |

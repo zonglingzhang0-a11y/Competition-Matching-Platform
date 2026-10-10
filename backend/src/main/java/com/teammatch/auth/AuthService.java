@@ -8,6 +8,7 @@ import com.teammatch.auth.AuthDtos.RegisterRequest;
 import com.teammatch.code.CodePurpose;
 import com.teammatch.code.EmailCodeService;
 import com.teammatch.common.BizException;
+import com.teammatch.config.AppProperties;
 import com.teammatch.user.SysUser;
 import com.teammatch.user.SysUserMapper;
 import com.teammatch.user.UserProfile;
@@ -32,6 +33,7 @@ public class AuthService {
     private final UserService userService;
     private final EmailCodeService codeService;
     private final PasswordEncoder passwordEncoder;
+    private final AppProperties props;
     private final Clock clock;
 
     public void sendRegisterCode(String email) {
@@ -53,7 +55,7 @@ public class AuthService {
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(req.password()));
         user.setNickname(req.nickname().trim());
-        user.setRole(SysUser.UserRole.STUDENT);
+        user.setRole(props.isAdminEmail(email) ? SysUser.UserRole.ADMIN : SysUser.UserRole.STUDENT);
         user.setStatus(SysUser.UserStatus.ACTIVE);
         user.setVerifyStatus(SysUser.VerifyStatus.NONE);
         user.setLastLoginAt(LocalDateTime.now(clock));

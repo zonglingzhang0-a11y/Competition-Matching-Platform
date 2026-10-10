@@ -22,6 +22,17 @@ const router = createRouter({
       children: [
         { path: '', name: 'home', component: () => import('@/views/HomeView.vue') },
         { path: 'verify', name: 'verify', component: () => import('@/views/VerifyView.vue') },
+        {
+          path: 'competitions',
+          name: 'competitions',
+          component: () => import('@/views/CompetitionListView.vue'),
+        },
+        {
+          path: 'competitions/:id(\\d+)',
+          name: 'competition',
+          component: () => import('@/views/CompetitionDetailView.vue'),
+        },
+        { path: 'profile', name: 'profile', component: () => import('@/views/ProfileView.vue') },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },

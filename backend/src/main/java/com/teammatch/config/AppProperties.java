@@ -2,11 +2,23 @@ package com.teammatch.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.List;
+import java.util.Locale;
+
 /**
  * application.yml 里 app 开头的自定义配置。
  */
 @ConfigurationProperties(prefix = "app")
-public record AppProperties(Mail mail, Code code) {
+public record AppProperties(Mail mail, Code code, List<String> adminEmails) {
+
+    public AppProperties {
+        adminEmails = adminEmails == null ? List.of()
+                : adminEmails.stream().map(e -> e.trim().toLowerCase(Locale.ROOT)).toList();
+    }
+
+    public boolean isAdminEmail(String email) {
+        return email != null && adminEmails.contains(email.trim().toLowerCase(Locale.ROOT));
+    }
 
     /** mode：log 打印到控制台 / smtp 真的发邮件 */
     public record Mail(String mode, String from) {
