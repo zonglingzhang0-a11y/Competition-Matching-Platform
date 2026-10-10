@@ -1,6 +1,6 @@
 // 枚举值对应的中文和标签颜色
 
-import type { CompetitionLevel, EditionPhase, NodeType } from '@/types/api'
+import type { AppStatus, CompetitionLevel, EditionPhase, MeetingMode, NodeType, TeamStatus } from '@/types/api'
 
 type TagType = 'primary' | 'success' | 'info' | 'warning' | 'danger'
 
@@ -46,6 +46,36 @@ export const DEGREES = [
   { value: 'MASTER', label: '硕士' },
   { value: 'PHD', label: '博士' },
 ]
+
+export const TEAM_STATUS: Record<TeamStatus, { label: string; type: TagType }> = {
+  RECRUITING: { label: '招募中', type: 'success' },
+  FULL: { label: '已满员', type: 'info' },
+  CLOSED: { label: '停止招募', type: 'info' },
+  FINISHED: { label: '比赛已结束', type: 'info' },
+  DISBANDED: { label: '已解散', type: 'danger' },
+}
+
+export const MEETING_MODES: { value: MeetingMode; label: string }[] = [
+  { value: 'OFFLINE', label: '线下为主' },
+  { value: 'ONLINE', label: '线上为主' },
+  { value: 'MIXED', label: '线上线下都行' },
+]
+
+export const MEETING_MODE_LABEL: Record<MeetingMode, string> = {
+  OFFLINE: '线下为主',
+  ONLINE: '线上为主',
+  MIXED: '线上线下都行',
+}
+
+export const APP_STATUS: Record<AppStatus, { label: string; type: TagType }> = {
+  PENDING: { label: '待处理', type: 'warning' },
+  ACCEPTED: { label: '已加入', type: 'success' },
+  REJECTED: { label: '被婉拒', type: 'info' },
+  WITHDRAWN: { label: '已撤回', type: 'info' },
+  EXPIRED: { label: '已失效', type: 'info' },
+}
+
+export const SKILL_LEVEL_LABEL: Record<number, string> = { 1: '入门', 2: '熟练', 3: '精通' }
 
 export const AWARD_SUGGESTIONS = [
   '国家级一等奖',

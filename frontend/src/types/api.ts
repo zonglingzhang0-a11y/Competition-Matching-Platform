@@ -191,6 +191,155 @@ export interface ExperienceForm {
   proofUrl: string
 }
 
+// ---------- 队伍 ----------
+
+export interface UserBrief {
+  id: number
+  nickname: string
+  schoolId: number | null
+  schoolName: string | null
+  major: string | null
+  enrollYear: number | null
+  skills: SkillLevel[]
+}
+
+export interface Contact {
+  realName: string | null
+  wechat: string | null
+  qq: string | null
+}
+
+export type TeamStatus = 'RECRUITING' | 'FULL' | 'CLOSED' | 'FINISHED' | 'DISBANDED'
+export type MeetingMode = 'OFFLINE' | 'ONLINE' | 'MIXED'
+export type NeedStatus = 'OPEN' | 'FILLED' | 'CANCELLED'
+export type AppDirection = 'APPLY' | 'INVITE'
+export type AppStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'WITHDRAWN' | 'EXPIRED'
+
+export interface EditionRef {
+  editionId: number
+  competitionId: number
+  competitionName: string
+  editionTitle: string
+  phase: EditionPhase
+  teamMin: number
+  teamMax: number
+  sameSchoolRequired: boolean
+}
+
+export interface NeedView {
+  id: number
+  roleName: string
+  headcount: number
+  filled: number
+  note: string | null
+  status: NeedStatus
+  skills: { skillId: number; name: string; minLevel: number }[]
+}
+
+export interface MemberView {
+  user: UserBrief
+  roleName: string | null
+  captain: boolean
+  joinedAt: string
+  /** 只有队友能看到 */
+  contact: Contact | null
+}
+
+export interface AppBrief {
+  id: number
+  direction: AppDirection
+  createdAt: string
+}
+
+export interface MyRelation {
+  member: boolean
+  captain: boolean
+  pendingApplication: AppBrief | null
+  pendingInvitation: AppBrief | null
+  /** 为空表示可以申请 */
+  applyBlockedReason: string | null
+}
+
+export interface TeamDetail {
+  id: number
+  name: string
+  intro: string | null
+  status: TeamStatus
+  maxMembers: number
+  meetingMode: MeetingMode
+  memberCount: number
+  edition: EditionRef
+  captainId: number
+  members: MemberView[]
+  needs: NeedView[]
+  me: MyRelation
+  createdAt: string
+}
+
+export interface TeamSummary {
+  id: number
+  name: string
+  intro: string | null
+  status: TeamStatus
+  maxMembers: number
+  memberCount: number
+  captain: UserBrief
+  openNeeds: NeedView[]
+  edition: EditionRef
+}
+
+export interface TeamForm {
+  name: string
+  intro: string
+  maxMembers: number
+  meetingMode: MeetingMode
+}
+
+export interface NeedForm {
+  roleName: string
+  headcount: number
+  note: string
+  skills: { skillId: number; minLevel: number }[]
+}
+
+export interface ApplicationView {
+  id: number
+  direction: AppDirection
+  status: AppStatus
+  message: string | null
+  needRoleName: string | null
+  createdAt: string
+  handledAt: string | null
+  team: { id: number; name: string; competitionName: string; editionTitle: string }
+  user: UserBrief
+}
+
+export interface MyApplications {
+  /** 我发出的申请 */
+  sent: ApplicationView[]
+  /** 我收到的邀请 */
+  received: ApplicationView[]
+}
+
+export interface Seeker {
+  user: UserBrief
+  /** 这支队已经邀请过、对方还没回复 */
+  invited: boolean
+}
+
+// ---------- 站内信 ----------
+
+export interface Notification {
+  id: number
+  type: string
+  title: string
+  content: string | null
+  refType: string | null
+  refId: number | null
+  readAt: string | null
+  createdAt: string
+}
+
 export interface VerifyResult {
   verifyStatus: VerifyStatus
   schoolName: string | null

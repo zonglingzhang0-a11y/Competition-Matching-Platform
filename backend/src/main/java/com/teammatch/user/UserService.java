@@ -38,6 +38,19 @@ public class UserService {
                 effectiveVerifyStatus(user), user.getVerifiedUntil(), school);
     }
 
+    /** 建队、申请这类操作要求已认证，没认证直接抛出异常 */
+    public SysUser requireVerified(long userId) {
+        SysUser user = getById(userId);
+        if (effectiveVerifyStatus(user) != SysUser.VerifyStatus.VERIFIED) {
+            throw new BizException(403, "请先完成学校认证");
+        }
+        return user;
+    }
+
+    public boolean isVerified(SysUser user) {
+        return effectiveVerifyStatus(user) == SysUser.VerifyStatus.VERIFIED;
+    }
+
     /** 认证过了有效期就当作未认证 */
     public SysUser.VerifyStatus effectiveVerifyStatus(SysUser user) {
         if (user.getVerifyStatus() == SysUser.VerifyStatus.VERIFIED

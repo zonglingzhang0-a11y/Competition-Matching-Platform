@@ -4,6 +4,7 @@ import cn.dev33.satoken.exception.NotLoginException;
 import cn.dev33.satoken.exception.NotPermissionException;
 import cn.dev33.satoken.exception.NotRoleException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -62,6 +63,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler({NotRoleException.class, NotPermissionException.class})
     public ResponseEntity<Result<Void>> handleForbidden(RuntimeException e) {
         return respond(403, "没有权限");
+    }
+
+    /** 加锁顺序已经避免了已知的死锁，这里兜底：万一还有锁冲突，让用户重试，而不是报 500 */
+    @ExceptionHandler(PessimisticLockingFailureException.class)
+    public ResponseEntity<Result<Void>> handleLockConflict(PessimisticLockingFailureException e) {
+        log.warn("数据库锁冲突：{}", e.getMessage());
+        return respond(409, "有人同时在操作，请刷新后重试");
     }
 
     @ExceptionHandler(Exception.class)
