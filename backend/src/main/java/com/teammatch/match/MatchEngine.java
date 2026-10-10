@@ -41,6 +41,8 @@ public final class MatchEngine {
     private static final double CONCERN = 0.6;
     /** 没有数据时的中间分 */
     private static final double NEUTRAL = 0.5;
+    /** 比赛期间有个人日程时乘的系数 */
+    private static final double PERSONAL_CONFLICT_FACTOR = 0.9;
 
     private final MatchConfig config;
     private final Labels labels;
@@ -106,6 +108,11 @@ public final class MatchEngine {
         List<String> warnings = new ArrayList<>();
         double k = commitment(cand, team, w, warnings);
         double factor = teamRules(cand, team, w, warnings);
+        if (facts.personalConflictWith() != null) {
+            // 个人日程和比赛撞了只是提醒、稍微降分，不一票否决：个人安排通常可以调整
+            factor *= PERSONAL_CONFLICT_FACTOR;
+            warnings.add("比赛期间" + w.who + "有个人日程「" + facts.personalConflictWith() + "」");
+        }
         if (weightSum == 0) {
             warnings.add(cand.general().isEmpty() && cand.edition().isEmpty()
                     ? w.who + "还没填问卷，分数只供参考"

@@ -115,8 +115,17 @@ class MatchEngineTest {
 
     @Test
     void timeConflictIsVetoed() {
-        MatchResult r = engine.score(ideal(), team(), new Facts("某创新大赛", false), false);
+        MatchResult r = engine.score(ideal(), team(), new Facts("某创新大赛", false, null), false);
         assertThat(r.veto()).isEqualTo("比赛时间和TA已经参加的「某创新大赛」重叠");
+    }
+
+    @Test
+    void personalConflictLowersScoreButDoesNotVeto() {
+        MatchResult clash = engine.score(ideal(), team(), new Facts(null, false, "期中考试"), true);
+        MatchResult free = engine.score(ideal(), team(), Facts.NONE, true);
+        assertThat(clash.veto()).isNull();
+        assertThat(clash.warnings()).contains("比赛期间你有个人日程「期中考试」");
+        assertThat(clash.score()).isLessThan(free.score());
     }
 
     @Test

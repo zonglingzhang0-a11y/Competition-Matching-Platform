@@ -54,9 +54,11 @@ public final class MatchInputs {
             /* 和已经参加的另一场比赛撞期时，写那场比赛的名字；不撞期为空 */
             String timeConflictWith,
             /* 被平台暂停推荐 */
-            boolean suspended) {
+            boolean suspended,
+            /* 比赛期间有个人日程（标了参与撞期检测的），写日程标题；没有为空 */
+            String personalConflictWith) {
 
-        public static final Facts NONE = new Facts(null, false);
+        public static final Facts NONE = new Facts(null, false, null);
     }
 
     /** 生成推荐理由时要用到的文字：题目标题、选项文字、技能名 */

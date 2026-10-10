@@ -36,6 +36,7 @@ watch(() => route.fullPath, notifications.refresh)
         <el-menu-item index="/">首页</el-menu-item>
         <el-menu-item index="/competitions">比赛库</el-menu-item>
         <el-menu-item index="/teams">我的队伍</el-menu-item>
+        <el-menu-item index="/calendar">日历</el-menu-item>
         <el-menu-item index="/profile">我的档案</el-menu-item>
         <el-menu-item index="/verify">身份认证</el-menu-item>
       </el-menu>

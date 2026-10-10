@@ -41,6 +41,8 @@ async function open(n: Notification) {
   }
   if (n.refType === 'TEAM' && n.refId) {
     router.push({ name: 'team', params: { id: n.refId } })
+  } else if (n.refType === 'COMPETITION' && n.refId) {
+    router.push({ name: 'competition', params: { id: n.refId } })
   }
 }
 
@@ -73,7 +75,7 @@ onMounted(load)
         v-for="n in items"
         :key="n.id"
         class="item"
-        :class="{ unread: !n.readAt, clickable: n.refType === 'TEAM' || !n.readAt }"
+        :class="{ unread: !n.readAt, clickable: !!n.refType || !n.readAt }"
         @click="open(n)"
       >
         <span v-if="!n.readAt" class="dot" aria-label="未读" />

@@ -7,6 +7,7 @@ import JoinDialog from '@/components/JoinDialog.vue'
 import NeedDialog from '@/components/NeedDialog.vue'
 import TeamFormDialog from '@/components/TeamFormDialog.vue'
 import MatchSummary from '@/components/MatchSummary.vue'
+import TeamTimeline from '@/components/TeamTimeline.vue'
 import UserCard from '@/components/UserCard.vue'
 import { getCompetition } from '@/api/competition'
 import * as api from '@/api/team'
@@ -327,6 +328,11 @@ watch(() => route.params.id, load, { immediate: true })
             </el-button>
           </div>
         </div>
+      </el-card>
+
+      <!-- 时间线：官方节点 + 队伍里程碑 -->
+      <el-card shadow="never" class="block">
+        <TeamTimeline :team-id="team.id" />
       </el-card>
 
       <!-- 队长：处理申请 -->

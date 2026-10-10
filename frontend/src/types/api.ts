@@ -414,6 +414,94 @@ export interface HomeRecommendation {
   teams: RecommendedTeam[]
 }
 
+// ---------- 日历 ----------
+
+/** OFFICIAL 比赛官方节点 / TEAM 队伍里程碑 / PERSONAL 个人日程 */
+export type CalendarLayer = 'OFFICIAL' | 'TEAM' | 'PERSONAL'
+
+export interface CalendarEvent {
+  id: string
+  layer: CalendarLayer
+  /** 图层细分，比如 edition-1、team-2、personal */
+  layerKey: string
+  layerName: string
+  title: string
+  start: string
+  end: string | null
+  allDay: boolean
+  /** 时间说不准 */
+  fuzzy: boolean
+  /** 参与撞期检测 */
+  busy: boolean
+  done: boolean | null
+  conflictWith: string | null
+  refType: 'COMPETITION' | 'TEAM' | 'EVENT' | null
+  refId: number | null
+  /** 个人重复日程这一次的日期 */
+  occurrenceDate: string | null
+}
+
+export interface CalendarConflict {
+  first: string
+  second: string
+  start: string
+}
+
+export interface CalendarData {
+  events: CalendarEvent[]
+  conflicts: CalendarConflict[]
+}
+
+export type RepeatType = 'NONE' | 'DAILY' | 'WEEKDAYS' | 'WEEKLY'
+
+export interface EventForm {
+  title: string
+  notes: string
+  color: string | null
+  startAt: string
+  endAt: string | null
+  allDay: boolean
+  repeatType: RepeatType
+  /** 1 = 周一 … 7 = 周日 */
+  repeatWeekdays: number[]
+  repeatUntil: string | null
+  busy: boolean
+}
+
+export interface EventView extends EventForm {
+  id: number
+}
+
+export interface MilestoneForm {
+  title: string
+  note: string
+  startAt: string
+  endAt: string | null
+  allDay: boolean
+  endMode: EndMode
+  endLatestAt: string | null
+}
+
+export interface MilestoneView {
+  id: number
+  title: string
+  note: string | null
+  startAt: string
+  endAt: string | null
+  allDay: boolean
+  endMode: EndMode
+  endLatestAt: string | null
+  doneAt: string | null
+}
+
+export interface TeamTimeline {
+  official: CompetitionNode[]
+  /** 只有队员能看到 */
+  milestones: MilestoneView[]
+  member: boolean
+  canEdit: boolean
+}
+
 // ---------- 站内信 ----------
 
 export interface Notification {

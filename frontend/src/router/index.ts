@@ -36,6 +36,7 @@ const router = createRouter({
         { path: 'teams', name: 'my-teams', component: () => import('@/views/MyTeamsView.vue') },
         { path: 'teams/:id(\\d+)', name: 'team', component: () => import('@/views/TeamDetailView.vue') },
         { path: 'notifications', name: 'notifications', component: () => import('@/views/NotificationsView.vue') },
+        { path: 'calendar', name: 'calendar', component: () => import('@/views/CalendarView.vue') },
         { path: 'survey', name: 'survey', component: () => import('@/views/SurveyView.vue') },
         {
           path: 'survey/editions/:id(\\d+)',

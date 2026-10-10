@@ -78,7 +78,7 @@ public final class CompetitionDtos {
             boolean busy,
             String note) {
 
-        static NodeView of(CompetitionNode n) {
+        public static NodeView of(CompetitionNode n) {
             return new NodeView(n.getId(), n.getTitle(), n.getNodeType(), n.getStartAt(), n.getEndAt(),
                     Boolean.TRUE.equals(n.getAllDay()), n.getStartLatestAt(), n.getEndMode(), n.getEndLatestAt(),
                     Boolean.TRUE.equals(n.getBusy()), n.getNote());

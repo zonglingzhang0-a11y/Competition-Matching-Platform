@@ -1,6 +1,9 @@
 package com.teammatch.match;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.teammatch.calendar.CalendarEntities.PersonalEvent;
+import com.teammatch.calendar.Occurrences;
+import com.teammatch.calendar.PersonalEventService;
 import com.teammatch.competition.Competition;
 import com.teammatch.competition.CompetitionEdition;
 import com.teammatch.competition.CompetitionMappers.CompetitionMapper;
@@ -71,6 +74,7 @@ public class RecommendService {
     private final MatchConfigService configService;
     private final UserService userService;
     private final UserBriefs userBriefs;
+    private final PersonalEventService eventService;
     private final Clock clock;
 
     public record RecommendedTeam(TeamSummary team, MatchResult match) {
@@ -234,8 +238,31 @@ public class RecommendService {
         Set<Long> suspended = matchMapper.credits(userIds).stream()
                 .filter(c -> c.suspendedUntil() != null && c.suspendedUntil().isAfter(now))
                 .map(MatchMapper.CreditRow::userId).collect(Collectors.toSet());
+        Map<Long, String> personal = personalConflicts(userIds, mine);
         return userIds.stream().collect(Collectors.toMap(Function.identity(),
-                id -> new Facts(conflicts.get(id), suspended.contains(id))));
+                id -> new Facts(conflicts.get(id), suspended.contains(id), personal.get(id))));
+    }
+
+    /** 这些人的个人日程（标了参与撞期检测的）里，有没有和这一届比赛期间重叠的；有就记下日程标题 */
+    private Map<Long, String> personalConflicts(Collection<Long> userIds, List<MatchMapper.BusyRow> contest) {
+        if (contest.isEmpty()) {
+            return Map.of();
+        }
+        LocalDateTime from = contest.stream().map(MatchMapper.BusyRow::startAt).min(Comparator.naturalOrder()).orElseThrow();
+        LocalDateTime to = contest.stream().map(b -> b.endAt() == null ? b.startAt() : b.endAt())
+                .max(Comparator.naturalOrder()).orElseThrow().plusSeconds(1);
+        Map<Long, String> out = new java.util.HashMap<>();
+        eventService.busyOf(userIds).forEach((uid, events) -> {
+            for (PersonalEvent ev : events) {
+                boolean clash = Occurrences.between(eventService.rule(ev), from, to).stream().anyMatch(o ->
+                        contest.stream().anyMatch(b -> Occurrences.overlaps(o.start(), o.end(), b.startAt(), b.endAt())));
+                if (clash) {
+                    out.putIfAbsent(uid, ev.getTitle());
+                    return;
+                }
+            }
+        });
+        return out;
     }
 
     /** 两个时间段有没有重叠；没有结束时间的当作一个时间点 */
