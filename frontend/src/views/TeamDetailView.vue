@@ -6,10 +6,12 @@ import { ArrowLeft, Plus } from '@element-plus/icons-vue'
 import JoinDialog from '@/components/JoinDialog.vue'
 import NeedDialog from '@/components/NeedDialog.vue'
 import TeamFormDialog from '@/components/TeamFormDialog.vue'
+import MatchSummary from '@/components/MatchSummary.vue'
 import UserCard from '@/components/UserCard.vue'
 import { getCompetition } from '@/api/competition'
 import * as api from '@/api/team'
-import type { ApplicationView, NeedForm, NeedView, Seeker, TeamDetail, TeamForm, UserBrief } from '@/types/api'
+import { recommendedUsers } from '@/api/survey'
+import type { ApplicationView, NeedForm, NeedView, RecommendedUser, TeamDetail, TeamForm, UserBrief } from '@/types/api'
 import { APP_STATUS, MEETING_MODE_LABEL, SKILL_LEVEL_LABEL, TEAM_STATUS } from '@/utils/labels'
 import { fmtDate, fmtDateTime } from '@/utils/time'
 import { showError } from '@/utils/feedback'
@@ -21,7 +23,8 @@ const team = ref<TeamDetail | null>(null)
 const loading = ref(true)
 const roles = ref<string[]>([])
 const applications = ref<ApplicationView[]>([])
-const seekers = ref<Seeker[]>([])
+/** 可以邀请的人，按匹配度排好序 */
+const candidates = ref<RecommendedUser[]>([])
 
 const editing = ref(false)
 const needDialog = ref(false)
@@ -54,7 +57,7 @@ async function load() {
     const t = await api.getTeam(Number(route.params.id))
     team.value = t
     if (t.me.captain) {
-      ;[applications.value, seekers.value] = await Promise.all([api.teamApplications(t.id), api.teamSeekers(t.id)])
+      ;[applications.value, candidates.value] = await Promise.all([api.teamApplications(t.id), recommendedUsers(t.id)])
     }
     if (roles.value.length === 0) {
       roles.value = (await getCompetition(t.edition.competitionId)).roles
@@ -370,14 +373,19 @@ watch(() => route.params.id, load, { immediate: true })
 
       <!-- 队长：可以邀请的人 -->
       <el-card v-if="isCaptain && team.status === 'RECRUITING'" shadow="never" class="block">
-        <template #header>可以邀请的人</template>
-        <p class="hint top">关注了这届比赛、已经认证、还没组队的同学。</p>
-        <el-empty v-if="seekers.length === 0" :image-size="60" description="暂时没有找队伍的人，过几天再来看看" />
-        <div v-for="s in seekers" :key="s.user.id" class="row">
-          <UserCard :user="s.user" />
+        <template #header>推荐邀请的人</template>
+        <p class="hint top">关注了这届比赛、已经认证、还没组队的同学，按和你们队的匹配度排序。招募需求写得越清楚，推荐越准。</p>
+        <el-empty v-if="candidates.length === 0" :image-size="60" description="暂时没有找队伍的人，过几天再来看看" />
+        <div v-for="c in candidates" :key="c.user.id" class="row candidate" :class="{ vetoed: c.match.veto }">
+          <div class="candidate-main">
+            <UserCard :user="c.user" />
+            <MatchSummary :match="c.match" class="candidate-match" />
+          </div>
           <div class="row-actions">
-            <el-button v-if="!s.invited" type="primary" plain size="small" @click="openInvite(s.user)">邀请</el-button>
-            <span v-else class="invited">已邀请</span>
+            <template v-if="!c.match.veto">
+              <el-button v-if="!c.invited" type="primary" plain size="small" @click="openInvite(c.user)">邀请</el-button>
+              <span v-else class="invited">已邀请</span>
+            </template>
           </div>
         </div>
       </el-card>
@@ -574,6 +582,19 @@ watch(() => route.params.id, load, { immediate: true })
 
 .hint.top {
   margin: 0 0 4px;
+}
+
+.candidate-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.candidate-match {
+  margin-top: 10px;
+}
+
+.vetoed {
+  opacity: 0.6;
 }
 
 .invited {

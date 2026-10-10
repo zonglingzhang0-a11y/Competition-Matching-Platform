@@ -327,6 +327,93 @@ export interface Seeker {
   invited: boolean
 }
 
+// ---------- 问卷 ----------
+
+export type QuestionType = 'SINGLE' | 'MULTI' | 'RANKING' | 'SLIDER' | 'SLOT_GRID' | 'TEXT' | 'PLEDGE'
+
+export interface SurveyOption {
+  value: string
+  label: string
+  group: string | null
+}
+
+export interface SurveyQuestion {
+  code: string
+  part: 'GENERAL' | 'COMPETITION'
+  dimension: string | null
+  type: QuestionType
+  title: string
+  note: string | null
+  options: SurveyOption[] | null
+  settings: Record<string, unknown>
+  required: boolean
+  inQuick: boolean
+}
+
+export interface Survey {
+  version: string
+  questions: SurveyQuestion[]
+}
+
+/** 题目代码 → 答案 */
+export type Answers = Record<string, unknown>
+
+export interface MyAnswers {
+  answers: Answers
+  quick: boolean
+  submittedAt: string
+  pledgedAt: string | null
+}
+
+export interface EditionAnswers {
+  editionId: number
+  competitionName: string
+  editionTitle: string
+  roles: string[]
+  mine: MyAnswers | null
+}
+
+// ---------- 匹配推荐 ----------
+
+export interface MatchResult {
+  /** 0–100 */
+  score: number
+  k: number
+  /** 问卷数据完整度 0–1 */
+  completeness: number
+  dimensions: { key: string; name: string; score: number | null }[]
+  reasons: string[]
+  talkAbout: string | null
+  warnings: string[]
+  veto: string | null
+}
+
+export interface RecommendedTeam {
+  team: TeamSummary
+  match: MatchResult
+}
+
+export interface TeamRecommendations {
+  editionId: number
+  /** 已经在这一届的某支队里 */
+  currentTeamId: number | null
+  generalSurveyDone: boolean
+  editionSurveyDone: boolean
+  items: RecommendedTeam[]
+  note: string | null
+}
+
+export interface RecommendedUser {
+  user: UserBrief
+  invited: boolean
+  match: MatchResult
+}
+
+export interface HomeRecommendation {
+  edition: EditionRef
+  teams: RecommendedTeam[]
+}
+
 // ---------- 站内信 ----------
 
 export interface Notification {

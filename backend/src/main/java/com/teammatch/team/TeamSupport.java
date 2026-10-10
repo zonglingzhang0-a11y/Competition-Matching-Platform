@@ -70,7 +70,7 @@ public class TeamSupport {
         }
     }
 
-    Team requireTeam(long teamId) {
+    public Team requireTeam(long teamId) {
         Team t = teamMapper.selectById(teamId);
         if (t == null || t.getStatus() == Team.Status.DISBANDED) {
             throw new BizException(404, "这支队伍不存在或已解散");
@@ -78,7 +78,7 @@ public class TeamSupport {
         return t;
     }
 
-    Team requireCaptain(long userId, long teamId) {
+    public Team requireCaptain(long userId, long teamId) {
         Team t = requireTeam(teamId);
         if (!t.getCaptainId().equals(userId)) {
             throw new BizException(403, "只有队长能这样操作");
@@ -86,7 +86,7 @@ public class TeamSupport {
         return t;
     }
 
-    CompetitionEdition requireEdition(long editionId) {
+    public CompetitionEdition requireEdition(long editionId) {
         CompetitionEdition e = editionMapper.selectById(editionId);
         if (e == null || e.getStatus() != CompetitionEdition.Status.PUBLISHED) {
             throw new BizException(404, "这一届比赛不存在或还没发布");
@@ -94,12 +94,12 @@ public class TeamSupport {
         return e;
     }
 
-    EditionPhase phase(CompetitionEdition e) {
+    public EditionPhase phase(CompetitionEdition e) {
         return EditionPhase.of(e.getRegistrationStart(), e.getRegistrationEnd(), now());
     }
 
     /** 这个人在这一届里正在哪支队（没有就返回 null） */
-    TeamMember activeMembership(long userId, long editionId) {
+    public TeamMember activeMembership(long userId, long editionId) {
         return memberMapper.selectOne(new LambdaQueryWrapper<TeamMember>()
                 .eq(TeamMember::getUserId, userId)
                 .eq(TeamMember::getEditionId, editionId)
@@ -147,7 +147,12 @@ public class TeamSupport {
      * 这个人现在不能加入这支队的原因；能加入返回 null。
      * self：是不是本人在操作，决定提示里说"你"还是"对方"。
      */
-    String joinBlockReason(Team t, CompetitionEdition e, SysUser user, boolean self) {
+    public String joinBlockReason(Team t, CompetitionEdition e, SysUser user, boolean self) {
+        return joinBlockReason(t, e, user, self, true);
+    }
+
+    /** checkVerified = false：推荐时先不看认证，没认证的人也能看到推荐，申请时再拦 */
+    public String joinBlockReason(Team t, CompetitionEdition e, SysUser user, boolean self, boolean checkVerified) {
         String who = self ? "你" : "对方";
         if (t.getStatus() == Team.Status.FULL) {
             return "队伍已经满员了";
@@ -158,7 +163,7 @@ public class TeamSupport {
         if (phase(e) == EditionPhase.CLOSED) {
             return "这届比赛报名已截止";
         }
-        if (!userService.isVerified(user)) {
+        if (checkVerified && !userService.isVerified(user)) {
             return self ? "请先完成学校认证" : "对方还没完成学校认证";
         }
         TeamMember current = activeMembership(user.getId(), e.getId());
@@ -239,7 +244,7 @@ public class TeamSupport {
         return toRef(e, c);
     }
 
-    Map<Long, EditionRef> editionRefs(Collection<Long> editionIds) {
+    public Map<Long, EditionRef> editionRefs(Collection<Long> editionIds) {
         if (editionIds.isEmpty()) {
             return Map.of();
         }

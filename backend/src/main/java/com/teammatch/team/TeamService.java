@@ -345,7 +345,8 @@ public class TeamService {
 
     // ---------- 内部 ----------
 
-    private List<TeamSummary> summaries(List<Team> teams) {
+    /** 推荐列表也用这个，保证和队伍列表显示的一样 */
+    public List<TeamSummary> summaries(List<Team> teams) {
         if (teams.isEmpty()) {
             return List.of();
         }

@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Link } from '@element-plus/icons-vue'
 import EditionTeams from '@/components/EditionTeams.vue'
+import RecommendedTeams from '@/components/RecommendedTeams.vue'
 import { followEdition, getCompetition, unfollowEdition } from '@/api/competition'
 import type { CompetitionDetail, CompetitionNode, EditionDetail } from '@/types/api'
 import { LEVEL_LABEL, NODE_TYPE_LABEL, PHASE } from '@/utils/labels'
@@ -130,6 +131,7 @@ onMounted(load)
 
             <el-link v-if="e.noticeUrl" :href="e.noticeUrl" target="_blank" :icon="Link">查看官方通知</el-link>
 
+            <RecommendedTeams :edition="e" />
             <EditionTeams :edition="e" />
           </el-tab-pane>
         </el-tabs>
