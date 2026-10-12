@@ -158,6 +158,7 @@ public class TeamService {
     @Transactional
     public void disband(long userId, long teamId) {
         Team t = support.requireCaptain(userId, teamId);
+        requireNotFinished(t);
         List<TeamMember> members = support.activeMembers(teamId);
         memberMapper.update(new LambdaUpdateWrapper<TeamMember>()
                 .eq(TeamMember::getTeamId, teamId)
@@ -180,6 +181,7 @@ public class TeamService {
     @Transactional
     public void leave(long userId, long teamId) {
         Team t = support.requireTeam(teamId);
+        requireNotFinished(t);
         if (t.getCaptainId().equals(userId)) {
             throw new BizException("队长不能直接退出：先把队长转给其他队员，或者解散队伍");
         }
@@ -195,6 +197,7 @@ public class TeamService {
     @Transactional
     public void removeMember(long captainId, long teamId, long memberUserId) {
         Team t = support.requireCaptain(captainId, teamId);
+        requireNotFinished(t);
         if (memberUserId == captainId) {
             throw new BizException("不能把自己移出队伍");
         }
@@ -230,7 +233,7 @@ public class TeamService {
 
     @Transactional
     public long addNeed(long userId, long teamId, NeedForm form) {
-        support.requireCaptain(userId, teamId);
+        requireNotFinished(support.requireCaptain(userId, teamId));
         checkSkills(form.skills());
         TeamNeed need = new TeamNeed();
         need.setTeamId(teamId);
@@ -344,6 +347,13 @@ public class TeamService {
     }
 
     // ---------- 内部 ----------
+
+    /** 比赛结束后队伍归档：成员和招募都不能再变，互评的参与人也就固定了 */
+    private static void requireNotFinished(Team t) {
+        if (t.getStatus() == Team.Status.FINISHED) {
+            throw new BizException(409, "比赛已经结束，队伍已经归档，不能再改动成员和招募");
+        }
+    }
 
     /** 推荐列表也用这个，保证和队伍列表显示的一样 */
     public List<TeamSummary> summaries(List<Team> teams) {

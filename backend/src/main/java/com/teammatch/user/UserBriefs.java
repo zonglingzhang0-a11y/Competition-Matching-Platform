@@ -22,9 +22,13 @@ public class UserBriefs {
 
     private final BriefMapper mapper;
 
-    /** 给别人看的简要信息，不含联系方式 */
+    /**
+     * 给别人看的简要信息，不含联系方式。
+     *
+     * @param credit 互评得出的信用分 0–100，没有互评记录（新用户）为空
+     */
     public record UserBrief(Long id, String nickname, Long schoolId, String schoolName, String major,
-                            Integer enrollYear, List<SkillLevel> skills) {
+                            Integer enrollYear, List<SkillLevel> skills, Double credit) {
     }
 
     /** 联系方式，只给队友看 */
@@ -40,7 +44,7 @@ public class UserBriefs {
                 Collectors.mapping(r -> new SkillLevel(r.skillId(), r.name(), r.category(), r.level()), Collectors.toList())));
         return mapper.basics(userIds).stream()
                 .map(b -> new UserBrief(b.id(), b.nickname(), b.schoolId(), b.schoolName(), b.major(), b.enrollYear(),
-                        skills.getOrDefault(b.id(), List.of())))
+                        skills.getOrDefault(b.id(), List.of()), b.credit()))
                 .collect(Collectors.toMap(UserBrief::id, Function.identity()));
     }
 
@@ -56,7 +60,8 @@ public class UserBriefs {
                 c -> new Contact(c.realName(), c.contactWechat(), c.contactQq())));
     }
 
-    public record BasicRow(Long id, String nickname, Long schoolId, String schoolName, String major, Integer enrollYear) {
+    public record BasicRow(Long id, String nickname, Long schoolId, String schoolName, String major, Integer enrollYear,
+                           Double credit) {
     }
 
     public record SkillRow(Long userId, Long skillId, String name, String category, Integer level) {
@@ -70,10 +75,12 @@ public class UserBriefs {
 
         @Select("""
                 <script>
-                SELECT u.id, u.nickname, u.school_id AS schoolId, s.name AS schoolName, p.major, p.enroll_year AS enrollYear
+                SELECT u.id, u.nickname, u.school_id AS schoolId, s.name AS schoolName, p.major, p.enroll_year AS enrollYear,
+                       c.score AS credit
                 FROM sys_user u
                 LEFT JOIN school s ON s.id = u.school_id
                 LEFT JOIN user_profile p ON p.user_id = u.id
+                LEFT JOIN user_credit c ON c.user_id = u.id
                 WHERE u.id IN
                 <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
                 </script>

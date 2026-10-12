@@ -47,7 +47,7 @@ public class TeamSupport {
     private final UserService userService;
     private final Clock clock;
 
-    LocalDateTime now() {
+    public LocalDateTime now() {
         return LocalDateTime.now(clock);
     }
 
@@ -106,7 +106,7 @@ public class TeamSupport {
                 .eq(TeamMember::getStatus, TeamMember.Status.ACTIVE));
     }
 
-    List<TeamMember> activeMembers(long teamId) {
+    public List<TeamMember> activeMembers(long teamId) {
         return memberMapper.selectList(new LambdaQueryWrapper<TeamMember>()
                 .eq(TeamMember::getTeamId, teamId)
                 .eq(TeamMember::getStatus, TeamMember.Status.ACTIVE)
@@ -197,7 +197,7 @@ public class TeamSupport {
     }
 
     /** 队伍满员、停止招募或解散时，发给这支队、和这支队发出的待处理记录都作废 */
-    void expirePendingOfTeam(long teamId) {
+    public void expirePendingOfTeam(long teamId) {
         applicationMapper.update(new LambdaUpdateWrapper<TeamApplication>()
                 .eq(TeamApplication::getTeamId, teamId)
                 .eq(TeamApplication::getStatus, TeamApplication.Status.PENDING)
