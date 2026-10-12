@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowDown, Bell } from '@element-plus/icons-vue'
+import { useAdminStore } from '@/stores/admin'
 import { useNotificationStore } from '@/stores/notification'
 import { useUserStore } from '@/stores/user'
 
@@ -9,6 +10,13 @@ const route = useRoute()
 const router = useRouter()
 const user = useUserStore()
 const notifications = useNotificationStore()
+
+const admin = useAdminStore()
+
+/** 管理员菜单上的待审核数，切换页面时刷新 */
+function refreshPending() {
+  if (user.isAdmin) admin.refresh()
+}
 
 /** 详情页也高亮对应的菜单 */
 const activeMenu = computed(() => {
@@ -23,9 +31,18 @@ async function logout() {
   router.replace({ name: 'login' })
 }
 
-onMounted(notifications.start)
+onMounted(() => {
+  notifications.start()
+  refreshPending()
+})
 onBeforeUnmount(notifications.stop)
-watch(() => route.fullPath, notifications.refresh)
+watch(
+  () => route.fullPath,
+  () => {
+    notifications.refresh()
+    refreshPending()
+  },
+)
 </script>
 
 <template>
@@ -39,6 +56,20 @@ watch(() => route.fullPath, notifications.refresh)
         <el-menu-item index="/calendar">日历</el-menu-item>
         <el-menu-item index="/profile">我的档案</el-menu-item>
         <el-menu-item index="/verify">身份认证</el-menu-item>
+        <el-sub-menu v-if="user.isAdmin" index="admin">
+          <template #title>
+            管理后台
+            <span v-if="admin.pendingReviews > 0" class="count" :aria-label="`${admin.pendingReviews} 条待审核`">{{ admin.pendingReviews }}</span>
+          </template>
+          <el-menu-item index="/admin">数据看板</el-menu-item>
+          <el-menu-item index="/admin/verifications">
+            认证审核
+            <span v-if="admin.pendingReviews > 0" class="count">{{ admin.pendingReviews }}</span>
+          </el-menu-item>
+          <el-menu-item index="/admin/competitions">比赛库管理</el-menu-item>
+          <el-menu-item index="/admin/match-config">匹配配置</el-menu-item>
+          <el-menu-item index="/admin/users">账号管理</el-menu-item>
+        </el-sub-menu>
       </el-menu>
       <div class="right">
         <el-tag v-if="user.me?.verifyStatus === 'VERIFIED'" type="success" size="small">
@@ -116,5 +147,21 @@ watch(() => route.fullPath, notifications.refresh)
 
 .main {
   padding: 24px 16px;
+}
+
+/* 菜单上的待审核数 */
+.count {
+  display: inline-block;
+  min-width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--el-color-danger);
+  color: #fff;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  box-sizing: border-box;
 }
 </style>

@@ -521,3 +521,198 @@ export interface VerifyResult {
   verifiedUntil: string | null
   message: string
 }
+
+export interface LatestVerifyRequest {
+  status: ReviewStatus
+  eduEmail: string | null
+  reviewNote: string | null
+  reviewedAt: string | null
+  createdAt: string
+}
+
+// ---------- 管理端 ----------
+
+export type ReviewStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+export type UserStatus = 'ACTIVE' | 'BANNED'
+export type EditionStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+export type MatchPreset = 'DEFAULT' | 'SHORT_INTENSIVE' | 'LONG_TERM'
+
+export interface ReviewItem {
+  id: number
+  method: 'EDU_EMAIL' | 'SCREENSHOT'
+  status: ReviewStatus
+  eduEmail: string | null
+  /** 可以收录的后缀，从长到短 */
+  domains: string[]
+  user: {
+    id: number
+    nickname: string | null
+    email: string | null
+    realName: string | null
+    major: string | null
+    enrollYear: number | null
+  }
+  school: Option | null
+  reviewer: string | null
+  reviewNote: string | null
+  reviewedAt: string | null
+  createdAt: string
+}
+
+export interface ApproveForm {
+  schoolId?: number
+  newSchoolName?: string
+  province?: string
+  city?: string
+  domain: string
+  note?: string
+}
+
+export interface ApproveResult {
+  schoolName: string
+  alsoApproved: number
+}
+
+export interface SchoolRow {
+  id: number
+  name: string
+  province: string | null
+  city: string | null
+  domains: { id: number; domain: string }[]
+  verifiedUsers: number
+}
+
+export interface SchoolForm {
+  name: string
+  province?: string
+  city?: string
+}
+
+export interface AdminUserRow {
+  id: number
+  email: string
+  nickname: string
+  role: UserRole
+  status: UserStatus
+  verifyStatus: VerifyStatus
+  schoolName: string | null
+  createdAt: string
+  lastLoginAt: string | null
+}
+
+export interface EditionForm {
+  year: number
+  title: string
+  teamMin: number
+  teamMax: number
+  sameSchoolRequired: boolean
+  advisorRequired: boolean
+  englishRequired: boolean
+  registrationStart: string | null
+  registrationEnd: string | null
+  noticeUrl: string | null
+  status: EditionStatus
+}
+
+export interface AdminEditionRow extends EditionForm {
+  id: number
+  phase: EditionPhase
+  teams: number
+  nodes: number
+}
+
+export interface CompetitionForm {
+  name: string
+  shortName: string | null
+  organizer: string | null
+  category: string
+  level: CompetitionLevel
+  inCaheList: boolean
+  officialUrl: string | null
+  description: string | null
+  roleTemplateId: number | null
+  matchPreset: MatchPreset
+}
+
+export interface AdminCompetitionRow extends CompetitionForm {
+  id: number
+  editions: AdminEditionRow[]
+}
+
+export interface NodeForm {
+  title: string
+  nodeType: NodeType
+  startAt: string
+  endAt: string | null
+  allDay: boolean
+  startLatestAt: string | null
+  endMode: EndMode
+  endLatestAt: string | null
+  busy: boolean
+  note: string | null
+}
+
+export interface RoleTemplate {
+  id: number
+  name: string
+  roles: string[]
+}
+
+export interface Overview {
+  users: number
+  verifiedUsers: number
+  newUsers7d: number
+  pendingVerify: number
+  surveyDone: number
+  teams: Partial<Record<TeamStatus, number>>
+  openSlots: number
+  applications: Partial<Record<AppStatus, number>>
+  competitions: number
+  openEditions: number
+}
+
+export interface EditionStat {
+  editionId: number
+  competitionName: string
+  editionTitle: string
+  phase: EditionPhase
+  registrationEnd: string | null
+  recruitingTeams: number
+  formedTeams: number
+  openSlots: number
+  seekers: number
+  followers: number
+}
+
+export interface SkillGap {
+  skillId: number
+  name: string
+  category: string
+  demand: number
+  supply: number
+  /** [入门, 熟练, 精通] */
+  supplyByLevel: [number, number, number]
+  gap: number
+}
+
+export interface PresetConfig {
+  preset: MatchPreset
+  config: string | null
+  updatedAt: string | null
+  updatedBy: string | null
+}
+
+export interface ConfigQuestion {
+  code: string
+  part: 'GENERAL' | 'COMPETITION'
+  type: QuestionType
+  title: string
+  options: SurveyOption[] | null
+}
+
+export interface ConfigPage {
+  versionName: string
+  questions: ConfigQuestion[]
+  presets: PresetConfig[]
+  scorers: string[]
+}

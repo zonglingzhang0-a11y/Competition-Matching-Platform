@@ -10,6 +10,7 @@ export const useUserStore = defineStore('user', () => {
 
   const isLoggedIn = computed(() => !!token.value)
   const isVerified = computed(() => me.value?.verifyStatus === 'VERIFIED')
+  const isAdmin = computed(() => me.value?.role === 'ADMIN')
 
   function applyLogin(res: LoginResponse) {
     token.value = res.token
@@ -44,5 +45,5 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  return { token, me, isLoggedIn, isVerified, login, register, refreshMe, clear, logout }
+  return { token, me, isLoggedIn, isVerified, isAdmin, login, register, refreshMe, clear, logout }
 })

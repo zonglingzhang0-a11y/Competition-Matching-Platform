@@ -1,7 +1,7 @@
 -- 竞赛组队匹配平台 · 演示数据
 -- 在 schema.sql、seed.sql 之后执行，只用于本地演示和答辩，不要导入正式环境。
 --
--- 演示账号（都已经通过"示例大学"的教育邮箱认证），密码统一是 demo1234：
+-- 演示账号（除了吴迪和郑好，都已经通过"示例大学"的教育邮箱认证），密码统一是 demo1234：
 --   linxiao@demo.local   林晓    主角：还没组队，关注了数学建模和计算机设计大赛，看"为你推荐"
 --   chen@demo.local      陈一舟  "数模冲刺队"队长，在招编程和论文，收到了孙悦的申请
 --   wang@demo.local      王思远  "周末慢慢来"队长（数学建模），"计设作品组"队长（计算机设计大赛）
@@ -10,7 +10,9 @@
 --   sun@demo.local       孙悦    还没组队，擅长论文排版，向"数模冲刺队"发了申请
 --   li@demo.local        李想    还没组队，只想先体验（对冲国一的队伍会被一票否决）
 --   zhou@demo.local      周可    还没组队，没填问卷（匹配度显示 50 分）
---   admin@demo.local     管理员  可以调管理员接口
+--   wu@demo.local        吴迪    教育邮箱的学校平台还没收录，在等管理员审核（演示"认证审核"）
+--   zheng@demo.local     郑好    和吴迪同校，管理员通过吴迪、收录邮箱后缀时会一起通过
+--   admin@demo.local     管理员  能进"管理后台"：数据看板、认证审核、比赛库管理、匹配配置、账号管理
 
 SET NAMES utf8mb4;
 USE team_match;
@@ -40,6 +42,8 @@ INSERT INTO sys_user (email, password_hash, nickname, role, status, school_id, v
 ('sun@demo.local', @pwd, '孙悦', 'STUDENT', 'ACTIVE', @school, 'VERIFIED', '2027-08-31'),
 ('li@demo.local', @pwd, '李想', 'STUDENT', 'ACTIVE', @school, 'VERIFIED', '2027-08-31'),
 ('zhou@demo.local', @pwd, '周可', 'STUDENT', 'ACTIVE', @school, 'VERIFIED', '2027-08-31'),
+('wu@demo.local', @pwd, '吴迪', 'STUDENT', 'ACTIVE', NULL, 'PENDING', NULL),
+('zheng@demo.local', @pwd, '郑好', 'STUDENT', 'ACTIVE', NULL, 'PENDING', NULL),
 ('admin@demo.local', @pwd, '管理员', 'ADMIN', 'ACTIVE', NULL, 'NONE', NULL);
 
 SET @lin = (SELECT id FROM sys_user WHERE email = 'linxiao@demo.local');
@@ -50,6 +54,8 @@ SET @qian = (SELECT id FROM sys_user WHERE email = 'qian@demo.local');
 SET @sun = (SELECT id FROM sys_user WHERE email = 'sun@demo.local');
 SET @li = (SELECT id FROM sys_user WHERE email = 'li@demo.local');
 SET @zhou = (SELECT id FROM sys_user WHERE email = 'zhou@demo.local');
+SET @wu = (SELECT id FROM sys_user WHERE email = 'wu@demo.local');
+SET @zheng = (SELECT id FROM sys_user WHERE email = 'zheng@demo.local');
 SET @admin = (SELECT id FROM sys_user WHERE email = 'admin@demo.local');
 
 INSERT INTO user_profile (user_id, real_name, major, enroll_year, degree, bio, contact_wechat) VALUES
@@ -61,7 +67,14 @@ INSERT INTO user_profile (user_id, real_name, major, enroll_year, degree, bio, c
 (@sun, '孙悦', '新闻学', 2023, 'UNDERGRAD', 'LaTeX 和论文写作都比较熟。', 'sun_demo'),
 (@li, '李想', '工商管理', 2024, 'UNDERGRAD', '第一次参赛，想先体验一下。', 'li_demo'),
 (@zhou, '周可', '电子信息工程', 2024, 'UNDERGRAD', NULL, NULL),
+(@wu, '吴迪', '自动化', 2024, 'UNDERGRAD', '刚转学过来，想找队参加电子设计竞赛。', NULL),
+(@zheng, '郑好', '物联网工程', 2023, 'UNDERGRAD', NULL, NULL),
 (@admin, NULL, NULL, NULL, NULL, NULL, NULL);
+
+-- 吴迪和郑好的教育邮箱已经验证过能收信，但 dhu-demo.edu.cn 这所（虚构的）学校平台还没收录，所以在排队等审核
+INSERT INTO verification_request (user_id, method, status, edu_email, created_at) VALUES
+(@wu, 'EDU_EMAIL', 'PENDING', 'wudi@stu.dhu-demo.edu.cn', NOW() - INTERVAL 1 DAY),
+(@zheng, 'EDU_EMAIL', 'PENDING', 'zhenghao@dhu-demo.edu.cn', NOW() - INTERVAL 3 HOUR);
 
 INSERT INTO user_skill (user_id, skill_id, level)
 SELECT u.id, s.id, x.level FROM (

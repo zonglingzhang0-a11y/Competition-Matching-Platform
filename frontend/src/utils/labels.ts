@@ -1,6 +1,19 @@
 // 枚举值对应的中文和标签颜色
 
-import type { AppStatus, CompetitionLevel, EditionPhase, MeetingMode, NodeType, TeamStatus } from '@/types/api'
+import type {
+  AppStatus,
+  CompetitionLevel,
+  EditionPhase,
+  EditionStatus,
+  MatchPreset,
+  MeetingMode,
+  NodeType,
+  ReviewStatus,
+  TeamStatus,
+  UserRole,
+  UserStatus,
+  VerifyStatus,
+} from '@/types/api'
 
 type TagType = 'primary' | 'success' | 'info' | 'warning' | 'danger'
 
@@ -87,3 +100,54 @@ export const AWARD_SUGGESTIONS = [
   '校级奖项',
   '成功参赛',
 ]
+
+// ---------- 管理端 ----------
+
+export const EDITION_STATUS: Record<EditionStatus, { label: string; type: TagType }> = {
+  DRAFT: { label: '草稿', type: 'info' },
+  PUBLISHED: { label: '已发布', type: 'success' },
+  ARCHIVED: { label: '已归档', type: 'info' },
+}
+
+export const REVIEW_STATUS: Record<ReviewStatus, { label: string; type: TagType }> = {
+  PENDING: { label: '待审核', type: 'warning' },
+  APPROVED: { label: '已通过', type: 'success' },
+  REJECTED: { label: '未通过', type: 'danger' },
+}
+
+export const PRESET_LABEL: Record<MatchPreset, string> = {
+  DEFAULT: '默认',
+  SHORT_INTENSIVE: '短期集中型',
+  LONG_TERM: '长周期型',
+}
+
+export const ROLE_LABEL: Record<UserRole, string> = {
+  STUDENT: '学生',
+  TEACHER: '老师',
+  ADMIN: '管理员',
+}
+
+export const USER_STATUS: Record<UserStatus, { label: string; type: TagType }> = {
+  ACTIVE: { label: '正常', type: 'success' },
+  BANNED: { label: '已停用', type: 'danger' },
+}
+
+export const VERIFY_STATUS: Record<VerifyStatus, { label: string; type: TagType }> = {
+  NONE: { label: '未认证', type: 'info' },
+  PENDING: { label: '待确认', type: 'warning' },
+  VERIFIED: { label: '已认证', type: 'success' },
+}
+
+/** 打分方式的中文说明，匹配配置页用 */
+export const SCORER_LABEL: Record<string, string> = {
+  single: '相容矩阵',
+  slider: '数值接近',
+  tags: '标签重合',
+  ranking: '排序相近',
+  setIntersect: '有无交集',
+  slotOverlap: '时段重叠',
+  skillComplement: '技能补缺',
+  roleComplement: '角色补缺',
+  roleDiversity: '角色多样',
+  mentorResource: '传帮带',
+}

@@ -43,6 +43,29 @@ const router = createRouter({
           name: 'survey-edition',
           component: () => import('@/views/SurveyView.vue'),
         },
+        {
+          path: 'admin',
+          meta: { admin: true },
+          children: [
+            { path: '', name: 'admin-dashboard', component: () => import('@/views/admin/DashboardView.vue') },
+            {
+              path: 'verifications',
+              name: 'admin-verifications',
+              component: () => import('@/views/admin/VerificationsView.vue'),
+            },
+            {
+              path: 'competitions',
+              name: 'admin-competitions',
+              component: () => import('@/views/admin/CompetitionsView.vue'),
+            },
+            {
+              path: 'match-config',
+              name: 'admin-match-config',
+              component: () => import('@/views/admin/MatchConfigView.vue'),
+            },
+            { path: 'users', name: 'admin-users', component: () => import('@/views/admin/UsersView.vue') },
+          ],
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },
@@ -65,6 +88,10 @@ router.beforeEach(async (to) => {
       user.clear()
       return { name: 'login', query: { redirect: to.fullPath } }
     }
+  }
+  // 管理页面只给管理员；后端接口本身也会检查，这里只是不让普通用户看到空页面
+  if (to.matched.some((r) => r.meta.admin) && !user.isAdmin) {
+    return { name: 'home' }
   }
   return true
 })

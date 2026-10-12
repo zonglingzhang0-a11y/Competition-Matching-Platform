@@ -1,12 +1,26 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import SendCodeButton from '@/components/SendCodeButton.vue'
-import { confirmEdu, sendEduCode } from '@/api/auth'
+import { confirmEdu, latestVerify, sendEduCode } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
+import type { LatestVerifyRequest } from '@/types/api'
 import { showError } from '@/utils/feedback'
 
 const user = useUserStore()
+
+/** 最近一次申请，没通过时显示原因 */
+const latest = ref<LatestVerifyRequest | null>(null)
+
+async function loadLatest() {
+  try {
+    latest.value = await latestVerify()
+  } catch {
+    // 拿不到就不显示原因，不影响认证
+  }
+}
+
+onMounted(loadLatest)
 
 const formRef = ref<FormInstance>()
 const form = reactive({ eduEmail: '', code: '' })
@@ -41,6 +55,7 @@ async function submit() {
     if (result.verifyStatus === 'VERIFIED') ElMessage.success(result.message)
     else ElMessage.info(result.message)
     await user.refreshMe()
+    await loadLatest()
     form.code = ''
   } catch (e) {
     showError(e)
@@ -67,6 +82,14 @@ async function submit() {
         show-icon
         title="邮箱已验证，学校待确认"
         description="平台还没收录你所在学校的邮箱后缀，管理员确认后会通知你。"
+      />
+      <el-alert
+        v-else-if="latest?.status === 'REJECTED'"
+        type="error"
+        :closable="false"
+        show-icon
+        :title="`${latest.eduEmail ?? '上次的申请'} 没有通过审核`"
+        :description="`原因：${latest.reviewNote ?? '未说明'}。可以换一个学校邮箱重新认证。`"
       />
       <el-alert
         v-else
