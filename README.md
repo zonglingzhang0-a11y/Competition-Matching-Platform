@@ -33,6 +33,14 @@ mysql -uroot -p < sql/schema.sql
 mysql -uroot -p < sql/seed.sql
 ```
 
+Windows 的 PowerShell 不支持 `<`，而且 `mysql` 一般不在 PATH 里，要写全路径，在项目根目录下用 `source`，一次导一个文件：
+
+```powershell
+& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/schema.sql"
+```
+
+seed.sql、demo.sql 同理，把文件名换掉即可。
+
 **2. 启动后端**（端口 8090）
 
 把 `backend/src/main/resources/application-local.example.yml` 复制一份，改名为 `application-local.yml`，填上 MySQL 密码。这个文件不会被提交。
