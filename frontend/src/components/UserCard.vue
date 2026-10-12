@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { UserBrief } from '@/types/api'
-import { SKILL_LEVEL_LABEL } from '@/utils/labels'
+import { SKILL_LEVEL_LABEL, creditType } from '@/utils/labels'
 
 const props = withDefaults(defineProps<{ user: UserBrief; maxSkills?: number }>(), { maxSkills: 6 })
 
@@ -20,6 +20,18 @@ const skills = computed(() => props.user.skills.slice(0, props.maxSkills))
       <div class="name">
         {{ user.nickname }}
         <slot name="badge" />
+        <el-tag
+          v-if="user.credit != null"
+          size="small"
+          effect="plain"
+          :type="creditType(user.credit)"
+          title="赛后互评得出的信用分"
+        >
+          信用 {{ Math.round(user.credit) }}
+        </el-tag>
+        <el-tag v-else-if="user.credit === null" size="small" effect="plain" type="info" title="还没有互评记录">
+          新用户
+        </el-tag>
       </div>
       <div v-if="subtitle" class="sub">{{ subtitle }}</div>
       <div v-if="skills.length" class="skills">

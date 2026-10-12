@@ -201,6 +201,8 @@ export interface UserBrief {
   major: string | null
   enrollYear: number | null
   skills: SkillLevel[]
+  /** 互评得出的信用分 0–100，新用户为空 */
+  credit: number | null
 }
 
 export interface Contact {
@@ -274,6 +276,8 @@ export interface TeamDetail {
   needs: NeedView[]
   me: MyRelation
   createdAt: string
+  /** 比赛结束时录入的奖项 */
+  award: string | null
 }
 
 export interface TeamSummary {
@@ -715,4 +719,113 @@ export interface ConfigPage {
   questions: ConfigQuestion[]
   presets: PresetConfig[]
   scorers: string[]
+}
+
+// ---------- 互评、信用、举报 ----------
+
+export type RoundStatus = 'OPEN' | 'PUBLISHED'
+
+export interface RoundSummary {
+  id: number
+  teamId: number
+  teamName: string | null
+  competitionName: string | null
+  editionTitle: string | null
+  status: RoundStatus
+  closesAt: string
+  publishedAt: string | null
+  /** 我是不是已经给所有队友打完分 */
+  submitted: boolean
+  raters: number
+  participants: number
+}
+
+export interface ReviewTarget {
+  user: UserBrief
+  self: boolean
+  answers: number[] | null
+}
+
+export interface RoundForm {
+  round: RoundSummary
+  items: string[]
+  frequencies: string[]
+  targets: ReviewTarget[]
+  editable: boolean
+}
+
+export interface SubmitResult {
+  published: boolean
+  raters: number
+  participants: number
+}
+
+export interface CreditView {
+  score: number | null
+  ratedRounds: number
+  factor: number
+  suspendedUntil: string | null
+  itemsVisible: boolean
+  itemNames: string[]
+  items: number[] | null
+  selfItems: number[] | null
+  raters: number
+  rounds: RoundSummary[]
+}
+
+export type ReportTarget = 'USER' | 'TEAM'
+export type ReportReason = 'PLAGIARISM' | 'FORGERY' | 'ABUSE' | 'SPAM' | 'OTHER'
+export type ReportStatus = 'PENDING' | 'CONFIRMED' | 'DISMISSED'
+export type ReportAction = 'NONE' | 'SUSPEND_30' | 'BLOCK' | 'BAN' | 'CLOSE_TEAM'
+
+export interface MyReport {
+  id: number
+  targetType: ReportTarget
+  targetId: number
+  targetName: string
+  reason: ReportReason
+  detail: string | null
+  status: ReportStatus
+  resultNote: string | null
+  createdAt: string
+  handledAt: string | null
+}
+
+export interface ReportRow {
+  id: number
+  reporter: string
+  targetType: ReportTarget
+  targetId: number
+  targetName: string
+  /** 用户的邮箱、队伍的队长 */
+  targetSub: string | null
+  reason: ReportReason
+  detail: string | null
+  status: ReportStatus
+  handler: string | null
+  resultNote: string | null
+  createdAt: string
+  handledAt: string | null
+  /** 针对同一对象的举报一共几条 */
+  sameTarget: number
+}
+
+export interface SuspendedRow {
+  userId: number
+  nickname: string
+  email: string | null
+  score: number | null
+  ratedRounds: number
+  suspendedUntil: string
+  permanent: boolean
+}
+
+export interface FlaggedRow {
+  reviewId: number
+  roundId: number
+  teamName: string | null
+  rater: string
+  ratee: string
+  answers: number[]
+  submittedAt: string
 }

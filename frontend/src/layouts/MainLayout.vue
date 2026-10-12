@@ -25,6 +25,11 @@ const activeMenu = computed(() => {
   return route.path
 })
 
+function onCommand(command: string) {
+  if (command === 'logout') logout()
+  else router.push({ name: command })
+}
+
 async function logout() {
   notifications.stop()
   await user.logout()
@@ -59,7 +64,7 @@ watch(
         <el-sub-menu v-if="user.isAdmin" index="admin">
           <template #title>
             管理后台
-            <span v-if="admin.pendingReviews > 0" class="count" :aria-label="`${admin.pendingReviews} 条待审核`">{{ admin.pendingReviews }}</span>
+            <span v-if="admin.pendingTotal > 0" class="count" :aria-label="`${admin.pendingTotal} 条待处理`">{{ admin.pendingTotal }}</span>
           </template>
           <el-menu-item index="/admin">数据看板</el-menu-item>
           <el-menu-item index="/admin/verifications">
@@ -67,6 +72,10 @@ watch(
             <span v-if="admin.pendingReviews > 0" class="count">{{ admin.pendingReviews }}</span>
           </el-menu-item>
           <el-menu-item index="/admin/competitions">比赛库管理</el-menu-item>
+          <el-menu-item index="/admin/reports">
+            举报与信用
+            <span v-if="admin.pendingReports > 0" class="count">{{ admin.pendingReports }}</span>
+          </el-menu-item>
           <el-menu-item index="/admin/match-config">匹配配置</el-menu-item>
           <el-menu-item index="/admin/users">账号管理</el-menu-item>
         </el-sub-menu>
@@ -80,14 +89,15 @@ watch(
             <el-icon :size="18"><Bell /></el-icon>
           </el-badge>
         </router-link>
-        <el-dropdown trigger="click" @command="logout">
+        <el-dropdown trigger="click" @command="onCommand">
           <span class="user">
             {{ user.me?.nickname }}
             <el-icon><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+              <el-dropdown-item command="reviews">互评与信用</el-dropdown-item>
+              <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>

@@ -303,7 +303,7 @@ public class TeamService {
         List<NeedView> needs = needViews(List.of(teamId), false).getOrDefault(teamId, List.of());
         return new TeamDetail(t.getId(), t.getName(), t.getIntro(), t.getStatus(), t.getMaxMembers(),
                 t.getMeetingMode(), members.size(), support.editionRef(e), t.getCaptainId(), memberViews, needs,
-                relation(viewerId, t, e, viewerIsMember), t.getCreatedAt());
+                relation(viewerId, t, e, viewerIsMember), t.getCreatedAt(), t.getAward());
     }
 
     /** 某一届的队伍，招募中的排前面 */

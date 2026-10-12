@@ -8,6 +8,9 @@ import type {
   MatchPreset,
   MeetingMode,
   NodeType,
+  ReportAction,
+  ReportReason,
+  ReportStatus,
   ReviewStatus,
   TeamStatus,
   UserRole,
@@ -150,4 +153,33 @@ export const SCORER_LABEL: Record<string, string> = {
   roleComplement: '角色补缺',
   roleDiversity: '角色多样',
   mentorResource: '传帮带',
+}
+
+// ---------- 互评、信用、举报 ----------
+
+export const REPORT_REASON: Record<ReportReason, string> = {
+  PLAGIARISM: '抄袭',
+  FORGERY: '伪造材料',
+  ABUSE: '辱骂骚扰',
+  SPAM: '广告刷屏',
+  OTHER: '其他',
+}
+
+export const REPORT_STATUS: Record<ReportStatus, { label: string; type: TagType }> = {
+  PENDING: { label: '待处理', type: 'warning' },
+  CONFIRMED: { label: '属实', type: 'danger' },
+  DISMISSED: { label: '不属实', type: 'info' },
+}
+
+export const REPORT_ACTION: Record<ReportAction, string> = {
+  NONE: '只记录，不处理账号',
+  SUSPEND_30: '暂停推荐 30 天',
+  BLOCK: '不再出现在推荐里',
+  BAN: '停用账号',
+  CLOSE_TEAM: '关闭这支队的招募',
+}
+
+/** 信用分的颜色：85 以上绿色，70 以上橙色，再低红色 */
+export function creditType(score: number): TagType {
+  return score >= 85 ? 'success' : score >= 70 ? 'warning' : 'danger'
 }

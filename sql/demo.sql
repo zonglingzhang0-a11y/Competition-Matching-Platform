@@ -9,10 +9,13 @@
 --   qian@demo.local      钱多多  "国一冲冲冲"队员
 --   sun@demo.local       孙悦    还没组队，擅长论文排版，向"数模冲刺队"发了申请
 --   li@demo.local        李想    还没组队，只想先体验（对冲国一的队伍会被一票否决）
---   zhou@demo.local      周可    还没组队，没填问卷（匹配度显示 50 分）
+--   zhou@demo.local      周可    还没组队，没填问卷（匹配度接近 50 分），往届互评一般，推荐时会再打个折
 --   wu@demo.local        吴迪    教育邮箱的学校平台还没收录，在等管理员审核（演示"认证审核"）
 --   zheng@demo.local     郑好    和吴迪同校，管理员通过吴迪、收录邮箱后缀时会一起通过
---   admin@demo.local     管理员  能进"管理后台"：数据看板、认证审核、比赛库管理、匹配配置、账号管理
+--   admin@demo.local     管理员  能进"管理后台"：数据看板、认证审核、比赛库管理、匹配配置、账号管理、举报与信用
+--
+-- 往届数据（演示"互评与信用"）：陈一舟、孙悦、周可 2025 年组过队拿了省一，陈一舟和孙悦 2024 年也组过一次。
+-- 互评已经揭晓：陈一舟信用 95.4、孙悦 100、周可 61.1（被评为有时失联），周可在推荐里会被降分并提示。
 
 SET NAMES utf8mb4;
 USE team_match;
@@ -196,3 +199,73 @@ INSERT INTO team_application (team_id, user_id, direction, need_id, message, sta
 
 INSERT INTO notification (user_id, type, title, content, ref_type, ref_id) VALUES
 (@chen, 'APPLY_RECEIVED', '新的入队申请', '孙悦 申请加入「数模冲刺队」（论文写作与排版），去队伍页处理吧。', 'TEAM', @t_chen);
+
+-- ============================================================
+-- 往届：已经结束的队伍、互评和信用分（演示"互评与信用"）
+-- 陈一舟 2024、2025 各带过一支队，孙悦两次都在，周可只参加了 2025 年。
+-- 互评答案是 6 项行为的频率（0 从未 / 1 偶尔 / 2 有时 / 3 经常），信用分按 CreditCalculator 的规则算好写进去：
+--   陈一舟 2025：孙悦全"从未"100，周可"讨论不发言"偶尔 96.30 → 98.15；2024：孙悦"没按时交付"偶尔 92.59 → 两场平均 95.37
+--   孙悦 两场都是全"从未" → 100
+--   周可 2025：陈一舟 [2,1,1,1,0,0] 66.67，孙悦 [2,2,1,1,1,0] 55.56 → 61.11（推荐时的系数降到 0.844）
+-- ============================================================
+
+SET @math_c = (SELECT id FROM competition WHERE name = '全国大学生数学建模竞赛');
+
+INSERT INTO competition_edition (competition_id, year, title, team_min, team_max, same_school_required, advisor_required,
+                                 registration_start, registration_end, source, status) VALUES
+(@math_c, 2025, '2025 年（示例数据）', 1, 3, 1, 0, '2025-08-20 00:00:00', '2025-09-01 23:59:59', 'MANUAL', 'PUBLISHED'),
+(@math_c, 2024, '2024 年（示例数据）', 1, 3, 1, 0, '2024-08-20 00:00:00', '2024-09-01 23:59:59', 'MANUAL', 'PUBLISHED');
+
+SET @math25 = (SELECT id FROM competition_edition WHERE competition_id = @math_c AND year = 2025);
+SET @math24 = (SELECT id FROM competition_edition WHERE competition_id = @math_c AND year = 2024);
+
+INSERT INTO team (edition_id, name, captain_id, intro, status, max_members, meeting_mode, meeting_slots, award,
+                  award_recorded_at, created_at) VALUES
+(@math25, '去年的冲刺队', @chen, '2025 年一起打的国赛，拿了省一。', 'FINISHED', 3, 'MIXED', 0, '省级一等奖',
+ '2025-09-20 10:00:00', '2025-08-22 10:00:00'),
+(@math24, '第一次参赛', @chen, '两个人第一次打国赛。', 'FINISHED', 2, 'MIXED', 0, '省级三等奖',
+ '2024-09-20 10:00:00', '2024-08-22 10:00:00');
+
+SET @t25 = (SELECT id FROM team WHERE name = '去年的冲刺队');
+SET @t24 = (SELECT id FROM team WHERE name = '第一次参赛');
+
+INSERT INTO team_member (team_id, edition_id, user_id, role_name, is_captain, status, joined_at) VALUES
+(@t25, @math25, @chen, '建模', 1, 'ACTIVE', '2025-08-22 10:00:00'),
+(@t25, @math25, @sun, '论文写作与排版', 0, 'ACTIVE', '2025-08-23 10:00:00'),
+(@t25, @math25, @zhou, '编程', 0, 'ACTIVE', '2025-08-24 10:00:00'),
+(@t24, @math24, @chen, '建模', 1, 'ACTIVE', '2024-08-22 10:00:00'),
+(@t24, @math24, @sun, '论文写作与排版', 0, 'ACTIVE', '2024-08-23 10:00:00');
+
+-- 陈一舟手填的两条履历改成平台记录；孙悦、周可补上
+UPDATE user_experience SET team_id = @t25, source = 'PLATFORM', verified = 1
+WHERE user_id = @chen AND competition_id = @math_c AND year = 2025;
+UPDATE user_experience SET team_id = @t24, source = 'PLATFORM', verified = 1
+WHERE user_id = @chen AND competition_id = @math_c AND year = 2024;
+INSERT INTO user_experience (user_id, competition_id, team_id, title, year, award, source, verified) VALUES
+(@sun, @math_c, @t25, '全国大学生数学建模竞赛', 2025, '省级一等奖', 'PLATFORM', 1),
+(@sun, @math_c, @t24, '全国大学生数学建模竞赛', 2024, '省级三等奖', 'PLATFORM', 1),
+(@zhou, @math_c, @t25, '全国大学生数学建模竞赛', 2025, '省级一等奖', 'PLATFORM', 1);
+
+INSERT INTO peer_review_round (team_id, opens_at, closes_at, status, published_at) VALUES
+(@t25, '2025-09-20 10:00:00', '2025-09-27 10:00:00', 'PUBLISHED', '2025-09-22 21:30:00'),
+(@t24, '2024-09-20 10:00:00', '2024-09-27 10:00:00', 'PUBLISHED', '2024-09-21 20:00:00');
+
+SET @r25 = (SELECT id FROM peer_review_round WHERE team_id = @t25);
+SET @r24 = (SELECT id FROM peer_review_round WHERE team_id = @t24);
+
+INSERT INTO peer_review (round_id, rater_id, ratee_id, answers, submitted_at) VALUES
+(@r25, @chen, @sun, '[0,0,0,0,0,0]', '2025-09-21 20:00:00'),
+(@r25, @chen, @zhou, '[2,1,1,1,0,0]', '2025-09-21 20:00:00'),
+(@r25, @chen, @chen, '[0,0,0,0,0,0]', '2025-09-21 20:00:00'),
+(@r25, @sun, @chen, '[0,0,0,0,0,0]', '2025-09-22 12:00:00'),
+(@r25, @sun, @zhou, '[2,2,1,1,1,0]', '2025-09-22 12:00:00'),
+(@r25, @zhou, @chen, '[0,0,0,1,0,0]', '2025-09-22 21:30:00'),
+(@r25, @zhou, @sun, '[0,0,0,0,0,0]', '2025-09-22 21:30:00'),
+(@r25, @zhou, @zhou, '[0,0,0,0,0,0]', '2025-09-22 21:30:00'),
+(@r24, @chen, @sun, '[0,0,0,0,0,0]', '2024-09-21 19:00:00'),
+(@r24, @sun, @chen, '[0,1,0,0,0,0]', '2024-09-21 20:00:00');
+
+INSERT INTO user_credit (user_id, score, rated_rounds) VALUES
+(@chen, 95.37, 2),
+(@sun, 100.00, 2),
+(@zhou, 61.11, 1);

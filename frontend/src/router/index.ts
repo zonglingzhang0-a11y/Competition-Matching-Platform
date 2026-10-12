@@ -43,6 +43,12 @@ const router = createRouter({
           name: 'survey-edition',
           component: () => import('@/views/SurveyView.vue'),
         },
+        { path: 'reviews', name: 'reviews', component: () => import('@/views/ReviewsView.vue') },
+        {
+          path: 'reviews/:id(\\d+)',
+          name: 'review-form',
+          component: () => import('@/views/ReviewFormView.vue'),
+        },
         {
           path: 'admin',
           meta: { admin: true },
@@ -64,6 +70,7 @@ const router = createRouter({
               component: () => import('@/views/admin/MatchConfigView.vue'),
             },
             { path: 'users', name: 'admin-users', component: () => import('@/views/admin/UsersView.vue') },
+            { path: 'reports', name: 'admin-reports', component: () => import('@/views/admin/ReportsView.vue') },
           ],
         },
       ],

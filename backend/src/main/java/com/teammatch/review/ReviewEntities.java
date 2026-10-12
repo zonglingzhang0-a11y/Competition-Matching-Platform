@@ -89,7 +89,7 @@ public final class ReviewEntities {
                 SELECT pr.* FROM peer_review_round pr
                 JOIN team_member m ON m.team_id = pr.team_id AND m.status = 'ACTIVE'
                 WHERE m.user_id = #{userId}
-                ORDER BY pr.id DESC
+                ORDER BY pr.opens_at DESC, pr.id DESC
                 """)
         List<ReviewRound> ofUser(@Param("userId") long userId);
 

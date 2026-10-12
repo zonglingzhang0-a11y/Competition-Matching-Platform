@@ -94,7 +94,9 @@ public final class TeamDtos {
 
     public record TeamDetail(Long id, String name, String intro, Team.Status status, Integer maxMembers,
                              Team.MeetingMode meetingMode, int memberCount, EditionRef edition, Long captainId,
-                             List<MemberView> members, List<NeedView> needs, MyRelation me, LocalDateTime createdAt) {
+                             List<MemberView> members, List<NeedView> needs, MyRelation me, LocalDateTime createdAt,
+                             /* 比赛结束时队长录入的奖项，没录为空 */
+                             String award) {
     }
 
     public record TeamSummary(Long id, String name, String intro, Team.Status status, Integer maxMembers,

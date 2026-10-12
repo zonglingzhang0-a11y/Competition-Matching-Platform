@@ -9,16 +9,21 @@ import type {
   ConfigPage,
   EditionForm,
   EditionStat,
+  FlaggedRow,
   MatchPreset,
   NodeForm,
   Overview,
   PageResult,
+  ReportAction,
+  ReportRow,
+  ReportStatus,
   ReviewItem,
   ReviewStatus,
   RoleTemplate,
   SchoolForm,
   SchoolRow,
   SkillGap,
+  SuspendedRow,
   UserRole,
   UserStatus,
 } from '@/types/api'
@@ -84,6 +89,22 @@ export const dashboardOverview = () => get<Overview>('/admin/dashboard/overview'
 export const dashboardEditions = () => get<EditionStat[]>('/admin/dashboard/editions')
 
 export const skillGap = (editionId?: number) => get<SkillGap[]>('/admin/dashboard/skill-gap', { editionId })
+
+// ---------- 举报与信用 ----------
+
+export const listReports = (status: ReportStatus | undefined, page: number) =>
+  get<PageResult<ReportRow>>('/admin/reports', { status, page, size: 20 })
+
+export const pendingReportCount = () => get<number>('/admin/reports/pending-count')
+
+export const handleReport = (id: number, form: { result: ReportStatus; action: ReportAction; note: string }) =>
+  post<void>(`/admin/reports/${id}/handle`, form)
+
+export const suspendedUsers = () => get<SuspendedRow[]>('/admin/credit/suspended')
+
+export const liftSuspension = (userId: number) => post<void>(`/admin/credit/${userId}/lift`)
+
+export const flaggedReviews = () => get<FlaggedRow[]>('/admin/reviews/flagged')
 
 // ---------- 匹配配置 ----------
 
