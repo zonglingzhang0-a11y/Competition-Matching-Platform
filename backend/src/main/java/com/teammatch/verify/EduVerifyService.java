@@ -1,7 +1,6 @@
 package com.teammatch.verify;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.teammatch.code.CodePurpose;
 import com.teammatch.code.EmailCodeService;
 import com.teammatch.common.BizException;
@@ -33,6 +32,7 @@ public class EduVerifyService {
     private final VerificationRequestMapper requestMapper;
     private final SysUserMapper userMapper;
     private final UserService userService;
+    private final ScreenshotVerifyService screenshotService;
     private final SchoolResolver schoolResolver;
     private final EmailCodeService codeService;
     private final Clock clock;
@@ -87,13 +87,8 @@ public class EduVerifyService {
                         "邮箱已验证。平台还没收录这所学校的邮箱，管理员确认后会通知你");
             }
         }
-        // 以前还在排队的申请作废，一个人同时只留一条待审核
-        requestMapper.update(new LambdaUpdateWrapper<VerificationRequest>()
-                .eq(VerificationRequest::getUserId, userId)
-                .eq(VerificationRequest::getStatus, VerificationRequest.Status.PENDING)
-                .set(VerificationRequest::getStatus, VerificationRequest.Status.REJECTED)
-                .set(VerificationRequest::getReviewNote, "已用新的邮箱重新提交")
-                .set(VerificationRequest::getReviewedAt, now));
+        // 以前还在排队的申请作废（包括截图认证的，原图一并删掉），一个人同时只留一条待审核
+        screenshotService.supersedePending(userId, now);
         requestMapper.insert(request);
         if (update != null) {
             userMapper.updateById(update);
@@ -108,7 +103,8 @@ public class EduVerifyService {
                 .orderByDesc(VerificationRequest::getId)
                 .last("LIMIT 1"));
         return r == null ? null
-                : new LatestRequest(r.getStatus(), r.getEduEmail(), r.getReviewNote(), r.getReviewedAt(), r.getCreatedAt());
+                : new LatestRequest(r.getStatus(), r.getMethod(), r.getEduEmail(), r.getReviewNote(), r.getReviewedAt(),
+                r.getCreatedAt());
     }
 
     /** 认证有效到这一学年结束（8 月 31 日），下一学年要重新认证 */

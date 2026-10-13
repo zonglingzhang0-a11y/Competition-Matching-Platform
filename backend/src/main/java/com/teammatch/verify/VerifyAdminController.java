@@ -14,6 +14,9 @@ import com.teammatch.verify.VerifyAdminDtos.RejectForm;
 import com.teammatch.verify.VerifyAdminDtos.ReviewItem;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,6 +37,7 @@ public class VerifyAdminController {
 
     private final VerifyReviewService reviewService;
     private final SchoolAdminService schoolAdmin;
+    private final ScreenshotVerifyService screenshotService;
 
     /** status 不传就是全部 */
     @GetMapping("/verifications")
@@ -47,6 +51,16 @@ public class VerifyAdminController {
     @GetMapping("/verifications/pending-count")
     public Result<Long> pendingCount() {
         return Result.ok(reviewService.pendingCount());
+    }
+
+    /** 截图认证的原图，只给管理员看；审核完会删掉 */
+    @GetMapping("/verifications/{id}/image")
+    public ResponseEntity<byte[]> image(@PathVariable long id) {
+        ScreenshotVerifyService.ImageData img = screenshotService.image(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(img.contentType()))
+                .cacheControl(CacheControl.noStore())
+                .body(img.bytes());
     }
 
     @PostMapping("/verifications/{id}/approve")

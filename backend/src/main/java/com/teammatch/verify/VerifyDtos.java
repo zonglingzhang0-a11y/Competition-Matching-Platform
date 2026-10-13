@@ -31,12 +31,26 @@ public final class VerifyDtos {
             String message) {
     }
 
-    /** 最近一次认证申请 */
+    /** 最近一次认证申请。method 是 EDU_EMAIL 时有 eduEmail，SCREENSHOT 时为空 */
     public record LatestRequest(
             VerificationRequest.Status status,
+            VerificationRequest.Method method,
             String eduEmail,
             String reviewNote,
             LocalDateTime reviewedAt,
             LocalDateTime createdAt) {
+    }
+
+    /**
+     * 截图认证提交后的结果。
+     *
+     * @param confidence HIGH：填的三项都在图里认出来了 / LOW：有对不上的 / 空：没能识别（只能人工看）
+     * @param matched    每一项有没有认出来；没能识别时为空
+     */
+    public record ScreenshotResult(
+            SysUser.VerifyStatus verifyStatus,
+            String confidence,
+            ScreenshotMatcher.Matched matched,
+            String message) {
     }
 }

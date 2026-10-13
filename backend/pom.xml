@@ -19,6 +19,7 @@
 		<mybatis-plus.version>3.5.17</mybatis-plus.version>
 		<sa-token.version>1.46.0</sa-token.version>
 		<springdoc.version>3.1.1</springdoc.version>
+		<rapidocr.version>0.0.7</rapidocr.version>
 	</properties>
 
 	<dependencies>
@@ -70,6 +71,18 @@
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>${springdoc.version}</version>
+		</dependency>
+
+		<!-- 截图认证用的本地 OCR：PaddleOCR 中文模型的 Java 版，按操作系统自动带上对应的本地库 -->
+		<dependency>
+			<groupId>io.github.mymonstercat</groupId>
+			<artifactId>rapidocr</artifactId>
+			<version>${rapidocr.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>io.github.mymonstercat</groupId>
+			<artifactId>rapidocr-onnx-platform</artifactId>
+			<version>${rapidocr.version}</version>
 		</dependency>
 
 		<dependency>

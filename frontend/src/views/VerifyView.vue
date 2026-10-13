@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import ScreenshotVerifyForm from '@/components/ScreenshotVerifyForm.vue'
 import SendCodeButton from '@/components/SendCodeButton.vue'
 import { confirmEdu, latestVerify, sendEduCode } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
@@ -39,6 +40,14 @@ const rules: FormRules<typeof form> = {
 }
 
 const status = computed(() => user.me?.verifyStatus ?? 'NONE')
+const byScreenshot = computed(() => latest.value?.method === 'SCREENSHOT')
+/** 认证方式：教育邮箱 / 学生证截图 */
+const tab = ref<'email' | 'screenshot'>('email')
+
+async function screenshotSubmitted() {
+  await user.refreshMe()
+  await loadLatest()
+}
 
 async function sendCode() {
   const ok = await formRef.value?.validateField('eduEmail').then(() => true, () => false)
@@ -80,16 +89,20 @@ async function submit() {
         type="info"
         :closable="false"
         show-icon
-        title="邮箱已验证，学校待确认"
-        description="平台还没收录你所在学校的邮箱后缀，管理员确认后会通知你。"
+        :title="byScreenshot ? '截图已提交，等管理员审核' : '邮箱已验证，学校待确认'"
+        :description="
+          byScreenshot
+            ? '管理员核对图片后会通知你，审核完图片就会删除。'
+            : '平台还没收录你所在学校的邮箱后缀，管理员确认后会通知你。'
+        "
       />
       <el-alert
         v-else-if="latest?.status === 'REJECTED'"
         type="error"
         :closable="false"
         show-icon
-        :title="`${latest.eduEmail ?? '上次的申请'} 没有通过审核`"
-        :description="`原因：${latest.reviewNote ?? '未说明'}。可以换一个学校邮箱重新认证。`"
+        :title="`${byScreenshot ? '截图认证' : (latest.eduEmail ?? '上次的申请')} 没有通过审核`"
+        :description="`原因：${latest.reviewNote ?? '未说明'}。可以换一种方式或者换一张图片重新认证。`"
       />
       <el-alert
         v-else
@@ -105,13 +118,19 @@ async function submit() {
         :closable="false"
         show-icon
         class="pending-change"
-        :title="`你提交的 ${latest.eduEmail ?? '新邮箱'} 在等管理员确认学校`"
+        :title="byScreenshot ? '你提交的截图在等管理员审核' : `你提交的 ${latest.eduEmail ?? '新邮箱'} 在等管理员确认学校`"
         description="通过后会换成新学校；在那之前保留现在的认证，建队、申请都不受影响。"
       />
     </el-card>
 
     <el-card shadow="never" class="block">
-      <template #header>{{ status === 'VERIFIED' ? '换一个教育邮箱重新认证' : '教育邮箱认证' }}</template>
+      <template #header>{{ status === 'VERIFIED' ? '换学校重新认证' : '认证方式' }}</template>
+      <el-tabs v-model="tab" class="tabs">
+        <el-tab-pane label="教育邮箱（推荐）" name="email" />
+        <el-tab-pane label="学生证截图" name="screenshot" />
+      </el-tabs>
+      <ScreenshotVerifyForm v-if="tab === 'screenshot'" @submitted="screenshotSubmitted" />
+      <template v-else>
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
         <el-form-item label="教育邮箱" prop="eduEmail">
           <el-input v-model="form.eduEmail" placeholder="比如 2023xxxx@stu.xxx.edu.cn" />
@@ -124,7 +143,8 @@ async function submit() {
         </el-form-item>
         <el-button type="primary" native-type="submit" :loading="loading">完成认证</el-button>
       </el-form>
-      <p class="hint">一个教育邮箱只能认证一个账号。没有教育邮箱的同学，后续会开放学生证截图认证。</p>
+      <p class="hint">学校已收录的话马上就能通过。一个教育邮箱只能认证一个账号。没有教育邮箱的同学，可以用"学生证截图"认证。</p>
+      </template>
     </el-card>
   </div>
 </template>
@@ -142,6 +162,10 @@ async function submit() {
 
 .pending-change {
   margin-top: 12px;
+}
+
+.tabs {
+  margin-top: -8px;
 }
 
 .code-row {

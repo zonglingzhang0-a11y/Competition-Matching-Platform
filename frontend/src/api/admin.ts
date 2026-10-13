@@ -1,4 +1,4 @@
-import { del, get, post, put } from './http'
+import { del, get, getBlob, post, put } from './http'
 import type {
   AdminCompetitionRow,
   AdminUserRow,
@@ -37,6 +37,9 @@ export const pendingReviewCount = () => get<number>('/admin/verifications/pendin
 
 export const approveReview = (id: number, form: ApproveForm) =>
   post<ApproveResult>(`/admin/verifications/${id}/approve`, form)
+
+/** 截图认证的原图，审核完会删掉 */
+export const reviewImage = (id: number) => getBlob(`/admin/verifications/${id}/image`)
 
 export const rejectReview = (id: number, note: string) => post<void>(`/admin/verifications/${id}/reject`, { note })
 

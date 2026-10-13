@@ -22,6 +22,7 @@ import com.teammatch.verify.VerifyAdminDtos.RejectForm;
 import com.teammatch.verify.VerifyAdminDtos.ReviewItem;
 import com.teammatch.verify.VerifyAdminDtos.ReviewUser;
 import com.teammatch.verify.VerifyAdminDtos.SchoolRef;
+import com.teammatch.verify.VerifyAdminDtos.ScreenshotInfo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ import org.springframework.util.StringUtils;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +57,7 @@ public class VerifyReviewService {
     private final SchoolAdminService schoolAdmin;
     private final SchoolResolver schoolResolver;
     private final NotificationService notifications;
+    private final ScreenshotVerifyService screenshotService;
     private final Clock clock;
 
     /** 待审核的按提交顺序排（先来先审），已处理的最新的在前 */
@@ -78,8 +81,13 @@ public class VerifyReviewService {
         Map<Long, UserProfile> profiles = userIds.isEmpty() ? Map.of()
                 : profileMapper.selectByIds(userIds).stream()
                 .collect(Collectors.toMap(UserProfile::getUserId, Function.identity()));
+        Map<Long, ScreenshotVerifyService.OcrRecord> ocr = new HashMap<>();
+        rows.stream().filter(r -> r.getMethod() == VerificationRequest.Method.SCREENSHOT && r.getOcrResult() != null)
+                .forEach(r -> ocr.put(r.getId(), screenshotService.parse(r.getOcrResult())));
         Set<Long> schoolIds = rows.stream().map(VerificationRequest::getSchoolId)
                 .filter(Objects::nonNull).collect(Collectors.toSet());
+        ocr.values().stream().map(ScreenshotVerifyService.OcrRecord::suggestedSchoolId).filter(Objects::nonNull)
+                .forEach(schoolIds::add);
         Map<Long, School> schools = schoolIds.isEmpty() ? Map.of()
                 : schoolMapper.selectByIds(schoolIds).stream().collect(Collectors.toMap(School::getId, Function.identity()));
 
@@ -95,8 +103,24 @@ public class VerifyReviewService {
                             prof == null ? null : prof.getEnrollYear()),
                     school == null ? null : new SchoolRef(school.getId(), school.getName()),
                     reviewer == null ? null : reviewer.getNickname(),
-                    r.getReviewNote(), r.getReviewedAt(), r.getCreatedAt());
+                    r.getReviewNote(), r.getReviewedAt(), r.getCreatedAt(),
+                    r.getMethod() == VerificationRequest.Method.SCREENSHOT
+                            ? screenshotInfo(r, ocr.get(r.getId()), schools) : null);
         });
+    }
+
+    private static ScreenshotInfo screenshotInfo(VerificationRequest r, ScreenshotVerifyService.OcrRecord o,
+                                                 Map<Long, School> schools) {
+        School suggested = o == null || o.suggestedSchoolId() == null ? null : schools.get(o.suggestedSchoolId());
+        return new ScreenshotInfo(
+                o == null ? null : o.claimed().realName(),
+                o == null ? null : o.claimed().schoolName(),
+                o == null ? null : o.claimed().enrollYear(),
+                r.getOcrConfidence(),
+                o == null ? null : o.matched(),
+                o == null || o.lines() == null ? List.of() : o.lines(),
+                suggested == null ? null : new SchoolRef(suggested.getId(), suggested.getName()),
+                r.getImagePath() != null);
     }
 
     public long pendingCount() {
@@ -112,15 +136,24 @@ public class VerifyReviewService {
         if (useExisting == createNew) {
             throw new BizException("请选一所已有的学校，或者填写新学校的名称（二选一）");
         }
-        String domain = SchoolAdminService.normalizeDomain(form.domain());
-        List<String> candidates = SchoolResolver.candidateDomains(r.getEduEmail());
-        if (!candidates.contains(domain)) {
-            throw new BizException("后缀要从这个邮箱里取：" + String.join(" 或 ", candidates));
+        // 教育邮箱：顺便收录后缀；截图认证没有邮箱，只确定学校
+        String domain = null;
+        if (r.getMethod() == VerificationRequest.Method.EDU_EMAIL) {
+            if (!StringUtils.hasText(form.domain())) {
+                throw new BizException("请选择要收录的邮箱后缀");
+            }
+            domain = SchoolAdminService.normalizeDomain(form.domain());
+            List<String> candidates = SchoolResolver.candidateDomains(r.getEduEmail());
+            if (!candidates.contains(domain)) {
+                throw new BizException("后缀要从这个邮箱里取：" + String.join(" 或 ", candidates));
+            }
         }
 
         School school = useExisting ? schoolAdmin.require(form.schoolId())
                 : schoolAdmin.create(new SchoolForm(form.newSchoolName(), form.province(), form.city()));
-        schoolAdmin.ensureDomain(school.getId(), domain);
+        if (domain != null) {
+            schoolAdmin.ensureDomain(school.getId(), domain);
+        }
         String note = StringUtils.hasText(form.note()) ? form.note().trim() : "管理员审核通过";
         if (!approveOne(r, school, reviewerId, note)) {
             throw new BizException(409, "这条申请已经被处理过了，请刷新");
@@ -142,6 +175,7 @@ public class VerifyReviewService {
         if (updated == 0) {
             throw new BizException(409, "这条申请已经被处理过了，请刷新");
         }
+        screenshotService.deleteImage(r);
         // 只有还停在"待确认"时才改回未认证：已经认证过的人换学校没通过，原来的认证照旧
         int downgraded = userMapper.update(new LambdaUpdateWrapper<SysUser>()
                 .eq(SysUser::getId, r.getUserId())
@@ -192,6 +226,7 @@ public class VerifyReviewService {
         if (updated == 0) {
             return false;
         }
+        screenshotService.deleteImage(r);
         LocalDate until = EduVerifyService.academicYearEnd(now.toLocalDate());
         userMapper.update(new LambdaUpdateWrapper<SysUser>()
                 .eq(SysUser::getId, r.getUserId())

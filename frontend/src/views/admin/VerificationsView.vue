@@ -87,7 +87,7 @@ onMounted(load)
 
     <template v-else>
       <p v-if="tab === 'PENDING'" class="hint">
-        这里是学校还没收录的教育邮箱，邮箱本身已经验证过能收信。确认是哪所学校后通过，平台会顺便收录这个邮箱后缀。
+        两种申请：学校还没收录的教育邮箱（邮箱已经验证过能收信，通过时会顺便收录后缀），和学生证截图（先看原图和识别结果再决定）。
       </p>
       <el-table v-loading="loading" :data="items" :empty-text="tab === 'PENDING' ? '没有待审核的申请' : '还没有记录'">
         <el-table-column label="申请人" min-width="160">
@@ -96,9 +96,16 @@ onMounted(load)
             <div class="muted">{{ row.user.email }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="教育邮箱" min-width="200">
+        <el-table-column label="认证方式" min-width="220">
           <template #default="{ row }">
-            <div>{{ row.eduEmail }}</div>
+            <div v-if="row.method === 'SCREENSHOT'" class="shot">
+              <el-tag size="small" effect="plain">学生证截图</el-tag>
+              <el-tag v-if="row.screenshot?.confidence === 'HIGH'" size="small" type="success">三项一致</el-tag>
+              <el-tag v-else-if="row.screenshot?.confidence === 'LOW'" size="small" type="warning">有出入</el-tag>
+              <el-tag v-else size="small" type="info">没能识别</el-tag>
+              <span class="muted">{{ row.screenshot?.schoolName }}</span>
+            </div>
+            <div v-else>{{ row.eduEmail }}</div>
             <div v-if="row.user.realName || row.user.major" class="muted">
               档案：{{ [row.user.realName, row.user.major, row.user.enrollYear && `${row.user.enrollYear} 级`].filter(Boolean).join(' · ') }}
             </div>
@@ -164,6 +171,13 @@ onMounted(load)
 .muted {
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+.shot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
 }
 
 .school {

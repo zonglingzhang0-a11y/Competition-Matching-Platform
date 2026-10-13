@@ -11,6 +11,10 @@ spring:
     url: jdbc:mysql://localhost:3306/team_match?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
     password: ${DB_PASSWORD:}
+  servlet:
+    multipart:
+      max-file-size: 5MB      # 截图认证的图片
+      max-request-size: 6MB
   jackson:
     deserialization:
       # Jackson 3 默认在 boolean、int 这类字段缺省时直接报错；这里改回缺省就取默认值（false / 0）
@@ -50,6 +54,10 @@ app:
     resend-seconds: 60
     max-attempts: 5
   admin-emails: []          # 用这些邮箱注册的账号自动成为管理员，在 application-local.yml 里填
+  screenshot:
+    upload-dir: uploads     # 截图认证的原图存这里（相对启动目录），审核完就删
+    ocr-enabled: true       # 本地 OCR 预审；关掉就只存图、全靠管理员人工看
+    daily-limit: 3          # 每人每天最多提交几次
   reminder:
     enabled: true           # 截止提醒、里程碑提醒
     interval-ms: 600000     # 每 10 分钟检查一次

@@ -81,3 +81,15 @@ export async function del<T>(url: string): Promise<T> {
   const res = await http.delete<ApiResult<T>>(url)
   return res.data.data
 }
+
+/** 上传文件。OCR 识别要一两秒，超时放宽一些 */
+export async function postForm<T>(url: string, form: FormData): Promise<T> {
+  const res = await http.post<ApiResult<T>>(url, form, { timeout: 60000 })
+  return res.data.data
+}
+
+/** 取需要登录才能看的图片，比如认证截图。拿到后用 URL.createObjectURL 显示 */
+export async function getBlob(url: string): Promise<Blob> {
+  const res = await http.get<Blob>(url, { responseType: 'blob' })
+  return res.data
+}

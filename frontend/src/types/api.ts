@@ -528,6 +528,8 @@ export interface VerifyResult {
 
 export interface LatestVerifyRequest {
   status: ReviewStatus
+  method: 'EDU_EMAIL' | 'SCREENSHOT'
+  /** 截图认证时为空 */
   eduEmail: string | null
   reviewNote: string | null
   reviewedAt: string | null
@@ -561,6 +563,36 @@ export interface ReviewItem {
   reviewNote: string | null
   reviewedAt: string | null
   createdAt: string
+  /** 截图认证才有 */
+  screenshot: ScreenshotInfo | null
+}
+
+/** 截图里每一项有没有认出来 */
+export interface ScreenshotMatched {
+  realName: boolean
+  schoolName: boolean
+  enrollYear: boolean
+}
+
+/** HIGH 三项都认出来了 / LOW 有对不上的 / null 没能识别 */
+export type OcrConfidence = 'HIGH' | 'LOW' | null
+
+export interface ScreenshotInfo {
+  realName: string | null
+  schoolName: string | null
+  enrollYear: number | null
+  confidence: OcrConfidence
+  matched: ScreenshotMatched | null
+  lines: string[]
+  suggestedSchool: Option | null
+  hasImage: boolean
+}
+
+export interface ScreenshotResult {
+  verifyStatus: VerifyStatus
+  confidence: OcrConfidence
+  matched: ScreenshotMatched | null
+  message: string
 }
 
 export interface ApproveForm {
@@ -568,7 +600,8 @@ export interface ApproveForm {
   newSchoolName?: string
   province?: string
   city?: string
-  domain: string
+  /** 教育邮箱认证要选；截图认证不用 */
+  domain?: string
   note?: string
 }
 
