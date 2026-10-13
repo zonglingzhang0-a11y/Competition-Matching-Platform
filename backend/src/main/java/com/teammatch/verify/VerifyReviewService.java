@@ -142,13 +142,13 @@ public class VerifyReviewService {
         if (updated == 0) {
             throw new BizException(409, "这条申请已经被处理过了，请刷新");
         }
-        // 只有还停在"待确认"时才改回未认证：这期间用户可能已经换了个邮箱认证通过
-        userMapper.update(new LambdaUpdateWrapper<SysUser>()
+        // 只有还停在"待确认"时才改回未认证：已经认证过的人换学校没通过，原来的认证照旧
+        int downgraded = userMapper.update(new LambdaUpdateWrapper<SysUser>()
                 .eq(SysUser::getId, r.getUserId())
                 .eq(SysUser::getVerifyStatus, SysUser.VerifyStatus.PENDING)
                 .set(SysUser::getVerifyStatus, SysUser.VerifyStatus.NONE));
         notifications.send(r.getUserId(), Notification.Type.VERIFY_RESULT, "身份认证没有通过",
-                "原因：" + note + "。可以换一个学校邮箱重新认证。", null, null);
+                "原因：" + note + (downgraded > 0 ? "。可以换一个学校邮箱重新认证。" : "。你原来的认证不受影响。"), null, null);
     }
 
     /** 给学校收录一个邮箱后缀，返回顺带自动通过的待审核申请条数 */

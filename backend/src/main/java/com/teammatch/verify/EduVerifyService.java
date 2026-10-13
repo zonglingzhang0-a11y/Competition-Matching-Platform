@@ -9,6 +9,7 @@ import com.teammatch.school.School;
 import com.teammatch.school.SchoolResolver;
 import com.teammatch.user.SysUser;
 import com.teammatch.user.SysUserMapper;
+import com.teammatch.user.UserService;
 import com.teammatch.verify.VerifyDtos.LatestRequest;
 import com.teammatch.verify.VerifyDtos.VerifyResult;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class EduVerifyService {
 
     private final VerificationRequestMapper requestMapper;
     private final SysUserMapper userMapper;
+    private final UserService userService;
     private final SchoolResolver schoolResolver;
     private final EmailCodeService codeService;
     private final Clock clock;
@@ -73,9 +75,17 @@ public class EduVerifyService {
             result = new VerifyResult(SysUser.VerifyStatus.VERIFIED, school.get().getName(), until, "认证成功");
         } else {
             request.setStatus(VerificationRequest.Status.PENDING);
-            update.setVerifyStatus(SysUser.VerifyStatus.PENDING);
-            result = new VerifyResult(SysUser.VerifyStatus.PENDING, null, null,
-                    "邮箱已验证。平台还没收录这所学校的邮箱，管理员确认后会通知你");
+            SysUser current = userService.getById(userId);
+            if (userService.isVerified(current)) {
+                // 已经认证过的人换学校：审核期间保留原来的认证，不然这段时间连队伍都动不了
+                update = null;
+                result = new VerifyResult(SysUser.VerifyStatus.VERIFIED, null, current.getVerifiedUntil(),
+                        "邮箱已验证。平台还没收录这所学校的邮箱，管理员确认前你仍保留原来的认证");
+            } else {
+                update.setVerifyStatus(SysUser.VerifyStatus.PENDING);
+                result = new VerifyResult(SysUser.VerifyStatus.PENDING, null, null,
+                        "邮箱已验证。平台还没收录这所学校的邮箱，管理员确认后会通知你");
+            }
         }
         // 以前还在排队的申请作废，一个人同时只留一条待审核
         requestMapper.update(new LambdaUpdateWrapper<VerificationRequest>()
@@ -85,7 +95,9 @@ public class EduVerifyService {
                 .set(VerificationRequest::getReviewNote, "已用新的邮箱重新提交")
                 .set(VerificationRequest::getReviewedAt, now));
         requestMapper.insert(request);
-        userMapper.updateById(update);
+        if (update != null) {
+            userMapper.updateById(update);
+        }
         return result;
     }
 

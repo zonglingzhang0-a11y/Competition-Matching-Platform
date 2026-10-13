@@ -106,9 +106,12 @@ public class RecommendService {
             return new TeamRecommendations(editionId, current.getTeamId(), generalDone, editionDone, List.of(), null);
         }
 
+        // 推荐一支队等于替队长招人，所以队长被停用或暂停推荐的队伍也不推荐
         List<Team> teams = teamMapper.selectList(new LambdaQueryWrapper<Team>()
                         .eq(Team::getEditionId, editionId)
-                        .eq(Team::getStatus, Team.Status.RECRUITING))
+                        .eq(Team::getStatus, Team.Status.RECRUITING)
+                        .notInSql(Team::getCaptainId, "SELECT id FROM sys_user WHERE status = 'BANNED'")
+                        .notInSql(Team::getCaptainId, "SELECT user_id FROM user_credit WHERE suspended_until > NOW()"))
                 .stream()
                 .filter(t -> teamSupport.joinBlockReason(t, e, user, true, false) == null)
                 .toList();

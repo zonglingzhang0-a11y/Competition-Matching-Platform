@@ -99,6 +99,15 @@ async function submit() {
         title="还没有认证"
         description="认证后才能建队和申请入队。没认证也可以先浏览比赛、填问卷。"
       />
+      <el-alert
+        v-if="status === 'VERIFIED' && latest?.status === 'PENDING'"
+        type="info"
+        :closable="false"
+        show-icon
+        class="pending-change"
+        :title="`你提交的 ${latest.eduEmail ?? '新邮箱'} 在等管理员确认学校`"
+        description="通过后会换成新学校；在那之前保留现在的认证，建队、申请都不受影响。"
+      />
     </el-card>
 
     <el-card shadow="never" class="block">
@@ -129,6 +138,10 @@ async function submit() {
 .block {
   border-radius: 12px;
   margin-bottom: 16px;
+}
+
+.pending-change {
+  margin-top: 12px;
 }
 
 .code-row {

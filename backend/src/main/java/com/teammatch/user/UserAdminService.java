@@ -6,13 +6,21 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.teammatch.common.BizException;
 import com.teammatch.common.PageResult;
+import com.teammatch.notification.Notification;
+import com.teammatch.notification.NotificationService;
 import com.teammatch.school.School;
 import com.teammatch.school.SchoolMapper;
+import com.teammatch.team.Team;
+import com.teammatch.team.TeamMappers.TeamMapper;
+import com.teammatch.team.TeamMember;
+import com.teammatch.team.TeamSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -28,6 +36,9 @@ public class UserAdminService {
     private final SysUserMapper userMapper;
     private final SchoolMapper schoolMapper;
     private final UserService userService;
+    private final TeamMapper teamMapper;
+    private final TeamSupport teamSupport;
+    private final NotificationService notifications;
 
     public record UserRow(Long id, String email, String nickname, SysUser.UserRole role, SysUser.UserStatus status,
                           SysUser.VerifyStatus verifyStatus, String schoolName, LocalDateTime createdAt,
@@ -54,7 +65,8 @@ public class UserAdminService {
                 u.getCreatedAt(), u.getLastLoginAt()));
     }
 
-    /** 停用后立刻踢下线；不能停用自己和其他管理员 */
+    /** 停用后立刻踢下线，他当队长的队伍停止招募；不能停用自己和其他管理员 */
+    @Transactional
     public void setStatus(long adminId, long userId, SysUser.UserStatus status) {
         SysUser target = userMapper.selectById(userId);
         if (target == null) {
@@ -73,6 +85,30 @@ public class UserAdminService {
                 .set(SysUser::getStatus, status));
         if (status == SysUser.UserStatus.BANNED) {
             StpUtil.logout(userId);
+            closeCaptainedTeams(target);
+        }
+    }
+
+    /**
+     * 停用的人当队长的队伍停止招募：他登录不了，没人处理申请了。
+     * 还没处理的申请和邀请作废，并告诉队员。队员可以退出另找队伍。
+     */
+    private void closeCaptainedTeams(SysUser captain) {
+        List<Team> teams = teamMapper.selectList(new LambdaQueryWrapper<Team>()
+                .eq(Team::getCaptainId, captain.getId())
+                .in(Team::getStatus, List.of(Team.Status.RECRUITING, Team.Status.FULL)));
+        for (Team t : teams) {
+            teamMapper.update(new LambdaUpdateWrapper<Team>()
+                    .eq(Team::getId, t.getId())
+                    .set(Team::getStatus, Team.Status.CLOSED));
+            teamSupport.expirePendingOfTeam(t.getId());
+            for (TeamMember m : teamSupport.activeMembers(t.getId())) {
+                if (!m.getUserId().equals(captain.getId())) {
+                    notifications.send(m.getUserId(), Notification.Type.SYSTEM, "「" + t.getName() + "」已停止招募",
+                            "队长 " + captain.getNickname() + " 的账号已被停用，队伍停止招募。你可以继续留在队里，也可以退出另找队伍。",
+                            NotificationService.REF_TEAM, t.getId());
+                }
+            }
         }
     }
 }
