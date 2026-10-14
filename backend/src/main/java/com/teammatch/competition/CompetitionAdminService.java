@@ -139,10 +139,15 @@ public class CompetitionAdminService {
     }
 
     public long createEdition(long competitionId, EditionForm form) {
+        return createEdition(competitionId, form, CompetitionEdition.Source.MANUAL);
+    }
+
+    /** 从爬虫抓到的通知确认生成的届次，来源记成 CRAWLER */
+    public long createEdition(long competitionId, EditionForm form, CompetitionEdition.Source source) {
         requireCompetition(competitionId);
         CompetitionEdition e = new CompetitionEdition();
         e.setCompetitionId(competitionId);
-        e.setSource(CompetitionEdition.Source.MANUAL);
+        e.setSource(source);
         apply(e, form);
         try {
             editionMapper.insert(e);

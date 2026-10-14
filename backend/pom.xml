@@ -20,6 +20,7 @@
 		<sa-token.version>1.46.0</sa-token.version>
 		<springdoc.version>3.1.1</springdoc.version>
 		<rapidocr.version>0.0.7</rapidocr.version>
+		<jsoup.version>1.21.1</jsoup.version>
 	</properties>
 
 	<dependencies>
@@ -71,6 +72,13 @@
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>${springdoc.version}</version>
+		</dependency>
+
+		<!-- 爬虫解析 HTML：CSS 选择器取链接和正文，自动识别 GBK 等编码 -->
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>${jsoup.version}</version>
 		</dependency>
 
 		<!-- 截图认证用的本地 OCR：PaddleOCR 中文模型的 Java 版，按操作系统自动带上对应的本地库 -->

@@ -58,6 +58,12 @@ app:
     upload-dir: uploads     # 截图认证的原图存这里（相对启动目录），审核完就删
     ocr-enabled: true       # 本地 OCR 预审；关掉就只存图、全靠管理员人工看
     daily-limit: 3          # 每人每天最多提交几次
+  crawler:
+    enabled: true           # 每天定时抓一次比赛官网的通知；关掉后管理员仍可以在后台手动抓
+    cron: "0 30 7 * * *"    # 每天 7:30
+    delay-ms: 2000          # 同一个网站两次请求至少隔 2 秒（robots.txt 要求更久就按它的）
+    timeout-ms: 15000
+    max-pages-per-source: 10  # 每个来源一次最多打开 10 篇新通知
   reminder:
     enabled: true           # 截止提醒、里程碑提醒
     interval-ms: 600000     # 每 10 分钟检查一次

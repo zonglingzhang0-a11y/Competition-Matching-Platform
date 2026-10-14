@@ -72,6 +72,10 @@ watch(
             <span v-if="admin.pendingReviews > 0" class="count">{{ admin.pendingReviews }}</span>
           </el-menu-item>
           <el-menu-item index="/admin/competitions">比赛库管理</el-menu-item>
+          <el-menu-item index="/admin/crawl">
+            通知抓取
+            <span v-if="admin.pendingCrawl > 0" class="count">{{ admin.pendingCrawl }}</span>
+          </el-menu-item>
           <el-menu-item index="/admin/reports">
             举报与信用
             <span v-if="admin.pendingReports > 0" class="count">{{ admin.pendingReports }}</span>

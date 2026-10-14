@@ -3,6 +3,7 @@
 import type {
   AppStatus,
   CompetitionLevel,
+  CrawlStatus,
   EditionPhase,
   EditionStatus,
   MatchPreset,
@@ -110,6 +111,13 @@ export const EDITION_STATUS: Record<EditionStatus, { label: string; type: TagTyp
   DRAFT: { label: '草稿', type: 'info' },
   PUBLISHED: { label: '已发布', type: 'success' },
   ARCHIVED: { label: '已归档', type: 'info' },
+}
+
+export const CRAWL_STATUS: Record<CrawlStatus, { label: string; type: TagType }> = {
+  NEW: { label: '没抽出字段', type: 'info' },
+  EXTRACTED: { label: '待确认', type: 'warning' },
+  APPROVED: { label: '已采用', type: 'success' },
+  IGNORED: { label: '已忽略', type: 'info' },
 }
 
 export const REVIEW_STATUS: Record<ReviewStatus, { label: string; type: TagType }> = {

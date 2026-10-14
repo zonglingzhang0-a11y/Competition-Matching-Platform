@@ -71,6 +71,28 @@ SELECT c.name, c.short_name, c.organizer, c.category, 'NATIONAL', 1, t.id, c.pre
   SELECT '中国大学生计算机设计大赛', '计设', NULL, '计算机', '软件开发类', 'DEFAULT'
 ) c LEFT JOIN role_template t ON t.name = c.tpl;
 
+-- 爬虫的抓取来源。选择器是对着 2026 年 10 月各官网的页面结构写的，网站改版了就在管理后台改。
+-- 中国国际大学生创新大赛的官网是前端渲染的，静态抓取拿不到内容，没有加。
+-- 挑战杯官网的 robots.txt 允许普通爬虫抓 /article/，但明确不希望内容被 AI 使用，所以 allow_llm = 0，默认也不启用。
+INSERT INTO crawl_source (competition_id, name, list_url, link_selector, title_keywords, exclude_keywords,
+                          content_selector, allow_llm, enabled, note)
+SELECT c.id, s.name, s.list_url, s.link_selector, s.title_keywords, s.exclude_keywords, s.content_selector,
+       s.allow_llm, s.enabled, s.note
+FROM (
+  SELECT '全国大学生数学建模竞赛' AS competition, '数模官网首页' AS name, 'https://www.mcm.edu.cn/' AS list_url,
+         '#recentNodesList a' AS link_selector, '竞赛的通知,报名' AS title_keywords, '获奖,名单,公示,赛题' AS exclude_keywords,
+         '#divNodeBody' AS content_selector, 1 AS allow_llm, 1 AS enabled, NULL AS note UNION ALL
+  SELECT '全国大学生电子设计竞赛', '电赛培训网首页', 'https://www.nuedc-training.com.cn/',
+         'a[href*=/news/details/]', '竞赛的通知,第一次通知,报名', '获奖,名单,公示,赛题,清单',
+         '.newsMain-content', 1, 1, NULL UNION ALL
+  SELECT '中国大学生计算机设计大赛', '计设大赛官网首页', 'https://jsjds.blcu.edu.cn/',
+         'a[href*=info/]', '通知,报名', '获奖,名单,公示,结果', NULL, 1, 1, NULL UNION ALL
+  SELECT '"挑战杯"全国大学生课外学术科技作品竞赛', '挑战杯官网首页', 'https://www.tiaozhanbei.net/',
+         'a[href*=/article/]', '通知', '开幕,闭幕,获奖,名单', NULL, 0, 0,
+         'robots.txt 不希望内容被 AI 使用：只用规则抽取。默认不启用，需要时管理员打开'
+) s JOIN competition c ON c.name = s.competition
+ORDER BY c.id;
+
 -- 示例届次：日期是虚构的，只为演示日历和撞期检测
 INSERT INTO competition_edition (competition_id, year, title, team_min, team_max, same_school_required, advisor_required,
                                  registration_start, registration_end, source, status)

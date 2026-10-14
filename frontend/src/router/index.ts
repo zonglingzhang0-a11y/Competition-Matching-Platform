@@ -64,6 +64,7 @@ const router = createRouter({
               name: 'admin-competitions',
               component: () => import('@/views/admin/CompetitionsView.vue'),
             },
+            { path: 'crawl', name: 'admin-crawl', component: () => import('@/views/admin/CrawlView.vue') },
             {
               path: 'match-config',
               name: 'admin-match-config',

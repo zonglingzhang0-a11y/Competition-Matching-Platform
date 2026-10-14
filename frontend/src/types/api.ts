@@ -862,3 +862,109 @@ export interface FlaggedRow {
   answers: number[]
   submittedAt: string
 }
+
+// ---------- 通知抓取（管理端） ----------
+
+/** NEW 没抽出字段 / EXTRACTED 抽出了字段，这两种等确认；APPROVED 已采用 / IGNORED 已忽略 */
+export type CrawlStatus = 'NEW' | 'EXTRACTED' | 'APPROVED' | 'IGNORED'
+
+/** 从通知里抽出的字段，没找到的为 null */
+export interface Extracted {
+  year: number | null
+  editionTitle: string | null
+  registrationStart: string | null
+  registrationEnd: string | null
+  contestStart: string | null
+  contestEnd: string | null
+  /** 比赛时间只写了日期 */
+  contestAllDay: boolean
+  teamMin: number | null
+  teamMax: number | null
+  sameSchoolRequired: boolean | null
+  advisorRequired: boolean | null
+  /** 字段名（registration / contest / teamSize / sameSchool / advisor）→ 抽取依据的原句 */
+  evidence: Record<string, string>
+  /** rule：规则抽取 / llm：大模型抽取 */
+  extractor: string
+}
+
+export interface CrawlRecordRow {
+  id: number
+  sourceId: number | null
+  sourceName: string | null
+  competitionId: number | null
+  competitionName: string | null
+  title: string | null
+  sourceUrl: string
+  status: CrawlStatus
+  /** 自动忽略的原因 */
+  note: string | null
+  extracted: Extracted | null
+  fetchedAt: string
+  editionId: number | null
+  editionTitle: string | null
+  reviewerName: string | null
+  reviewedAt: string | null
+}
+
+export interface EditionBrief extends EditionForm {
+  id: number
+}
+
+export interface CrawlRecordDetail {
+  record: CrawlRecordRow
+  rawText: string | null
+  /** 这个比赛已有的届次，可以选择更新其中一届 */
+  editions: EditionBrief[]
+}
+
+export interface CrawlApproveForm {
+  /** null：新建一届 */
+  editionId: number | null
+  edition: EditionForm
+  /** 这一届全部的时间节点（整体替换） */
+  nodes: NodeForm[]
+}
+
+export interface CrawlSourceForm {
+  competitionId: number | null
+  name: string
+  listUrl: string
+  linkSelector: string
+  titleKeywords: string | null
+  excludeKeywords: string | null
+  contentSelector: string | null
+  allowLlm: boolean
+  enabled: boolean
+  note: string | null
+}
+
+export interface CrawlSourceRow extends CrawlSourceForm {
+  id: number
+  competitionId: number
+  competitionName: string | null
+  lastRunAt: string | null
+  lastResult: string | null
+  /** 等确认的通知数 */
+  pending: number
+  total: number
+}
+
+export interface PreviewLink {
+  title: string
+  url: string
+  picked: boolean
+  reason: string
+}
+
+export interface PreviewResult {
+  linkCount: number
+  links: PreviewLink[]
+}
+
+export interface CrawlRunStatus {
+  running: boolean
+  startedAt: string | null
+  finishedAt: string | null
+  summary: string | null
+}

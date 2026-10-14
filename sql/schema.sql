@@ -214,20 +214,42 @@ CREATE TABLE competition_follow (
   CONSTRAINT fk_follow_edition FOREIGN KEY (edition_id) REFERENCES competition_edition (id)
 ) COMMENT '关注的比赛：节点进日历、截止前提醒';
 
+CREATE TABLE crawl_source (
+  id               BIGINT PRIMARY KEY AUTO_INCREMENT,
+  competition_id   BIGINT       NOT NULL COMMENT '抓到的通知归到哪个比赛',
+  name             VARCHAR(64)  NOT NULL,
+  list_url         VARCHAR(512) NOT NULL COMMENT '通知列表页（或首页）',
+  link_selector    VARCHAR(255) NOT NULL DEFAULT 'a' COMMENT 'CSS 选择器：列表页里的通知链接',
+  title_keywords   VARCHAR(255) NULL COMMENT '标题至少包含其中一个才抓，逗号分隔；空表示都抓',
+  exclude_keywords VARCHAR(255) NULL COMMENT '标题包含其中任何一个就跳过，逗号分隔，如：获奖,名单,公示',
+  content_selector VARCHAR(255) NULL COMMENT '详情页正文的 CSS 选择器；空表示取整页文字',
+  allow_llm        TINYINT      NOT NULL DEFAULT 1 COMMENT '网站不希望内容被 AI 使用时关掉，只用规则抽取',
+  enabled          TINYINT      NOT NULL DEFAULT 1,
+  note             VARCHAR(255) NULL,
+  last_run_at      DATETIME     NULL,
+  last_result      VARCHAR(255) NULL COMMENT '上次抓取的结果，比如：新通知 2 条 / 出错原因',
+  created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_crawl_source_competition FOREIGN KEY (competition_id) REFERENCES competition (id)
+) COMMENT '爬虫的抓取来源（每个比赛官网一条，管理员维护）';
+
 CREATE TABLE crawl_record (
   id           BIGINT PRIMARY KEY AUTO_INCREMENT,
+  source_id    BIGINT       NULL COMMENT '从哪个抓取来源抓到的',
   source_url   VARCHAR(512) NOT NULL,
   title        VARCHAR(255) NULL,
   raw_text     MEDIUMTEXT   NULL COMMENT '通知原文',
   content_hash CHAR(64)     NOT NULL COMMENT '原文 SHA-256，用来去重',
-  extracted    JSON         NULL COMMENT '大模型从原文里抽出的字段，等管理员确认',
-  status       VARCHAR(16)  NOT NULL DEFAULT 'NEW' COMMENT 'NEW / EXTRACTED / APPROVED / IGNORED',
+  extracted    JSON         NULL COMMENT '从原文里抽出的字段和依据（规则或大模型），等管理员确认',
+  status       VARCHAR(16)  NOT NULL DEFAULT 'NEW' COMMENT 'NEW 没抽出字段 / EXTRACTED 抽出了字段 / APPROVED 已采用 / IGNORED 已忽略',
+  note         VARCHAR(255) NULL COMMENT '自动忽略的原因，比如往年的旧通知',
   edition_id   BIGINT       NULL COMMENT '确认后生成或更新的届次',
   fetched_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   reviewed_by  BIGINT       NULL,
   reviewed_at  DATETIME     NULL,
   UNIQUE KEY uk_crawl_hash (content_hash),
   KEY idx_crawl_status (status, fetched_at),
+  KEY idx_crawl_url (source_url(191)),
+  CONSTRAINT fk_crawl_source   FOREIGN KEY (source_id)   REFERENCES crawl_source (id),
   CONSTRAINT fk_crawl_edition  FOREIGN KEY (edition_id)  REFERENCES competition_edition (id),
   CONSTRAINT fk_crawl_reviewer FOREIGN KEY (reviewed_by) REFERENCES sys_user (id)
 ) COMMENT '爬虫抓到的比赛通知';

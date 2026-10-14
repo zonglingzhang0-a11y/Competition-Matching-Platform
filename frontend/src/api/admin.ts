@@ -7,6 +7,12 @@ import type {
   CompetitionForm,
   CompetitionNode,
   ConfigPage,
+  CrawlApproveForm,
+  CrawlRecordDetail,
+  CrawlRecordRow,
+  CrawlRunStatus,
+  CrawlSourceForm,
+  CrawlSourceRow,
   EditionForm,
   EditionStat,
   FlaggedRow,
@@ -14,6 +20,7 @@ import type {
   NodeForm,
   Overview,
   PageResult,
+  PreviewResult,
   ReportAction,
   ReportRow,
   ReportStatus,
@@ -115,3 +122,32 @@ export const matchConfigs = () => get<ConfigPage>('/admin/match-configs')
 
 export const saveMatchConfig = (preset: MatchPreset, config: string) =>
   put<void>(`/admin/match-configs/${preset}`, { config })
+
+// ---------- 通知抓取 ----------
+
+export const crawlRecords = (tab: 'PENDING' | 'DONE', page: number) =>
+  get<PageResult<CrawlRecordRow>>('/admin/crawl/records', { tab, page, size: 20 })
+
+export const pendingCrawlCount = () => get<number>('/admin/crawl/records/pending-count')
+
+export const crawlRecord = (id: number) => get<CrawlRecordDetail>(`/admin/crawl/records/${id}`)
+
+/** 返回生成或更新的届次 id */
+export const approveCrawl = (id: number, form: CrawlApproveForm) => post<number>(`/admin/crawl/records/${id}/approve`, form)
+
+export const ignoreCrawl = (id: number) => post<void>(`/admin/crawl/records/${id}/ignore`)
+
+export const crawlSources = () => get<CrawlSourceRow[]>('/admin/crawl/sources')
+
+export const createCrawlSource = (form: CrawlSourceForm) => post<number>('/admin/crawl/sources', form)
+
+export const updateCrawlSource = (id: number, form: CrawlSourceForm) => put<void>(`/admin/crawl/sources/${id}`, form)
+
+export const deleteCrawlSource = (id: number) => del<void>(`/admin/crawl/sources/${id}`)
+
+export const previewCrawlSource = (form: CrawlSourceForm) => post<PreviewResult>('/admin/crawl/sources/preview', form)
+
+export const runCrawl = (sourceId?: number) =>
+  post<void>(sourceId === undefined ? '/admin/crawl/run' : `/admin/crawl/sources/${sourceId}/run`)
+
+export const crawlStatus = () => get<CrawlRunStatus>('/admin/crawl/status')
