@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { listNotifications, markAllRead, markRead } from '@/api/notification'
 import { useNotificationStore } from '@/stores/notification'
 import type { Notification } from '@/types/api'
+import { notificationRoute } from '@/utils/notificationLink'
 import { fmtDateTime } from '@/utils/time'
 import { showError } from '@/utils/feedback'
 
@@ -39,21 +40,8 @@ async function open(n: Notification) {
       showError(e)
     }
   }
-  if (n.refType === 'TEAM' && n.refId) {
-    router.push({ name: 'team', params: { id: n.refId } })
-  } else if (n.refType === 'COMPETITION' && n.refId) {
-    router.push({ name: 'competition', params: { id: n.refId } })
-  } else if (n.refType === 'REVIEW' && n.refId) {
-    router.push({ name: 'review-form', params: { id: n.refId } })
-  } else if (n.refType === 'CREDIT') {
-    router.push({ name: 'reviews' })
-  } else if (n.refType === 'ADMIN_CREDIT') {
-    router.push({ name: 'admin-reports', query: { tab: 'SUSPENDED' } })
-  } else if (n.type === 'REPORT_RESULT') {
-    router.push({ name: 'reviews', query: { tab: 'reports' } })
-  } else if (n.type === 'VERIFY_RESULT') {
-    router.push({ name: 'verify' })
-  }
+  const to = notificationRoute(n)
+  if (to) router.push(to)
 }
 
 async function readAll() {
@@ -71,6 +59,13 @@ function filterChanged() {
 }
 
 onMounted(load)
+// 推来新消息时，正在看第一页就刷新列表
+watch(
+  () => badge.latest,
+  () => {
+    if (page.value === 1) load()
+  },
+)
 </script>
 
 <template>

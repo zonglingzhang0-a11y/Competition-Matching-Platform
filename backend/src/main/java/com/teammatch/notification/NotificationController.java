@@ -11,12 +11,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/notifications")
 @RequiredArgsConstructor
 public class NotificationController {
 
     private final NotificationService service;
+    private final PushTickets tickets;
 
     @GetMapping
     public Result<PageResult<Notification>> list(
@@ -41,5 +44,11 @@ public class NotificationController {
     public Result<Void> markAllRead() {
         service.markAllRead(StpUtil.getLoginIdAsLong());
         return Result.ok();
+    }
+
+    /** 换一张建立推送连接用的一次性票（30 秒内有效），见 {@link PushTickets} */
+    @PostMapping("/push-ticket")
+    public Result<Map<String, String>> pushTicket() {
+        return Result.ok(Map.of("ticket", tickets.issue(StpUtil.getLoginIdAsLong(), StpUtil.getTokenValue())));
     }
 }

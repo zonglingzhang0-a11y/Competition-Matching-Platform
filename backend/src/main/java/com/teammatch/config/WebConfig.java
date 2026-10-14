@@ -22,12 +22,12 @@ import java.time.Clock;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    /** /api 下除了登录注册，都要先登录 */
+    /** /api 下除了登录注册，都要先登录。推送连接用一次性票认证，见 PushTickets */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new SaInterceptor(handler -> StpUtil.checkLogin()))
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/auth/**");
+                .excludePathPatterns("/api/auth/**", "/api/ws/**");
     }
 
     @Bean

@@ -21,3 +21,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* 新消息提示：能跳到相关页面的，点一下就过去 */
+.push-clickable {
+  cursor: pointer;
+}
