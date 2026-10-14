@@ -1,5 +1,5 @@
 import { del, get, post, put } from './http'
-import type { CalendarData, EventForm, EventView, MilestoneForm, TeamTimeline } from '@/types/api'
+import type { CalendarData, EventForm, EventView, MilestoneForm, MyTask, TaskForm, TeamTimeline } from '@/types/api'
 
 /** from、to 都包含，格式 2026-10-01 */
 export const getCalendar = (from: string, to: string) => get<CalendarData>('/calendar', { from, to })
@@ -18,3 +18,13 @@ export const createMilestone = (teamId: number, form: MilestoneForm) => post<num
 export const updateMilestone = (id: number, form: MilestoneForm) => put<void>(`/milestones/${id}`, form)
 export const deleteMilestone = (id: number) => del<void>(`/milestones/${id}`)
 export const setMilestoneDone = (id: number, done: boolean) => put<void>(`/milestones/${id}/done`, { done })
+
+// ---------- 里程碑下的分工待办 ----------
+
+export const createTask = (milestoneId: number, form: TaskForm) => post<number>(`/milestones/${milestoneId}/tasks`, form)
+export const updateTask = (id: number, form: TaskForm) => put<void>(`/tasks/${id}`, form)
+export const claimTask = (id: number) => post<void>(`/tasks/${id}/claim`)
+export const releaseTask = (id: number) => post<void>(`/tasks/${id}/release`)
+export const setTaskDone = (id: number, done: boolean) => put<void>(`/tasks/${id}/done`, { done })
+export const deleteTask = (id: number) => del<void>(`/tasks/${id}`)
+export const myTasks = () => get<MyTask[]>('/tasks/mine')

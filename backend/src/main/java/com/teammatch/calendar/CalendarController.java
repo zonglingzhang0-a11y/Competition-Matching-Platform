@@ -6,6 +6,8 @@ import com.teammatch.calendar.CalendarDtos.DoneForm;
 import com.teammatch.calendar.CalendarDtos.EventForm;
 import com.teammatch.calendar.CalendarDtos.EventView;
 import com.teammatch.calendar.CalendarDtos.MilestoneForm;
+import com.teammatch.calendar.CalendarDtos.MyTask;
+import com.teammatch.calendar.CalendarDtos.TaskForm;
 import com.teammatch.calendar.CalendarDtos.TeamTimeline;
 import com.teammatch.common.Result;
 import jakarta.validation.Valid;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -31,6 +34,7 @@ public class CalendarController {
     private final CalendarService calendarService;
     private final PersonalEventService eventService;
     private final MilestoneService milestoneService;
+    private final TaskService taskService;
 
     private static long me() {
         return StpUtil.getLoginIdAsLong();
@@ -103,5 +107,48 @@ public class CalendarController {
     public Result<Void> setDone(@PathVariable long id, @RequestBody DoneForm form) {
         milestoneService.setDone(me(), id, form.done());
         return Result.ok();
+    }
+
+    // ---------- 里程碑下的分工待办（权限规则见 TaskService） ----------
+
+    @PostMapping("/milestones/{id}/tasks")
+    public Result<Long> createTask(@PathVariable long id, @Valid @RequestBody TaskForm form) {
+        return Result.ok(taskService.create(me(), id, form));
+    }
+
+    @PutMapping("/tasks/{id}")
+    public Result<Void> updateTask(@PathVariable long id, @Valid @RequestBody TaskForm form) {
+        taskService.update(me(), id, form);
+        return Result.ok();
+    }
+
+    @PostMapping("/tasks/{id}/claim")
+    public Result<Void> claimTask(@PathVariable long id) {
+        taskService.claim(me(), id);
+        return Result.ok();
+    }
+
+    @PostMapping("/tasks/{id}/release")
+    public Result<Void> releaseTask(@PathVariable long id) {
+        taskService.release(me(), id);
+        return Result.ok();
+    }
+
+    @PutMapping("/tasks/{id}/done")
+    public Result<Void> setTaskDone(@PathVariable long id, @RequestBody DoneForm form) {
+        taskService.setDone(me(), id, form.done());
+        return Result.ok();
+    }
+
+    @DeleteMapping("/tasks/{id}")
+    public Result<Void> deleteTask(@PathVariable long id) {
+        taskService.delete(me(), id);
+        return Result.ok();
+    }
+
+    /** 分给我、还没做完的任务 */
+    @GetMapping("/tasks/mine")
+    public Result<List<MyTask>> myTasks() {
+        return Result.ok(taskService.mine(me()));
     }
 }

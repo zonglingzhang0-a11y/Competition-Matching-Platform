@@ -70,14 +70,42 @@ public final class CalendarDtos {
             LocalDateTime endLatestAt) {
     }
 
+    /** tasks：这个节点下的分工待办 */
     public record MilestoneView(Long id, String title, String note, LocalDateTime startAt, LocalDateTime endAt,
                                 boolean allDay, CompetitionNode.EndMode endMode, LocalDateTime endLatestAt,
-                                LocalDateTime doneAt) {
+                                LocalDateTime doneAt, List<TaskView> tasks) {
     }
 
-    /** 队伍页的时间线：官方节点 + 队伍里程碑。里程碑只有队员能看到 */
+    /**
+     * 队伍页的时间线：官方节点 + 队伍里程碑。里程碑只有队员能看到。
+     *
+     * @param members 现在的队员，分任务时选人用（只给队员）
+     */
     public record TeamTimeline(List<NodeView> official, List<MilestoneView> milestones, boolean member,
-                               boolean canEdit) {
+                               boolean canEdit, List<MemberOption> members) {
+    }
+
+    public record MemberOption(Long id, String nickname) {
+    }
+
+    /** assigneeId 为空表示先不分配 */
+    public record TaskForm(
+            @NotBlank(message = "请填写任务") @Size(max = 64, message = "任务最多 64 个字") String title,
+            Long assigneeId) {
+    }
+
+    /**
+     * 一条分工待办。
+     *
+     * @param assigneeLeft 负责人已经离队：任务算没人负责，谁都可以认领
+     */
+    public record TaskView(Long id, String title, Long assigneeId, String assigneeName, boolean assigneeLeft,
+                           LocalDateTime doneAt) {
+    }
+
+    /** "我的队伍"页的我的待办：分给我、还没做完的任务 */
+    public record MyTask(Long id, String title, Long teamId, String teamName, Long milestoneId, String milestoneTitle,
+                         LocalDateTime startAt, LocalDateTime endAt, Boolean allDay) {
     }
 
     public record DoneForm(boolean done) {

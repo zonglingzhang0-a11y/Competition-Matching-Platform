@@ -1,6 +1,7 @@
 package com.teammatch.calendar;
 
 import com.teammatch.calendar.CalendarEntities.ReminderMapper;
+import com.teammatch.calendar.CalendarEntities.TaskMapper;
 import com.teammatch.calendar.CalendarMapper.Upcoming;
 import com.teammatch.calendar.CalendarMapper.UpcomingMilestone;
 import com.teammatch.calendar.CalendarMapper.UpcomingNode;
@@ -16,6 +17,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 定时提醒，默认每 10 分钟跑一次：
@@ -38,6 +41,7 @@ public class ReminderJob {
 
     private final CalendarMapper calendarMapper;
     private final ReminderMapper reminderMapper;
+    private final TaskMapper taskMapper;
     private final NotificationService notifications;
     private final Clock clock;
 
@@ -91,8 +95,11 @@ public class ReminderJob {
         for (UpcomingMilestone m : calendarMapper.milestonesDue(now, now.plusHours(24))) {
             for (Long uid : calendarMapper.teamMembers(m.teamId())) {
                 if (reminderMapper.markSent(uid, "MILESTONE_DUE", m.refId(), 24) == 1) {
+                    List<String> open = taskMapper.openTitles(m.refId(), uid);
+                    String tasks = open.isEmpty() ? ""
+                            : "你负责的" + open.stream().map(t -> "「" + t + "」").collect(Collectors.joining("")) + "还没完成。";
                     notifications.send(uid, Notification.Type.MILESTONE, "队伍节点快到了",
-                            "「" + m.teamName() + "」的「" + m.title() + "」在 " + WHEN.format(m.at()) + "，还剩" + left(now, m.at()) + "。",
+                            "「" + m.teamName() + "」的「" + m.title() + "」在 " + WHEN.format(m.at()) + "，还剩" + left(now, m.at()) + "。" + tasks,
                             NotificationService.REF_TEAM, m.teamId());
                     sent++;
                 }

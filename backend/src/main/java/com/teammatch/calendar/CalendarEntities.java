@@ -9,9 +9,11 @@ import lombok.Data;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 日程相关的表。时间字段和比赛节点一样，沿用简程的模型（见 docs/数据库设计.md）。
@@ -78,6 +80,46 @@ public final class CalendarEntities {
 
     @Mapper
     public interface MilestoneMapper extends BaseMapper<TeamMilestone> {
+    }
+
+    /** 里程碑下的分工待办 */
+    @Data
+    @TableName("team_task")
+    public static class TeamTask {
+        @TableId(type = IdType.AUTO)
+        private Long id;
+        private Long milestoneId;
+        private String title;
+        /** 负责人；空表示还没人认领 */
+        private Long assigneeId;
+        private LocalDateTime doneAt;
+        private Integer sort;
+        private LocalDateTime createdAt;
+    }
+
+    @Mapper
+    public interface TaskMapper extends BaseMapper<TeamTask> {
+
+        /** 分给我、还没做完的任务（只算我还在的队伍、没删掉的里程碑），按里程碑时间排 */
+        @Select("""
+                SELECT t.id, t.title, m.team_id AS teamId, tm.name AS teamName, m.id AS milestoneId,
+                       m.title AS milestoneTitle, m.start_at AS startAt, m.end_at AS endAt, m.all_day AS allDay
+                FROM team_task t
+                JOIN team_milestone m ON m.id = t.milestone_id AND m.deleted = 0
+                JOIN team tm ON tm.id = m.team_id
+                JOIN team_member mb ON mb.team_id = m.team_id AND mb.user_id = #{userId} AND mb.status = 'ACTIVE'
+                WHERE t.assignee_id = #{userId} AND t.done_at IS NULL
+                ORDER BY m.start_at, t.sort, t.id
+                """)
+        List<CalendarDtos.MyTask> mine(@Param("userId") long userId);
+
+        /** 这个人在某个里程碑下还没做完的任务名，提醒时用 */
+        @Select("""
+                SELECT title FROM team_task
+                WHERE milestone_id = #{milestoneId} AND assignee_id = #{userId} AND done_at IS NULL
+                ORDER BY sort, id
+                """)
+        List<String> openTitles(@Param("milestoneId") long milestoneId, @Param("userId") long userId);
     }
 
     @Mapper

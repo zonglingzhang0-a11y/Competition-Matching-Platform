@@ -3,6 +3,8 @@ import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Flag, Plus } from '@element-plus/icons-vue'
 import { createMilestone, deleteMilestone, getTimeline, setMilestoneDone, updateMilestone } from '@/api/calendar'
+import MilestoneTasks from '@/components/MilestoneTasks.vue'
+import { useUserStore } from '@/stores/user'
 import type { CompetitionNode, MilestoneForm, MilestoneView, TeamTimeline } from '@/types/api'
 import { isFuzzy, isPast, nodeTimeText, parse } from '@/utils/time'
 import { showError } from '@/utils/feedback'
@@ -10,8 +12,10 @@ import { showError } from '@/utils/feedback'
 /**
  * 队伍页右侧的时间线：比赛官方节点 + 队伍自己的里程碑，中间一条"今天"分隔线。
  * 里程碑由队长增删改，队员都能勾完成；它们也会出现在每个队员的日历里。
+ * 每个里程碑下可以拆分工待办，见 MilestoneTasks。
  */
 const props = defineProps<{ teamId: number }>()
+const user = useUserStore()
 
 const data = ref<TeamTimeline | null>(null)
 const dialogOpen = ref(false)
@@ -130,9 +134,22 @@ defineExpose({ load })
           @update:model-value="(v) => toggleDone(r.ms, !!v)"
         />
         <div class="body">
-          <div class="name">{{ r.ms.title }}</div>
+          <div class="name">
+            {{ r.ms.title }}
+            <span v-if="r.ms.tasks.length" class="progress">
+              任务 {{ r.ms.tasks.filter((t) => t.doneAt).length }}/{{ r.ms.tasks.length }}
+            </span>
+          </div>
           <div class="time">{{ nodeTimeText({ ...r.ms, startLatestAt: null }) }}</div>
           <div v-if="r.ms.note" class="note">{{ r.ms.note }}</div>
+          <MilestoneTasks
+            v-if="user.me"
+            :milestone="r.ms"
+            :members="data.members"
+            :captain="data.canEdit"
+            :me-id="user.me.id"
+            @changed="load"
+          />
         </div>
         <div v-if="data.canEdit" class="ops">
           <el-button text size="small" @click="open(r.ms)">改</el-button>
@@ -190,6 +207,7 @@ defineExpose({ load })
 
 .row {
   display: flex;
+  align-items: flex-start;
   gap: 10px;
   padding: 8px 4px;
   border-radius: 6px;
@@ -221,6 +239,11 @@ defineExpose({ load })
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.progress {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 .time,

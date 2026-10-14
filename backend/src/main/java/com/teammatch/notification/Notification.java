@@ -28,6 +28,8 @@ public class Notification {
         MEMBER_JOINED, MEMBER_LEFT, MEMBER_REMOVED, CAPTAIN_CHANGED, TEAM_DISBANDED,
         DEADLINE, MILESTONE, VERIFY_RESULT, SYSTEM,
         /** 比赛结束，互评开放 / 互评结果揭晓 / 信用相关（暂停推荐等） / 举报处理结果 */
-        REVIEW_OPEN, REVIEW_RESULT, CREDIT, REPORT_RESULT
+        REVIEW_OPEN, REVIEW_RESULT, CREDIT, REPORT_RESULT,
+        /** 队长把里程碑下的任务分给了你 */
+        TASK
     }
 }

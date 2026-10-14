@@ -3,13 +3,16 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import TeamCard from '@/components/TeamCard.vue'
 import { acceptApplication, myApplications, myTeams, rejectApplication, withdrawApplication } from '@/api/team'
-import type { ApplicationView, MyApplications, TeamSummary } from '@/types/api'
+import { myTasks, setTaskDone } from '@/api/calendar'
+import type { ApplicationView, MyApplications, MyTask, TeamSummary } from '@/types/api'
 import { APP_STATUS } from '@/utils/labels'
-import { fmtDateTime } from '@/utils/time'
+import { fmtDate, fmtDateTime } from '@/utils/time'
 import { showError } from '@/utils/feedback'
 
 const teams = ref<TeamSummary[]>([])
 const apps = ref<MyApplications>({ sent: [], received: [] })
+/** 分给我、还没做完的任务 */
+const tasks = ref<MyTask[]>([])
 const loading = ref(true)
 
 const pendingInvites = computed(() => apps.value.received.filter((a) => a.status === 'PENDING'))
@@ -18,7 +21,7 @@ const otherInvites = computed(() => apps.value.received.filter((a) => a.status !
 async function load() {
   loading.value = true
   try {
-    ;[teams.value, apps.value] = await Promise.all([myTeams(), myApplications()])
+    ;[teams.value, apps.value, tasks.value] = await Promise.all([myTeams(), myApplications(), myTasks()])
   } catch (e) {
     showError(e)
   } finally {
@@ -38,11 +41,34 @@ async function act(action: () => Promise<void>, success: string) {
 
 const teamLine = (a: ApplicationView) => `${a.team.competitionName} · ${a.team.editionTitle}`
 
+/** 勾完成后从列表里拿掉 */
+async function finish(t: MyTask) {
+  try {
+    await setTaskDone(t.id, true)
+    tasks.value = tasks.value.filter((x) => x.id !== t.id)
+    ElMessage.success(`「${t.title}」完成了`)
+  } catch (e) {
+    showError(e)
+  }
+}
+
 onMounted(load)
 </script>
 
 <template>
   <div v-loading="loading" class="page">
+    <section v-if="tasks.length">
+      <h2 class="section-title">分给我的待办</h2>
+      <div v-for="t in tasks" :key="t.id" class="task-row">
+        <el-checkbox :aria-label="`标记任务「${t.title}」为已完成`" @change="finish(t)" />
+        <span class="task-title">{{ t.title }}</span>
+        <span class="muted small">
+          <router-link :to="{ name: 'team', params: { id: t.teamId } }" class="team-name">{{ t.teamName }}</router-link>
+          · {{ t.milestoneTitle }} · {{ t.allDay ? fmtDate(t.startAt) : fmtDateTime(t.startAt) }}
+        </span>
+      </div>
+    </section>
+
     <section>
       <h2 class="section-title">我的队伍</h2>
       <el-empty v-if="!loading && teams.length === 0" :image-size="60">
@@ -152,6 +178,19 @@ section {
 .message {
   margin-top: 6px;
   font-size: 13px;
+}
+
+.task-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.task-title {
+  font-size: 14px;
 }
 
 .history-row {

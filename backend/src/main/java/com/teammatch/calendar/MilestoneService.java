@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.teammatch.calendar.CalendarDtos.MilestoneForm;
 import com.teammatch.calendar.CalendarDtos.MilestoneView;
+import com.teammatch.calendar.CalendarDtos.TaskView;
 import com.teammatch.calendar.CalendarDtos.TeamTimeline;
 import com.teammatch.calendar.CalendarEntities.MilestoneMapper;
 import com.teammatch.calendar.CalendarEntities.TeamMilestone;
@@ -23,11 +24,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 队伍时间线：比赛官方节点（所有人可见）+ 队伍里程碑（只有队员可见）。
- * 里程碑由队长增删改，队员都能勾"已完成"。
+ * 里程碑由队长增删改，队员都能勾"已完成"。里程碑下的分工待办见 {@link TaskService}。
  */
 @Service
 @RequiredArgsConstructor
@@ -39,6 +42,7 @@ public class MilestoneService {
     private final NodeMapper nodeMapper;
     private final CalendarMapper calendarMapper;
     private final TeamSupport teamSupport;
+    private final TaskService taskService;
     private final NotificationService notifications;
     private final Clock clock;
 
@@ -48,13 +52,19 @@ public class MilestoneService {
                         .eq(CompetitionNode::getEditionId, t.getEditionId())
                         .orderByAsc(CompetitionNode::getStartAt))
                 .stream().map(NodeView::of).toList();
-        boolean member = isMember(viewerId, t);
-        List<MilestoneView> milestones = !member ? List.of()
-                : milestoneMapper.selectList(new LambdaQueryWrapper<TeamMilestone>()
-                        .eq(TeamMilestone::getTeamId, teamId)
-                        .orderByAsc(TeamMilestone::getStartAt))
-                .stream().map(MilestoneService::toView).toList();
-        return new TeamTimeline(official, milestones, member, t.getCaptainId().equals(viewerId));
+        if (!isMember(viewerId, t)) {
+            return new TeamTimeline(official, List.of(), false, false, List.of());
+        }
+        List<TeamMilestone> list = milestoneMapper.selectList(new LambdaQueryWrapper<TeamMilestone>()
+                .eq(TeamMilestone::getTeamId, teamId)
+                .orderByAsc(TeamMilestone::getStartAt));
+        List<Long> memberIds = teamSupport.activeMembers(teamId).stream().map(TeamMember::getUserId).toList();
+        Map<Long, List<TaskView>> tasks = taskService.byMilestone(
+                list.stream().map(TeamMilestone::getId).toList(), new HashSet<>(memberIds));
+        List<MilestoneView> milestones = list.stream()
+                .map(m -> toView(m, tasks.getOrDefault(m.getId(), List.of()))).toList();
+        return new TeamTimeline(official, milestones, true, t.getCaptainId().equals(viewerId),
+                taskService.memberOptions(memberIds));
     }
 
     @Transactional
@@ -139,8 +149,8 @@ public class MilestoneService {
         return m;
     }
 
-    private static MilestoneView toView(TeamMilestone m) {
+    private static MilestoneView toView(TeamMilestone m, List<TaskView> tasks) {
         return new MilestoneView(m.getId(), m.getTitle(), m.getNote(), m.getStartAt(), m.getEndAt(),
-                Boolean.TRUE.equals(m.getAllDay()), m.getEndMode(), m.getEndLatestAt(), m.getDoneAt());
+                Boolean.TRUE.equals(m.getAllDay()), m.getEndMode(), m.getEndLatestAt(), m.getDoneAt(), tasks);
     }
 }

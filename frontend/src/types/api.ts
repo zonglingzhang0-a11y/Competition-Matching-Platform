@@ -496,6 +496,8 @@ export interface MilestoneView {
   endMode: EndMode
   endLatestAt: string | null
   doneAt: string | null
+  /** 这个节点下的分工待办 */
+  tasks: TaskView[]
 }
 
 export interface TeamTimeline {
@@ -504,6 +506,37 @@ export interface TeamTimeline {
   milestones: MilestoneView[]
   member: boolean
   canEdit: boolean
+  /** 现在的队员（队长在前），分任务时选人用；不是队员时为空 */
+  members: { id: number; nickname: string }[]
+}
+
+export interface TaskView {
+  id: number
+  title: string
+  /** 为空表示还没人认领 */
+  assigneeId: number | null
+  assigneeName: string | null
+  /** 负责人已经离队：算没人负责，谁都可以认领 */
+  assigneeLeft: boolean
+  doneAt: string | null
+}
+
+export interface TaskForm {
+  title: string
+  assigneeId: number | null
+}
+
+/** 分给我、还没做完的任务 */
+export interface MyTask {
+  id: number
+  title: string
+  teamId: number
+  teamName: string
+  milestoneId: number
+  milestoneTitle: string
+  startAt: string
+  endAt: string | null
+  allDay: boolean
 }
 
 // ---------- 站内信 ----------
