@@ -6,13 +6,13 @@ import type { EventForm, RepeatType } from '@/types/api'
 import { showError } from '@/utils/feedback'
 
 /**
- * 个人日程的新建和编辑。eventId 有值是编辑，没有是新建（可以用 preset 带上日历里选中的时间）。
+ * 个人日程的新建和编辑。eventId 有值是编辑，没有是新建（可以用 preset 带上日历里选中的时间，或者一句话添加认出来的内容）。
  */
 const props = defineProps<{
   eventId: number | null
   /** 重复日程被点中的那一天，"只删这一次"用 */
   occurrenceDate?: string | null
-  preset?: { startAt: string; endAt: string | null; allDay: boolean } | null
+  preset?: Partial<EventForm> | null
 }>()
 
 const emit = defineEmits<{ saved: [] }>()

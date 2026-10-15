@@ -5,23 +5,30 @@ import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import zhCnLocale from '@fullcalendar/core/locales/zh-cn'
 import type { CalendarApi, CalendarOptions, DatesSetArg, EventClickArg, EventInput } from '@fullcalendar/core'
+import EventDialog from '@/components/EventDialog.vue'
+import QuickAdd from '@/components/QuickAdd.vue'
 import SemesterBand from '@/components/home/SemesterBand.vue'
 import { getCalendar } from '@/api/calendar'
-import type { CalendarEvent, Semester } from '@/types/api'
+import type { CalendarEvent, EventForm, Semester } from '@/types/api'
 import { addDays, parse, toDateStr } from '@/utils/time'
 import { showError } from '@/utils/feedback'
 
 /**
  * 主页左栏：赛程日历（周 / 月）+ 学期赛程带。
  * 比赛期间画成横条（参加的实心、关注的虚线框），截止是红色菱形，队伍节点是黑色菱形，个人日程是小圆点。
- * 只看不改：新建个人日程到完整的日历页。
+ * 上面可以一句话添加个人日程；改已有的日程到完整的日历页。
  */
 defineProps<{ semester: Semester; today: string }>()
+/** 加了日程：主页顶部的本周可投入时间、学期赛程带要跟着变 */
+const emit = defineEmits<{ changed: [] }>()
 
 const router = useRouter()
 const raw = ref<CalendarEvent[]>([])
 const view = ref<'dayGridMonth' | 'dayGridWeek'>('dayGridMonth')
 const calendarRef = ref<{ getApi: () => CalendarApi } | null>(null)
+const shown = ref<{ from: string; to: string } | null>(null)
+const dialogOpen = ref(false)
+const preset = ref<Partial<EventForm> | null>(null)
 
 type Kind = 'joined' | 'followed' | 'deadline' | 'team' | 'personal'
 
@@ -57,12 +64,28 @@ function toInput(e: CalendarEvent): EventInput {
 
 const events = computed(() => raw.value.map(toInput))
 
-async function onDatesSet(info: DatesSetArg) {
+async function load() {
+  if (!shown.value) return
   try {
-    raw.value = (await getCalendar(toDateStr(info.start), toDateStr(addDays(info.end, -1)))).events
+    raw.value = (await getCalendar(shown.value.from, shown.value.to)).events
   } catch (e) {
     showError(e)
   }
+}
+
+function onDatesSet(info: DatesSetArg) {
+  shown.value = { from: toDateStr(info.start), to: toDateStr(addDays(info.end, -1)) }
+  load()
+}
+
+function onAdded() {
+  load()
+  emit('changed')
+}
+
+function adjust(form: EventForm) {
+  preset.value = form
+  dialogOpen.value = true
 }
 
 function onEventClick(info: EventClickArg) {
@@ -108,6 +131,8 @@ const options = computed<CalendarOptions>(() => ({
       </div>
     </div>
 
+    <QuickAdd :today="today" @added="onAdded" @adjust="adjust" />
+
     <FullCalendar ref="calendarRef" :options="options" class="cal">
       <template #eventContent="arg">
         <span class="ev-mark" aria-hidden="true" />
@@ -117,6 +142,8 @@ const options = computed<CalendarOptions>(() => ({
 
     <hr class="hairline" />
     <SemesterBand :semester="semester" :today="today" />
+
+    <EventDialog v-model="dialogOpen" :event-id="null" :preset="preset" @saved="onAdded" />
   </section>
 </template>
 

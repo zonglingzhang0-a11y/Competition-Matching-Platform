@@ -83,6 +83,7 @@ declare module 'vue' {
     NodeListEditor: typeof import('./components/admin/NodeListEditor.vue')['default']
     NodesDialog: typeof import('./components/admin/NodesDialog.vue')['default']
     PageHeader: typeof import('./components/PageHeader.vue')['default']
+    QuickAdd: typeof import('./components/QuickAdd.vue')['default']
     RankingPicker: typeof import('./components/RankingPicker.vue')['default']
     RecommendedTeams: typeof import('./components/RecommendedTeams.vue')['default']
     ReportDialog: typeof import('./components/ReportDialog.vue')['default']

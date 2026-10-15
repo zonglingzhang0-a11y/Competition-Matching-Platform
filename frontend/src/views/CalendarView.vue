@@ -12,8 +12,9 @@ import zhCnLocale from '@fullcalendar/core/locales/zh-cn'
 import type { CalendarOptions, DateSelectArg, DatesSetArg, EventClickArg, EventInput } from '@fullcalendar/core'
 import CalendarFeedDialog from '@/components/CalendarFeedDialog.vue'
 import EventDialog from '@/components/EventDialog.vue'
+import QuickAdd from '@/components/QuickAdd.vue'
 import { getCalendar } from '@/api/calendar'
-import type { CalendarConflict, CalendarEvent } from '@/types/api'
+import type { CalendarConflict, CalendarEvent, EventForm } from '@/types/api'
 import { addDays, fmtDate, parse, toDateStr, toLocalIso } from '@/utils/time'
 import { showError } from '@/utils/feedback'
 
@@ -28,7 +29,7 @@ const dialogOpen = ref(false)
 const feedOpen = ref(false)
 const editingId = ref<number | null>(null)
 const editingDate = ref<string | null>(null)
-const preset = ref<{ startAt: string; endAt: string | null; allDay: boolean } | null>(null)
+const preset = ref<Partial<EventForm> | null>(null)
 
 // ---------- 图层 ----------
 
@@ -153,6 +154,12 @@ function newEvent() {
   openNew()
 }
 
+/** 一句话添加认得不对，打开完整表单改 */
+function adjustQuick(form: EventForm) {
+  preset.value = form
+  openNew()
+}
+
 const options = computed<CalendarOptions>(() => ({
   plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
   locale: zhCnLocale,
@@ -191,6 +198,8 @@ const options = computed<CalendarOptions>(() => ({
       <el-button @click="feedOpen = true">订阅到手机日历</el-button>
       <el-button type="primary" :icon="Plus" @click="newEvent">新建日程</el-button>
     </div>
+
+    <QuickAdd @added="load" @adjust="adjustQuick" />
 
     <el-alert v-if="conflicts.length" type="error" :closable="false" show-icon class="conflicts">
       <template #title>撞期提醒（{{ conflicts.length }}）</template>

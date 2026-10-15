@@ -62,7 +62,7 @@ watch(() => notifications.latest, load)
     <template v-if="data">
       <HomeTopStrip :data="data" />
       <div class="grid">
-        <ScheduleCalendar :semester="data.semester" :today="data.today" class="left" />
+        <ScheduleCalendar :semester="data.semester" :today="data.today" class="left" @changed="load" />
         <HomeMiddle :mine="data.mine" :suggestions="data.suggestions" />
         <HomeSide :pending="data.pending" :teammates="data.teammates" :recommendations="recs" :messages="messages" @changed="load" />
       </div>
