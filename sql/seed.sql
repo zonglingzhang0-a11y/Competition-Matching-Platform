@@ -93,23 +93,27 @@ FROM (
 ) s JOIN competition c ON c.name = s.competition
 ORDER BY c.id;
 
--- 示例届次：日期是虚构的，只为演示日历和撞期检测
+-- 示例届次：日期是虚构的，只为演示日历和撞期检测。按导入当天往后排，什么时候导入报名都还开着：
+-- 数模 9 天后截止报名，第 17–20 天比赛，第 40–55 天出成绩；计设 35 天后截止报名。
+-- 已经导入过、日期过期了的库，跑一次 sql/demo-refresh-dates.sql
+SET @d = CURDATE();
+
 INSERT INTO competition_edition (competition_id, year, title, team_min, team_max, same_school_required, advisor_required,
                                  registration_start, registration_end, source, status)
-SELECT id, 2026, '2026 年（示例数据）', 1, 3, 1, 0, '2026-09-20 00:00:00', '2026-10-15 23:59:59', 'MANUAL', 'PUBLISHED'
+SELECT id, 2026, '2026 年（示例数据）', 1, 3, 1, 0, @d - INTERVAL 16 DAY, TIMESTAMP(@d + INTERVAL 9 DAY, '23:59:59'), 'MANUAL', 'PUBLISHED'
 FROM competition WHERE name = '全国大学生数学建模竞赛';
 
 INSERT INTO competition_edition (competition_id, year, title, team_min, team_max, same_school_required, advisor_required,
                                  registration_start, registration_end, source, status)
-SELECT id, 2026, '2026 年（示例数据）', 1, 5, 1, 1, '2026-10-01 00:00:00', '2026-11-10 23:59:59', 'MANUAL', 'PUBLISHED'
+SELECT id, 2026, '2026 年（示例数据）', 1, 5, 1, 1, @d - INTERVAL 5 DAY, TIMESTAMP(@d + INTERVAL 35 DAY, '23:59:59'), 'MANUAL', 'PUBLISHED'
 FROM competition WHERE name = '中国大学生计算机设计大赛';
 
 INSERT INTO competition_node (edition_id, title, node_type, start_at, end_at, all_day, end_mode, end_latest_at, busy, sort)
 SELECT e.id, n.title, n.node_type, n.start_at, n.end_at, n.all_day, n.end_mode, n.end_latest_at, n.busy, n.sort
 FROM competition_edition e JOIN competition c ON c.id = e.competition_id JOIN (
-  SELECT '报名截止' AS title, 'REGISTRATION' AS node_type, TIMESTAMP '2026-10-15 23:59:59' AS start_at, NULL AS end_at, 0 AS all_day, 'FIXED' AS end_mode, NULL AS end_latest_at, 0 AS busy, 1 AS sort UNION ALL
-  SELECT '比赛进行（72 小时）', 'CONTEST', TIMESTAMP '2026-10-23 18:00:00', TIMESTAMP '2026-10-26 20:00:00', 0, 'FIXED', NULL, 1, 2 UNION ALL
-  SELECT '成绩公布', 'RESULT', TIMESTAMP '2026-11-15 00:00:00', TIMESTAMP '2026-11-15 00:00:00', 1, 'RANGE', TIMESTAMP '2026-11-30 00:00:00', 0, 3
+  SELECT '报名截止' AS title, 'REGISTRATION' AS node_type, TIMESTAMP(@d + INTERVAL 9 DAY, '23:59:59') AS start_at, CAST(NULL AS DATETIME) AS end_at, 0 AS all_day, 'FIXED' AS end_mode, CAST(NULL AS DATETIME) AS end_latest_at, 0 AS busy, 1 AS sort UNION ALL
+  SELECT '比赛进行（72 小时）', 'CONTEST', TIMESTAMP(@d + INTERVAL 17 DAY, '18:00:00'), TIMESTAMP(@d + INTERVAL 20 DAY, '20:00:00'), 0, 'FIXED', NULL, 1, 2 UNION ALL
+  SELECT '成绩公布', 'RESULT', TIMESTAMP(@d + INTERVAL 40 DAY), TIMESTAMP(@d + INTERVAL 40 DAY), 1, 'RANGE', TIMESTAMP(@d + INTERVAL 55 DAY), 0, 3
 ) n WHERE c.name = '全国大学生数学建模竞赛' AND e.title = '2026 年（示例数据）';
 
 -- ============================================================
