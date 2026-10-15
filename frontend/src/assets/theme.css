@@ -8,7 +8,8 @@
  *   line   细线、边框                   muted  辅助文字
  *   accent 暖金棕：今天、下一个节点、悬停   red    截止日期、警示   olive  完成、开关
  */
-:root {
+/* html:root 比组件样式里的 :root 更具体：按需加载的组件样式后加载，也盖不过这里的配色 */
+html:root {
   --jd-paper: #ebe8e2;
   --jd-panel: #f4f2ed;
   --jd-overlay: #f6f4ef;
@@ -236,14 +237,15 @@ a:hover {
   color: var(--jd-muted);
 }
 
-/* ---------- Element Plus 组件微调 ---------- */
+/* ---------- Element Plus 组件微调 ----------
+ * 选择器都带 html 前缀：组件样式是按需加载的，会比这个文件晚到，同样的选择器会被它盖掉 */
 
-.el-button {
+html .el-button {
   font-weight: 500;
   letter-spacing: 0.02em;
 }
 
-.el-button--primary {
+html .el-button--primary {
   --el-button-bg-color: var(--jd-ink);
   --el-button-border-color: var(--jd-ink);
   --el-button-text-color: var(--jd-paper);
@@ -254,7 +256,7 @@ a:hover {
   --el-button-active-border-color: #000;
 }
 
-.el-button--default:not(.is-text):not(.is-link) {
+html .el-button--default:not(.is-text):not(.is-link) {
   --el-button-bg-color: transparent;
   --el-button-border-color: var(--jd-line-strong);
   --el-button-hover-bg-color: var(--el-fill-color-light);
@@ -262,34 +264,34 @@ a:hover {
   --el-button-hover-text-color: var(--jd-ink);
 }
 
-.el-card {
+html .el-card {
   --el-card-bg-color: var(--jd-panel);
   border-color: var(--jd-line-light);
   box-shadow: none !important;
 }
 
-.el-card__header {
+html .el-card__header {
   font-weight: 700;
 }
 
-.el-dialog {
+html .el-dialog {
   --el-dialog-bg-color: var(--jd-overlay);
   --el-dialog-padding-primary: 24px;
   border: 1px solid var(--jd-line-light);
 }
 
-.el-dialog__header {
+html .el-dialog__header {
   padding-bottom: 14px;
   border-bottom: 1px solid var(--jd-line-light);
   margin-bottom: 8px;
 }
 
-.el-dialog__title {
+html .el-dialog__title {
   font-weight: 700;
   font-size: 18px;
 }
 
-.el-table {
+html .el-table {
   --el-table-bg-color: transparent;
   --el-table-tr-bg-color: transparent;
   --el-table-header-bg-color: transparent;
@@ -299,59 +301,59 @@ a:hover {
   background: transparent;
 }
 
-.el-table th.el-table__cell {
+html .el-table th.el-table__cell {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.06em;
   border-bottom-color: var(--jd-line) !important;
 }
 
-.el-tag {
+html .el-tag {
   --el-tag-border-radius: 2px;
   font-weight: 500;
 }
 
-.el-tabs__item {
+html .el-tabs__item {
   font-weight: 500;
 }
 
-.el-tabs__item.is-active {
+html .el-tabs__item.is-active {
   color: var(--jd-ink);
   font-weight: 700;
 }
 
-.el-tabs__nav-wrap::after {
+html .el-tabs__nav-wrap::after {
   height: 1px;
   background-color: var(--jd-line-light);
 }
 
-.el-switch {
+html .el-switch {
   --el-switch-on-color: var(--jd-olive);
 }
 
-.el-badge__content--danger {
+html .el-badge__content--danger {
   background-color: var(--jd-red);
 }
 
-.el-notification,
-.el-message {
+html .el-notification,
+html .el-message {
   --el-notification-radius: 2px;
   border-radius: 2px;
 }
 
-.el-input__wrapper,
-.el-textarea__inner,
-.el-select__wrapper {
+html .el-input__wrapper,
+html .el-textarea__inner,
+html .el-select__wrapper {
   background-color: var(--jd-field);
 }
 
-.el-empty__description p {
+html .el-empty__description p {
   color: var(--jd-muted);
 }
 
 /* ---------- FullCalendar ---------- */
 
-.fc {
+html .fc {
   --fc-border-color: var(--jd-line-lighter);
   --fc-today-bg-color: var(--jd-accent-soft);
   --fc-page-bg-color: transparent;
@@ -368,15 +370,15 @@ a:hover {
   --fc-small-font-size: 11px;
 }
 
-.fc .fc-button {
+html .fc .fc-button {
   padding: 2px 8px;
   border-radius: 2px;
   box-shadow: none !important;
   font-size: 12px;
 }
 
-.fc .fc-button-primary:not(:disabled).fc-button-active,
-.fc .fc-button-primary:not(:disabled):active {
+html .fc .fc-button-primary:not(:disabled).fc-button-active,
+html .fc .fc-button-primary:not(:disabled):active {
   color: var(--jd-paper);
 }
 
