@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import SurveyQuestionItem from '@/components/SurveyQuestionItem.vue'
@@ -87,8 +88,8 @@ watch(() => route.fullPath, load, { immediate: true })
 
 <template>
   <div v-loading="loading" class="page">
+    <PageHeader en="SURVEY" :zh="isEdition ? '参赛意向' : '组队问卷'" />
     <el-card shadow="never" class="block">
-      <h1 class="title">{{ isEdition ? '参赛意向' : '组队问卷' }}</h1>
       <p v-if="isEdition" class="sub">{{ heading }}</p>
       <p class="desc">
         <template v-if="isEdition">
@@ -133,7 +134,7 @@ watch(() => route.fullPath, load, { immediate: true })
 }
 
 .block {
-  border-radius: 12px;
+  border-radius: 2px;
   margin-bottom: 16px;
 }
 

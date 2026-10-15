@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { ElMessage } from 'element-plus'
 import TeamCard from '@/components/TeamCard.vue'
 import { acceptApplication, myApplications, myTeams, rejectApplication, withdrawApplication } from '@/api/team'
@@ -57,6 +58,7 @@ onMounted(load)
 
 <template>
   <div v-loading="loading" class="page">
+    <PageHeader en="MY TEAMS" zh="我的队伍" />
     <section v-if="tasks.length">
       <h2 class="section-title">分给我的待办</h2>
       <div v-for="t in tasks" :key="t.id" class="task-row">
@@ -147,7 +149,7 @@ section {
 }
 
 .item {
-  border-radius: 12px;
+  border-radius: 2px;
   margin-bottom: 10px;
 }
 

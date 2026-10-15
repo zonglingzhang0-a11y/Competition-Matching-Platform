@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useRouter } from 'vue-router'
 import { Plus } from '@element-plus/icons-vue'
 import FullCalendar from '@fullcalendar/vue3'
@@ -31,9 +32,10 @@ const preset = ref<{ startAt: string; endAt: string | null; allDay: boolean } | 
 
 // ---------- 图层 ----------
 
-const OFFICIAL_COLOR = '#909399'
-const PERSONAL_COLOR = '#8b5cf6'
-const TEAM_COLORS = ['#14b8a6', '#f97316', '#3b82f6', '#ec4899', '#84cc16']
+// 竞搭配色：官方暖灰，个人石板灰，队伍依次是近黑、金棕、橄榄、褐、深灰
+const OFFICIAL_COLOR = '#8f8a80'
+const PERSONAL_COLOR = '#536166'
+const TEAM_COLORS = ['#121310', '#a67d48', '#565c46', '#7a5c3e', '#3b3b35']
 const HIDDEN_KEY = 'tm_calendar_hidden'
 
 function loadHidden(): Set<string> {
@@ -88,7 +90,7 @@ function toInput(e: CalendarEvent): EventInput {
     end,
     allDay: e.allDay,
     backgroundColor: color,
-    borderColor: e.conflictWith ? '#f56c6c' : color,
+    borderColor: e.conflictWith ? '#b0442d' : color,
     classNames: [e.fuzzy ? 'is-fuzzy' : '', e.conflictWith ? 'is-conflict' : '', e.done ? 'is-done' : ''].filter(Boolean),
     extendedProps: { raw: e },
   }
@@ -172,6 +174,7 @@ const options = computed<CalendarOptions>(() => ({
 
 <template>
   <div class="page">
+    <PageHeader en="SCHEDULE" zh="日历" />
     <div class="toolbar">
       <div class="layers" role="group" aria-label="图层">
         <el-check-tag
@@ -235,7 +238,7 @@ const options = computed<CalendarOptions>(() => ({
 .dot {
   width: 10px;
   height: 10px;
-  border-radius: 3px;
+  border-radius: 2px;
   display: inline-block;
 }
 
@@ -249,7 +252,7 @@ const options = computed<CalendarOptions>(() => ({
 }
 
 .calendar {
-  border-radius: 12px;
+  border-radius: 2px;
 }
 
 .legend {
@@ -264,7 +267,7 @@ const options = computed<CalendarOptions>(() => ({
 }
 
 .calendar :deep(.is-conflict) {
-  box-shadow: 0 0 0 1px #f56c6c;
+  box-shadow: 0 0 0 1px var(--jd-red);
 }
 
 .calendar :deep(.is-done .fc-event-title) {

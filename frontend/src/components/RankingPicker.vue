@@ -53,7 +53,7 @@ function toggle(value: string) {
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: 2px;
   border: 1px solid var(--el-border-color);
   background: var(--el-bg-color);
   color: var(--el-text-color-regular);

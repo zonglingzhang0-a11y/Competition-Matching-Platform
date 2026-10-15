@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useRouter } from 'vue-router'
 import { listNotifications, markAllRead, markRead } from '@/api/notification'
 import { useNotificationStore } from '@/stores/notification'
@@ -70,6 +71,7 @@ watch(
 
 <template>
   <div class="page">
+    <PageHeader en="MESSAGES" zh="消息" />
     <div class="toolbar">
       <el-checkbox v-model="unreadOnly" @change="filterChanged">只看未读</el-checkbox>
       <el-button size="small" :disabled="badge.unread === 0" @click="readAll">全部标为已读</el-button>
@@ -121,7 +123,7 @@ watch(
 
 .list {
   background: var(--el-bg-color);
-  border-radius: 12px;
+  border-radius: 2px;
   border: 1px solid var(--el-border-color-lighter);
   min-height: 120px;
 }

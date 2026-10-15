@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { myCredit, myReports, myRounds } from '@/api/review'
 import type { CreditView, MyReport, RoundSummary } from '@/types/api'
@@ -51,6 +52,7 @@ onMounted(load)
 
 <template>
   <div v-loading="loading" class="page">
+    <PageHeader en="REVIEWS" zh="互评与信用" />
     <el-tabs v-model="tab">
       <el-tab-pane label="我的信用" name="credit" />
       <el-tab-pane :label="todo ? `互评（${todo} 个待填）` : '互评'" name="rounds" />
@@ -161,7 +163,7 @@ onMounted(load)
 }
 
 .block {
-  border-radius: 12px;
+  border-radius: 2px;
   margin-bottom: 16px;
 }
 
@@ -223,7 +225,7 @@ onMounted(load)
 
 .bar {
   height: 8px;
-  border-radius: 4px;
+  border-radius: 2px;
   background: var(--el-fill-color);
   overflow: hidden;
 }
@@ -254,7 +256,7 @@ onMounted(load)
   padding: 14px 16px;
   margin-bottom: 10px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  border-radius: 2px;
   background: var(--el-bg-color);
   cursor: pointer;
 }

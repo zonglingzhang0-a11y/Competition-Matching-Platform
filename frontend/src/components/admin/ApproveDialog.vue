@@ -277,7 +277,7 @@ async function submit() {
   width: 100%;
   height: 220px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 6px;
+  border-radius: 2px;
   background: var(--el-fill-color-lighter);
 }
 
@@ -287,7 +287,7 @@ async function submit() {
   justify-content: center;
   height: 220px;
   border: 1px dashed var(--el-border-color);
-  border-radius: 6px;
+  border-radius: 2px;
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }

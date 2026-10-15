@@ -124,7 +124,7 @@ function apply() {
 
 .matrix td {
   padding: 4px;
-  border-radius: 6px;
+  border-radius: 2px;
 }
 
 .cell {

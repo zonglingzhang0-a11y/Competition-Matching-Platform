@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   adminCompetitions,
@@ -135,6 +136,7 @@ onMounted(async () => {
 
 <template>
   <div class="page">
+    <PageHeader en="LIBRARY" zh="比赛库管理" path="管理后台 / 比赛库管理" />
     <div class="toolbar">
       <el-input v-model="keyword" clearable placeholder="搜比赛名或简称" class="search" @keyup.enter="search" @clear="search" />
       <el-button @click="search">搜索</el-button>

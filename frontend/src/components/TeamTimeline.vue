@@ -210,7 +210,7 @@ defineExpose({ load })
   align-items: flex-start;
   gap: 10px;
   padding: 8px 4px;
-  border-radius: 6px;
+  border-radius: 2px;
 }
 
 .row:hover {

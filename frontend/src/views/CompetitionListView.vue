@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 import { followEdition, listCompetitions, unfollowEdition } from '@/api/competition'
@@ -77,6 +78,7 @@ watch(
 
 <template>
   <div class="page">
+    <PageHeader en="COMPETITIONS" zh="比赛库" />
     <div class="filters">
       <el-input
         v-model="query.keyword"
@@ -177,7 +179,7 @@ watch(
 }
 
 .item {
-  border-radius: 12px;
+  border-radius: 2px;
   margin-bottom: 12px;
   cursor: pointer;
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { flaggedReviews, handleReport, listReports, liftSuspension, suspendedUsers } from '@/api/admin'
@@ -113,6 +114,7 @@ load()
 
 <template>
   <div class="page">
+    <PageHeader en="REPORTS" zh="举报与信用" path="管理后台 / 举报与信用" />
     <el-tabs v-model="tab">
       <el-tab-pane label="待处理举报" name="PENDING" />
       <el-tab-pane label="全部举报" name="ALL" />

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import ScreenshotVerifyForm from '@/components/ScreenshotVerifyForm.vue'
 import SendCodeButton from '@/components/SendCodeButton.vue'
@@ -76,6 +77,7 @@ async function submit() {
 
 <template>
   <div class="verify">
+    <PageHeader en="VERIFICATION" zh="身份认证" />
     <el-card shadow="never" class="block">
       <template #header>认证状态</template>
       <el-result
@@ -156,7 +158,7 @@ async function submit() {
 }
 
 .block {
-  border-radius: 12px;
+  border-radius: 2px;
   margin-bottom: 16px;
 }
 

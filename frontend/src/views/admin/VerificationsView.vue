@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listReviews, rejectReview } from '@/api/admin'
 import ApproveDialog from '@/components/admin/ApproveDialog.vue'
@@ -77,6 +78,7 @@ onMounted(load)
 
 <template>
   <div class="page">
+    <PageHeader en="VERIFICATIONS" zh="认证审核" path="管理后台 / 认证审核" />
     <el-tabs v-model="tab">
       <el-tab-pane label="待审核" name="PENDING" />
       <el-tab-pane label="全部记录" name="ALL" />

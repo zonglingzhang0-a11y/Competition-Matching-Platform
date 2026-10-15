@@ -30,7 +30,7 @@ defineProps<{ team: TeamSummary; showCompetition?: boolean }>()
 
 <style scoped>
 .team {
-  border-radius: 12px;
+  border-radius: 2px;
   cursor: pointer;
 }
 

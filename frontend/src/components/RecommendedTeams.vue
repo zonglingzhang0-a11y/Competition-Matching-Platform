@@ -107,7 +107,7 @@ onMounted(load)
 .item {
   padding: 12px 14px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 10px;
+  border-radius: 2px;
   margin-bottom: 10px;
 }
 

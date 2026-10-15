@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { dashboardEditions, dashboardOverview, skillGap } from '@/api/admin'
 import SkillGapChart from '@/components/admin/SkillGapChart.vue'
 import type { EditionPhase, EditionStat, Overview, SkillGap } from '@/types/api'
@@ -77,6 +78,7 @@ onMounted(load)
 
 <template>
   <div class="page">
+    <PageHeader en="DASHBOARD" zh="数据看板" path="管理后台 / 数据看板" />
     <div class="cards" v-loading="loading">
       <component
         :is="card.link ? 'router-link' : 'div'"
@@ -166,7 +168,7 @@ onMounted(load)
 .card {
   display: block;
   padding: 14px 16px;
-  border-radius: 10px;
+  border-radius: 2px;
   border: 1px solid var(--el-border-color-lighter);
   background: var(--el-bg-color);
   color: inherit;

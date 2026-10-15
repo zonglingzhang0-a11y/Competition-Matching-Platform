@@ -182,7 +182,7 @@ watch(() => route.params.id, load, { immediate: true })
 }
 
 .block {
-  border-radius: 12px;
+  border-radius: 2px;
   margin-bottom: 16px;
 }
 

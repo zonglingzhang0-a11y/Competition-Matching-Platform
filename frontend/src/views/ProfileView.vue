@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import ExperienceList from '@/components/ExperienceList.vue'
 import SkillEditor from '@/components/SkillEditor.vue'
@@ -80,6 +81,7 @@ onMounted(load)
 
 <template>
   <div v-loading="loading" class="page">
+    <PageHeader en="PROFILE" zh="我的档案" />
     <template v-if="profile">
       <el-card shadow="never" class="block">
         <template #header>基本资料</template>
@@ -158,7 +160,7 @@ onMounted(load)
 }
 
 .block {
-  border-radius: 12px;
+  border-radius: 2px;
   margin-bottom: 16px;
 }
 

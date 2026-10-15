@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { ElMessage } from 'element-plus'
 import { matchConfigs, saveMatchConfig } from '@/api/admin'
 import MatrixDialog from '@/components/admin/MatrixDialog.vue'
@@ -252,6 +253,7 @@ onMounted(load)
 
 <template>
   <div v-loading="loading" class="page">
+    <PageHeader en="MATCHING" zh="匹配配置" path="管理后台 / 匹配配置" />
     <el-tabs v-model="tab" :before-leave="beforeLeaveTab">
       <el-tab-pane v-for="p in page?.presets ?? []" :key="p.preset" :label="PRESET_LABEL[p.preset]" :name="p.preset" />
     </el-tabs>

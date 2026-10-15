@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listUsers, setUserStatus } from '@/api/admin'
 import type { AdminUserRow, UserRole, UserStatus, VerifyStatus } from '@/types/api'
@@ -66,6 +67,7 @@ onMounted(load)
 
 <template>
   <div class="page">
+    <PageHeader en="ACCOUNTS" zh="账号管理" path="管理后台 / 账号管理" />
     <div class="toolbar">
       <el-input
         v-model="query.keyword"

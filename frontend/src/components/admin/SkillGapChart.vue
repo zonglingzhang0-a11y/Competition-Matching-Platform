@@ -31,7 +31,8 @@ function render() {
     stack: 'supply',
     barMaxWidth: 12,
     data: rows.map((r) => r.supplyByLevel[i]),
-    itemStyle: { color: ['#a0cfff', '#409eff', '#1d5fa8'][i] },
+    // 会的人按熟练度由浅到深：暖灰、灰褐、近黑（竞搭配色）
+    itemStyle: { color: ['#c8c3b8', '#77756d', '#121310'][i] },
   }))
   chart.setOption(
     {
@@ -46,7 +47,7 @@ function render() {
           if (!row) return ''
           const [l1, l2, l3] = row.supplyByLevel
           const verdict =
-            row.gap > 0 ? `<b style="color:#e6a23c">缺 ${row.gap} 人</b>` : row.gap < 0 ? `人手富余 ${-row.gap}` : '刚好够'
+            row.gap > 0 ? `<b style="color:#b0442d">缺 ${row.gap} 人</b>` : row.gap < 0 ? `人手富余 ${-row.gap}` : '刚好够'
           return (
             `<b>${row.name}</b>（${row.category}）<br/>` +
             `队伍还需要：${row.demand} 人<br/>` +
@@ -62,7 +63,8 @@ function render() {
           type: 'bar',
           barMaxWidth: 12,
           data: rows.map((r) => r.demand),
-          itemStyle: { color: '#e6a23c' },
+          // 缺口用砖红，和截止、警示同一个颜色
+          itemStyle: { color: '#b0442d' },
         },
         ...levelSeries,
       ],

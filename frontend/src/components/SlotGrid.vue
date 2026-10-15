@@ -58,7 +58,7 @@ function toggle(day: number, seg: number) {
 
 .cell {
   height: 28px;
-  border-radius: 6px;
+  border-radius: 2px;
   border: 1px solid var(--el-border-color);
   background: var(--el-bg-color);
   cursor: pointer;

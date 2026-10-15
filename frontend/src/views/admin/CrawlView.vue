@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
+import PageHeader from '@/components/PageHeader.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { crawlRecords, crawlSources, crawlStatus, deleteCrawlSource, ignoreCrawl, runCrawl, updateCrawlSource } from '@/api/admin'
@@ -156,6 +157,7 @@ onBeforeUnmount(() => clearTimeout(timer))
 
 <template>
   <div class="page">
+    <PageHeader en="NOTICE CRAWLER" zh="通知抓取" path="管理后台 / 通知抓取" />
     <div class="bar">
       <el-tabs v-model="tab" class="tabs">
         <el-tab-pane label="待确认" name="PENDING" />
