@@ -25,7 +25,7 @@ public class SmtpCodeMailer implements CodeMailer {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(props.mail().from());
         message.setTo(to);
-        message.setSubject("【竞赛组队平台】" + purpose.getLabel() + "验证码");
+        message.setSubject("【竞搭】" + purpose.getLabel() + "验证码");
         message.setText("你的" + purpose.getLabel() + "验证码是 " + code + "，" + ttlMinutes
                 + " 分钟内有效。\n\n如果不是你本人操作，忽略这封邮件即可。");
         try {

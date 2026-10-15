@@ -940,7 +940,8 @@ export interface CrawlRecordRow {
   reviewedAt: string | null
 }
 
-export interface EditionBrief extends EditionForm {
+/** 采用抓取通知时可选的届次（届次表单的全部字段） */
+export interface CrawlEdition extends EditionForm {
   id: number
 }
 
@@ -948,7 +949,7 @@ export interface CrawlRecordDetail {
   record: CrawlRecordRow
   rawText: string | null
   /** 这个比赛已有的届次，可以选择更新其中一届 */
-  editions: EditionBrief[]
+  editions: CrawlEdition[]
 }
 
 export interface CrawlApproveForm {

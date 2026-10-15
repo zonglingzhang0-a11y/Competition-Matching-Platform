@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 import { followEdition, listCompetitions, unfollowEdition } from '@/api/competition'
 import type { CompetitionQuery, CompetitionSummary, EditionBrief } from '@/types/api'
@@ -9,9 +9,11 @@ import { daysLeft, fmtDateTime } from '@/utils/time'
 import { showError } from '@/utils/feedback'
 
 const router = useRouter()
+const route = useRoute()
 
 const query = reactive<CompetitionQuery>({
-  keyword: '',
+  // 顶栏的搜索框跳过来时带着 ?keyword=
+  keyword: (route.query.keyword as string) || '',
   category: undefined,
   level: undefined,
   openOnly: false,
@@ -63,6 +65,14 @@ async function toggleFollow(e: EditionBrief) {
 }
 
 onMounted(load)
+watch(
+  () => route.query.keyword,
+  (kw) => {
+    query.keyword = (kw as string) || ''
+    query.page = 1
+    load()
+  },
+)
 </script>
 
 <template>

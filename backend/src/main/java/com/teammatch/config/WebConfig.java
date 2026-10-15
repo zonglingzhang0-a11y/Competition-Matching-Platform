@@ -52,7 +52,7 @@ public class WebConfig implements WebMvcConfigurer {
     public OpenAPI openApi() {
         String scheme = "token";
         return new OpenAPI()
-                .info(new Info().title("竞赛组队匹配平台 API").version("0.1"))
+                .info(new Info().title("竞搭 · 竞赛组队匹配平台 API").version("0.1"))
                 .components(new Components().addSecuritySchemes(scheme,
                         new SecurityScheme().type(SecurityScheme.Type.HTTP).scheme("bearer")))
                 .addSecurityItem(new SecurityRequirement().addList(scheme));

@@ -1,17 +1,28 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowDown, Bell } from '@element-plus/icons-vue'
+import { Bell, Search } from '@element-plus/icons-vue'
 import { useAdminStore } from '@/stores/admin'
 import { useNotificationStore } from '@/stores/notification'
 import { useUserStore } from '@/stores/user'
 
+/**
+ * 登录后的外壳：顶栏（品牌、导航、搜索、消息、个人菜单）+ 内容 + 底部状态栏。
+ * 档案、身份认证、互评与信用收在右上角的个人菜单里。
+ */
 const route = useRoute()
 const router = useRouter()
 const user = useUserStore()
 const notifications = useNotificationStore()
-
 const admin = useAdminStore()
+
+const keyword = ref('')
+const clock = ref(now())
+let clockTimer: number | undefined
+
+function now() {
+  return new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
 
 /** 管理员菜单上的待审核数，切换页面时刷新 */
 function refreshPending() {
@@ -22,8 +33,16 @@ function refreshPending() {
 const activeMenu = computed(() => {
   if (route.path.startsWith('/competitions')) return '/competitions'
   if (route.path.startsWith('/teams')) return '/teams'
+  if (route.path.startsWith('/admin')) return route.path
   return route.path
 })
+
+const initial = computed(() => user.me?.nickname?.slice(0, 1) ?? '')
+
+function search() {
+  const kw = keyword.value.trim()
+  router.push({ name: 'competitions', query: kw ? { keyword: kw } : {} })
+}
 
 function onCommand(command: string) {
   if (command === 'logout') logout()
@@ -39,8 +58,12 @@ async function logout() {
 onMounted(() => {
   notifications.start()
   refreshPending()
+  clockTimer = window.setInterval(() => (clock.value = now()), 15_000)
 })
-onBeforeUnmount(notifications.stop)
+onBeforeUnmount(() => {
+  notifications.stop()
+  window.clearInterval(clockTimer)
+})
 watch(
   () => route.fullPath,
   () => {
@@ -51,17 +74,19 @@ watch(
 </script>
 
 <template>
-  <el-container class="layout">
-    <el-header class="header">
-      <router-link to="/" class="brand">竞赛组队</router-link>
+  <div class="layout">
+    <header class="header">
+      <router-link to="/" class="brand" aria-label="竞搭 首页">
+        <span class="brand-name">竞搭</span>
+        <span class="brand-sub">COMPETITION<br />TEAM MATCHING</span>
+      </router-link>
+
       <el-menu mode="horizontal" router :default-active="activeMenu" :ellipsis="false" class="menu">
-        <el-menu-item index="/">首页</el-menu-item>
+        <el-menu-item index="/">我的主页</el-menu-item>
         <el-menu-item index="/competitions">比赛库</el-menu-item>
         <el-menu-item index="/teams">我的队伍</el-menu-item>
         <el-menu-item index="/calendar">日历</el-menu-item>
-        <el-menu-item index="/profile">我的档案</el-menu-item>
-        <el-menu-item index="/verify">身份认证</el-menu-item>
-        <el-sub-menu v-if="user.isAdmin" index="admin">
+        <el-sub-menu v-if="user.isAdmin" index="admin" popper-class="jd-admin-menu">
           <template #title>
             管理后台
             <span v-if="admin.pendingTotal > 0" class="count" :aria-label="`${admin.pendingTotal} 条待处理`">{{ admin.pendingTotal }}</span>
@@ -84,60 +109,121 @@ watch(
           <el-menu-item index="/admin/users">账号管理</el-menu-item>
         </el-sub-menu>
       </el-menu>
+
       <div class="right">
-        <el-tag v-if="user.me?.verifyStatus === 'VERIFIED'" type="success" size="small">
-          {{ user.me?.school?.name }}
-        </el-tag>
+        <el-input
+          v-model="keyword"
+          :prefix-icon="Search"
+          placeholder="搜索比赛"
+          size="small"
+          class="search"
+          aria-label="搜索比赛"
+          @keyup.enter="search"
+        />
         <router-link to="/notifications" class="bell" aria-label="消息">
           <el-badge :value="notifications.unread" :hidden="notifications.unread === 0" :max="99">
             <el-icon :size="18"><Bell /></el-icon>
           </el-badge>
         </router-link>
+        <router-link v-if="user.me && user.me.verifyStatus !== 'VERIFIED'" to="/verify" class="unverified">未认证</router-link>
         <el-dropdown trigger="click" @command="onCommand">
-          <span class="user">
-            {{ user.me?.nickname }}
-            <el-icon><ArrowDown /></el-icon>
-          </span>
+          <button type="button" class="user" aria-label="个人菜单">
+            <span class="avatar" aria-hidden="true">{{ initial }}</span>
+            <span class="who">
+              <strong>{{ user.me?.nickname }}</strong>
+              <small>{{ user.me?.school?.name ?? '未认证学校' }}</small>
+            </span>
+          </button>
           <template #dropdown>
             <el-dropdown-menu>
+              <el-dropdown-item command="profile">我的档案</el-dropdown-item>
+              <el-dropdown-item command="verify">身份认证</el-dropdown-item>
               <el-dropdown-item command="reviews">互评与信用</el-dropdown-item>
               <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
       </div>
-    </el-header>
-    <el-main class="main">
+    </header>
+
+    <main class="main">
       <router-view />
-    </el-main>
-  </el-container>
+    </main>
+
+    <footer class="status">
+      <span class="kicker">
+        <i class="light" :class="{ on: notifications.live }" aria-hidden="true" />
+        {{ notifications.live ? '实时推送已连接' : '每分钟同步消息' }}
+      </span>
+      <span class="kicker">
+        竞搭 <span class="sep">/</span> {{ user.me?.nickname }} <span class="sep">/</span> <span class="num">{{ clock }}</span>
+      </span>
+    </footer>
+  </div>
 </template>
 
 <style scoped>
 .layout {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
-  gap: 24px;
-  background: var(--el-bg-color);
-  border-bottom: 1px solid var(--el-border-color-light);
+  gap: 28px;
+  height: 60px;
+  padding: 0 24px;
+  background: rgba(235, 232, 226, 0.94);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--jd-line-light);
 }
 
 .brand {
-  font-size: 17px;
-  font-weight: 500;
-  color: var(--el-text-color-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--jd-ink);
   text-decoration: none;
   white-space: nowrap;
 }
 
+.brand-name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.brand-sub {
+  padding-left: 10px;
+  border-left: 1px solid var(--jd-ink);
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.16em;
+}
+
 .menu {
+  --el-menu-bg-color: transparent;
+  --el-menu-hover-bg-color: transparent;
+  --el-menu-text-color: var(--jd-muted);
+  --el-menu-hover-text-color: var(--jd-ink);
+  --el-menu-active-color: var(--jd-ink);
+  --el-menu-horizontal-height: 59px;
+  --el-menu-item-font-size: 14px;
   flex: 1;
   min-width: 0;
   border-bottom: none;
+}
+
+.menu :deep(.el-menu-item.is-active),
+.menu :deep(.el-sub-menu.is-active .el-sub-menu__title) {
+  font-weight: 700;
+  border-bottom-width: 2px;
 }
 
 .right {
@@ -146,36 +232,130 @@ watch(
   gap: 16px;
 }
 
+.search {
+  width: 180px;
+}
+
 .bell {
   display: inline-flex;
-  color: var(--el-text-color-regular);
+  color: var(--jd-ink-2);
+}
+
+.bell:hover {
+  color: var(--jd-accent);
+}
+
+.unverified {
+  font-size: 12px;
+  color: var(--jd-red);
+  text-decoration: none;
+  border: 1px solid var(--el-color-danger-light-5);
+  padding: 1px 6px;
 }
 
 .user {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
   cursor: pointer;
-  color: var(--el-text-color-regular);
+  color: var(--jd-ink);
+  font: inherit;
+  text-align: left;
+}
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  background: var(--jd-ink);
+  color: var(--jd-paper);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.who strong {
+  font-size: 13px;
+}
+
+.who small {
+  font-size: 11px;
+  color: var(--jd-muted);
 }
 
 .main {
-  padding: 24px 16px;
+  flex: 1;
+  padding: 24px;
 }
 
-/* 菜单上的待审核数 */
+.status {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 24px 14px;
+  border-top: 1px solid var(--jd-line-lighter);
+}
+
+.status .kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+}
+
+.sep {
+  color: var(--jd-line-strong);
+}
+
+.light {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--jd-line-strong);
+}
+
+.light.on {
+  background: var(--jd-olive);
+}
+
+/* 菜单上的待处理数 */
 .count {
   display: inline-block;
   min-width: 18px;
   height: 18px;
   margin-left: 6px;
   padding: 0 5px;
-  border-radius: 9px;
-  background: var(--el-color-danger);
+  background: var(--jd-red);
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 700;
   line-height: 18px;
   text-align: center;
-  box-sizing: border-box;
+}
+
+@media (max-width: 960px) {
+  .brand-sub,
+  .who,
+  .search {
+    display: none;
+  }
+
+  .header {
+    gap: 12px;
+    padding: 0 12px;
+  }
+
+  .main {
+    padding: 16px 12px;
+  }
 }
 </style>

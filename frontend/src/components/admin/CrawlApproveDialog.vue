@@ -3,7 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { approveCrawl, crawlRecord, editionNodes } from '@/api/admin'
 import NodeListEditor from '@/components/admin/NodeListEditor.vue'
-import type { CrawlRecordDetail, EditionBrief, EditionForm, Extracted } from '@/types/api'
+import type { CrawlEdition, CrawlRecordDetail, EditionForm, Extracted } from '@/types/api'
 import { EDITION_STATUS } from '@/utils/labels'
 import { emptyRow, firstIncomplete, toForms, toRow, type NodeRow } from '@/utils/nodeRows'
 import { fmtDateTime } from '@/utils/time'
@@ -83,7 +83,7 @@ async function fill() {
   if (!d) return
   const x = d.record.extracted
   const target = mode.value === 'UPDATE' ? editions.value.find((e) => e.id === editionId.value) : undefined
-  const base: EditionBrief | undefined = target ?? editions.value[0]
+  const base: CrawlEdition | undefined = target ?? editions.value[0]
   const next = blankForm()
   if (base) {
     Object.assign(next, {

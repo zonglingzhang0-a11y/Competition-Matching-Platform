@@ -1,0 +1,310 @@
+/*
+ * 竞搭的视觉基准：暖灰白底、近黑正文、细线分隔、方角。
+ * 参考 RhineLabUI（MIT，https://github.com/LBEILC/RhineLabUI）的配色与排版，以及项目思路里 B 版主页的
+ * "黑白灰 + 截止日期用红色"。不使用它的品牌标志和素材。
+ *
+ * 颜色分工：
+ *   ink    正文、主按钮、选中           paper  页面底色      panel  卡片和面板
+ *   line   细线、边框                   muted  辅助文字
+ *   accent 暖金棕：今天、下一个节点、悬停   red    截止日期、警示   olive  完成、开关
+ */
+:root {
+  --jd-paper: #ebe8e2;
+  --jd-panel: #f4f2ed;
+  --jd-overlay: #f6f4ef;
+  --jd-field: #f8f6f2;
+  --jd-ink: #121310;
+  --jd-ink-2: #3b3b35;
+  --jd-muted: #77756d;
+  --jd-placeholder: #a19e95;
+  --jd-line-strong: #aaa59a;
+  --jd-line: #c8c3b8;
+  --jd-line-light: #d6d1c7;
+  --jd-line-lighter: #e0dbd1;
+  --jd-accent: #a67d48;
+  --jd-accent-soft: #efe5d8;
+  --jd-red: #b0442d;
+  --jd-red-soft: #f2e5e0;
+  --jd-olive: #565c46;
+  --jd-font: 'MiSans', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', sans-serif;
+
+  /* ---------- Element Plus 主题 ---------- */
+  --el-font-family: var(--jd-font);
+  --el-color-white: #fff;
+  --el-color-black: #000;
+
+  --el-color-primary: var(--jd-ink);
+  --el-color-primary-light-3: #5a5a54;
+  --el-color-primary-light-5: #8a8880;
+  --el-color-primary-light-7: #b9b6ae;
+  --el-color-primary-light-8: #cfccc4;
+  --el-color-primary-light-9: #e1ded7;
+  --el-color-primary-dark-2: #000;
+
+  --el-color-success: var(--jd-olive);
+  --el-color-success-light-3: #888c7d;
+  --el-color-success-light-5: #a9ab9f;
+  --el-color-success-light-7: #cacbc2;
+  --el-color-success-light-8: #d9d9d2;
+  --el-color-success-light-9: #e7e7e1;
+  --el-color-success-dark-2: #45493a;
+
+  --el-color-warning: var(--jd-accent);
+  --el-color-warning-light-3: #c09f74;
+  --el-color-warning-light-5: #cfb592;
+  --el-color-warning-light-7: #dfccb3;
+  --el-color-warning-light-8: #e7d8c5;
+  --el-color-warning-light-9: var(--jd-accent-soft);
+  --el-color-warning-dark-2: #85643a;
+
+  --el-color-danger: var(--jd-red);
+  --el-color-danger-light-3: #c87a69;
+  --el-color-danger-light-5: #d6a093;
+  --el-color-danger-light-7: #e5c4bb;
+  --el-color-danger-light-8: #ecd5cf;
+  --el-color-danger-light-9: var(--jd-red-soft);
+  --el-color-danger-dark-2: #8d3624;
+  --el-color-error: var(--jd-red);
+  --el-color-error-light-3: #c87a69;
+  --el-color-error-light-5: #d6a093;
+  --el-color-error-light-7: #e5c4bb;
+  --el-color-error-light-8: #ecd5cf;
+  --el-color-error-light-9: var(--jd-red-soft);
+  --el-color-error-dark-2: #8d3624;
+
+  --el-color-info: var(--jd-muted);
+  --el-color-info-light-3: #9a9891;
+  --el-color-info-light-5: #b2b0a9;
+  --el-color-info-light-7: #cbc9c2;
+  --el-color-info-light-8: #d6d4ce;
+  --el-color-info-light-9: #e4e2dc;
+  --el-color-info-dark-2: #5f5d57;
+
+  --el-bg-color: var(--jd-panel);
+  --el-bg-color-page: var(--jd-paper);
+  --el-bg-color-overlay: var(--jd-overlay);
+
+  --el-text-color-primary: var(--jd-ink);
+  --el-text-color-regular: var(--jd-ink-2);
+  --el-text-color-secondary: var(--jd-muted);
+  --el-text-color-placeholder: var(--jd-placeholder);
+  --el-text-color-disabled: #b5b2aa;
+
+  --el-border-color: var(--jd-line);
+  --el-border-color-light: var(--jd-line-light);
+  --el-border-color-lighter: var(--jd-line-lighter);
+  --el-border-color-extra-light: #e7e3db;
+  --el-border-color-dark: var(--jd-line-strong);
+  --el-border-color-darker: #8f8a80;
+
+  --el-fill-color: #e4e0d8;
+  --el-fill-color-light: #ebe8e1;
+  --el-fill-color-lighter: #efece6;
+  --el-fill-color-extra-light: #f2f0eb;
+  --el-fill-color-dark: #dcd7ce;
+  --el-fill-color-darker: #d2ccc2;
+  --el-fill-color-blank: var(--jd-field);
+
+  --el-border-radius-base: 2px;
+  --el-border-radius-small: 2px;
+  --el-border-radius-round: 2px;
+  --el-box-shadow: 0 18px 50px rgba(30, 28, 22, 0.12);
+  --el-box-shadow-light: 0 8px 24px rgba(30, 28, 22, 0.08);
+  --el-box-shadow-lighter: 0 2px 10px rgba(30, 28, 22, 0.06);
+  --el-mask-color: rgba(235, 232, 226, 0.82);
+}
+
+body {
+  background: var(--jd-paper);
+  color: var(--jd-ink);
+  font-family: var(--jd-font);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'tnum';
+}
+
+a {
+  color: var(--jd-ink);
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--jd-accent);
+}
+
+::selection {
+  background: var(--jd-accent-soft);
+  color: var(--jd-ink);
+}
+
+/* ---------- 通用排版 ---------- */
+
+/* 小号双语标签，如 "DEPARTMENT / 科室" */
+.kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--jd-muted);
+}
+
+.kicker .zh {
+  letter-spacing: 0.06em;
+  font-weight: 400;
+}
+
+/* 大标题：英文全大写加粗，旁边跟一行中文 */
+.display {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+
+.display small {
+  margin-left: 12px;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  color: var(--jd-muted);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.deadline {
+  color: var(--jd-red);
+}
+
+/* 标题下的粗黑线、分区之间的细线 */
+.rule {
+  border: 0;
+  border-top: 1px solid var(--jd-ink);
+  margin: 12px 0;
+}
+
+.hairline {
+  border: 0;
+  border-top: 1px solid var(--jd-line-light);
+  margin: 12px 0;
+}
+
+/* ---------- Element Plus 组件微调 ---------- */
+
+.el-button {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--jd-ink);
+  --el-button-border-color: var(--jd-ink);
+  --el-button-text-color: var(--jd-paper);
+  --el-button-hover-bg-color: #2e2e29;
+  --el-button-hover-border-color: #2e2e29;
+  --el-button-hover-text-color: var(--jd-paper);
+  --el-button-active-bg-color: #000;
+  --el-button-active-border-color: #000;
+}
+
+.el-button--default:not(.is-text):not(.is-link) {
+  --el-button-bg-color: transparent;
+  --el-button-border-color: var(--jd-line-strong);
+  --el-button-hover-bg-color: var(--el-fill-color-light);
+  --el-button-hover-border-color: var(--jd-ink);
+  --el-button-hover-text-color: var(--jd-ink);
+}
+
+.el-card {
+  --el-card-bg-color: var(--jd-panel);
+  border-color: var(--jd-line-light);
+  box-shadow: none !important;
+}
+
+.el-card__header {
+  font-weight: 700;
+}
+
+.el-dialog {
+  --el-dialog-bg-color: var(--jd-overlay);
+  --el-dialog-padding-primary: 24px;
+  border: 1px solid var(--jd-line-light);
+}
+
+.el-dialog__header {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--jd-line-light);
+  margin-bottom: 8px;
+}
+
+.el-dialog__title {
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.el-table {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: transparent;
+  --el-table-row-hover-bg-color: var(--el-fill-color-lighter);
+  --el-table-border-color: var(--jd-line-lighter);
+  --el-table-header-text-color: var(--jd-muted);
+  background: transparent;
+}
+
+.el-table th.el-table__cell {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border-bottom-color: var(--jd-line) !important;
+}
+
+.el-tag {
+  --el-tag-border-radius: 2px;
+  font-weight: 500;
+}
+
+.el-tabs__item {
+  font-weight: 500;
+}
+
+.el-tabs__item.is-active {
+  color: var(--jd-ink);
+  font-weight: 700;
+}
+
+.el-tabs__nav-wrap::after {
+  height: 1px;
+  background-color: var(--jd-line-light);
+}
+
+.el-switch {
+  --el-switch-on-color: var(--jd-olive);
+}
+
+.el-badge__content--danger {
+  background-color: var(--jd-red);
+}
+
+.el-notification,
+.el-message {
+  --el-notification-radius: 2px;
+  border-radius: 2px;
+}
+
+.el-input__wrapper,
+.el-textarea__inner,
+.el-select__wrapper {
+  background-color: var(--jd-field);
+}
+
+.el-empty__description p {
+  color: var(--jd-muted);
+}
+
+/* 新消息提示：能跳到相关页面的，点一下就过去 */
+.push-clickable {
+  cursor: pointer;
+}
