@@ -26,16 +26,23 @@ public final class CalendarDtos {
      * @param layerKey       图层的细分，比如 edition-1、team-2，前端按它分组开关
      * @param end            显示到什么时候：结束是区间时取最晚的那个，没有结束时间为空
      * @param fuzzy          时间说不准（开始或结束是一个区间、或者没有结束时间）
+     * @param deadline       截止类节点：报名截止、作品提交、队伍里程碑
+     * @param joined         官方节点：这一届我已经组队参加了（光关注的为 false）
      * @param conflictWith   撞期时，撞上的是哪一条
      * @param occurrenceDate 个人重复日程这一次的日期，"只删这一次"用
      */
     public record CalendarEvent(String id, Layer layer, String layerKey, String layerName, String title,
                                 LocalDateTime start, LocalDateTime end, boolean allDay, boolean fuzzy, boolean busy,
-                                Boolean done, String conflictWith, String refType, Long refId,
+                                boolean deadline, boolean joined, Boolean done, String conflictWith, String refType,
+                                Long refId,
                                 LocalDate occurrenceDate) {
     }
 
     public record Conflict(String first, String second, LocalDateTime start) {
+    }
+
+    /** 一段占用的时间 [start, end) */
+    public record Period(LocalDateTime start, LocalDateTime end) {
     }
 
     public record CalendarView(List<CalendarEvent> events, List<Conflict> conflicts) {

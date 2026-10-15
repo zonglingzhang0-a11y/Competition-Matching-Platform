@@ -437,6 +437,10 @@ export interface CalendarEvent {
   fuzzy: boolean
   /** 参与撞期检测 */
   busy: boolean
+  /** 截止类：报名截止、作品提交、队伍里程碑，画成红色菱形 */
+  deadline: boolean
+  /** 官方节点：这一届已经组队参加（光关注的为 false） */
+  joined: boolean
   done: boolean | null
   conflictWith: string | null
   refType: 'COMPETITION' | 'TEAM' | 'EVENT' | null
@@ -1001,4 +1005,134 @@ export interface CrawlRunStatus {
   startedAt: string | null
   finishedAt: string | null
   summary: string | null
+}
+
+// ---------- 我的主页 ----------
+
+/** 一个快到的节点。label 是比赛简称或队伍名；progress 是本阶段已经过了百分之几 */
+export interface Upcoming {
+  title: string
+  label: string
+  at: string
+  daysLeft: number
+  deadline: boolean
+  team: boolean
+  progress: number | null
+  refType: 'COMPETITION' | 'TEAM'
+  refId: number | null
+}
+
+export interface SemesterMark {
+  title: string
+  start: string
+  /** 为空表示一个时间点 */
+  end: string | null
+  deadline: boolean
+  team: boolean
+  fuzzy: boolean
+}
+
+/** 学期赛程带的一行：一个比赛，连同自己队伍在这个比赛下的里程碑 */
+export interface SemesterLane {
+  editionId: number
+  competitionId: number | null
+  label: string
+  joined: boolean
+  marks: SemesterMark[]
+}
+
+/** 一周的负荷：空闲小时（没填问卷空闲时段为 null）、截止个数、要不要提醒 */
+export interface WeekLoad {
+  start: string
+  freeHours: number | null
+  deadlines: number
+  warn: boolean
+}
+
+export interface Semester {
+  start: string
+  end: string
+  lanes: SemesterLane[]
+  weeks: WeekLoad[]
+}
+
+export interface HomeStage {
+  title: string
+  at: string
+  state: 'DONE' | 'CURRENT' | 'TODO'
+}
+
+export interface MyCompetition {
+  teamId: number
+  teamName: string
+  editionId: number
+  competitionId: number
+  competitionName: string
+  level: CompetitionLevel | null
+  editionTitle: string
+  members: string[]
+  memberCount: number
+  maxMembers: number
+  openNeeds: number
+  captain: boolean
+  officialUrl: string | null
+  noticeUrl: string | null
+  stages: HomeStage[]
+  nextDeadline: Upcoming | null
+}
+
+export interface Suggestion {
+  editionId: number
+  competitionId: number
+  competitionName: string
+  level: CompetitionLevel | null
+  editionTitle: string
+  registrationEnd: string | null
+  daysLeft: number | null
+  /** 个人赛，不用组队 */
+  solo: boolean
+  recruitingTeams: number
+  followed: boolean
+  officialUrl: string | null
+  noticeUrl: string | null
+}
+
+/** INVITE 我收到的邀请 / APPLY 有人申请加入我当队长的队；consequence 是处理后的影响 */
+export interface HomePending {
+  kind: 'INVITE' | 'APPLY'
+  applicationId: number
+  teamId: number
+  teamName: string
+  competitionName: string
+  who: string | null
+  roleName: string | null
+  message: string | null
+  createdAt: string
+  consequence: string | null
+}
+
+export interface HomeTeammate {
+  teamId: number
+  teamName: string
+  userId: number
+  nickname: string
+  major: string | null
+  enrollYear: number | null
+  score: number
+  reason: string | null
+  invited: boolean
+}
+
+export interface HomeData {
+  today: string
+  next: Upcoming | null
+  after: Upcoming[]
+  /** 本周还能投入几小时；没填问卷空闲时段为 null */
+  weekFreeHours: number | null
+  weekDeadlines: number
+  semester: Semester
+  mine: MyCompetition[]
+  suggestions: Suggestion[]
+  pending: HomePending[]
+  teammates: HomeTeammate[]
 }

@@ -70,10 +70,12 @@ public class CalendarService {
                 }
                 EditionLabel l = labels.get(n.getEditionId());
                 String label = l == null ? "比赛" : l.label();
-                items.add(new Item("node-" + n.getId(), Layer.OFFICIAL, "edition-" + n.getEditionId(), label,
+                Item item = new Item("node-" + n.getId(), Layer.OFFICIAL, "edition-" + n.getEditionId(), label,
                         n.getTitle(), n.getStartAt(), end, Boolean.TRUE.equals(n.getAllDay()),
                         fuzzy(n.getEndMode(), n.getStartLatestAt()), Boolean.TRUE.equals(n.getBusy()), null,
-                        "COMPETITION", l == null ? null : l.competitionId(), null, joined.contains(n.getEditionId())));
+                        "COMPETITION", l == null ? null : l.competitionId(), null, joined.contains(n.getEditionId()));
+                item.deadline = isDeadline(n.getNodeType());
+                items.add(item);
             }
         }
 
@@ -84,10 +86,13 @@ public class CalendarService {
                     .in(TeamMilestone::getTeamId, teamNames.keySet()))) {
                 LocalDateTime end = displayEnd(m.getEndMode(), m.getEndAt(), m.getEndLatestAt());
                 if (Occurrences.overlaps(m.getStartAt(), end, from, to)) {
-                    items.add(new Item("milestone-" + m.getId(), Layer.TEAM, "team-" + m.getTeamId(),
+                    Item item = new Item("milestone-" + m.getId(), Layer.TEAM, "team-" + m.getTeamId(),
                             teamNames.get(m.getTeamId()), m.getTitle(), m.getStartAt(), end,
                             Boolean.TRUE.equals(m.getAllDay()), fuzzy(m.getEndMode(), m.getStartLatestAt()), false,
-                            m.getDoneAt() != null, "TEAM", m.getTeamId(), null, false));
+                            m.getDoneAt() != null, "TEAM", m.getTeamId(), null, false);
+                    // 队伍里程碑都是要按时完成的节点
+                    item.deadline = true;
+                    items.add(item);
                 }
             }
         }
@@ -104,6 +109,46 @@ public class CalendarService {
         List<Conflict> conflicts = markConflicts(items);
         items.sort(Comparator.comparing(Item::start));
         return new CalendarView(items.stream().map(Item::toEvent).toList(), conflicts);
+    }
+
+    /**
+     * [from, to) 里占用时间的安排：标了"忙碌"的个人日程（重复的展开），加上已经参加的比赛里"参与撞期检测"的节点。
+     * 只关注、没参加的比赛不占时间。全天的安排占满那几天；没有结束时间的不算。主页估算每周空闲时用。
+     */
+    public List<CalendarDtos.Period> busyPeriods(long userId, LocalDateTime from, LocalDateTime to) {
+        List<CalendarDtos.Period> out = new ArrayList<>();
+        for (PersonalEvent e : eventService.ofUser(userId)) {
+            if (!Boolean.TRUE.equals(e.getBusy())) {
+                continue;
+            }
+            for (Occurrences.Occurrence o : Occurrences.between(eventService.rule(e), from, to)) {
+                period(o.start(), o.end(), Boolean.TRUE.equals(e.getAllDay()), out);
+            }
+        }
+        Set<Long> joined = calendarMapper.activeTeams(userId).stream().map(ActiveTeam::editionId).collect(Collectors.toSet());
+        if (!joined.isEmpty()) {
+            for (CompetitionNode n : nodeMapper.selectList(new LambdaQueryWrapper<CompetitionNode>()
+                    .in(CompetitionNode::getEditionId, joined)
+                    .eq(CompetitionNode::getBusy, true))) {
+                LocalDateTime end = displayEnd(n.getEndMode(), n.getEndAt(), n.getEndLatestAt());
+                if (Occurrences.overlaps(n.getStartAt(), end, from, to)) {
+                    period(n.getStartAt(), end, Boolean.TRUE.equals(n.getAllDay()), out);
+                }
+            }
+        }
+        return out;
+    }
+
+    /** 全天的安排结束日也算在内（存的是最后一天的 0 点） */
+    private static void period(LocalDateTime start, LocalDateTime end, boolean allDay, List<CalendarDtos.Period> out) {
+        if (end == null) {
+            return;
+        }
+        LocalDateTime realEnd = allDay ? end.toLocalDate().plusDays(1).atStartOfDay() : end;
+        LocalDateTime realStart = allDay ? start.toLocalDate().atStartOfDay() : start;
+        if (realStart.isBefore(realEnd)) {
+            out.add(new CalendarDtos.Period(realStart, realEnd));
+        }
     }
 
     /**
@@ -140,7 +185,7 @@ public class CalendarService {
     }
 
     /** 显示到什么时候：结束是区间时取最晚的那个，没有结束时间为空 */
-    static LocalDateTime displayEnd(CompetitionNode.EndMode mode, LocalDateTime end, LocalDateTime endLatest) {
+    public static LocalDateTime displayEnd(CompetitionNode.EndMode mode, LocalDateTime end, LocalDateTime endLatest) {
         if (mode == CompetitionNode.EndMode.OPEN) {
             return null;
         }
@@ -150,7 +195,12 @@ public class CalendarService {
         return end;
     }
 
-    private static boolean fuzzy(CompetitionNode.EndMode mode, LocalDateTime startLatest) {
+    /** 截止类的官方节点：报名截止、作品提交。日历上画成红色菱形 */
+    public static boolean isDeadline(CompetitionNode.NodeType type) {
+        return type == CompetitionNode.NodeType.REGISTRATION || type == CompetitionNode.NodeType.SUBMISSION;
+    }
+
+    public static boolean fuzzy(CompetitionNode.EndMode mode, LocalDateTime startLatest) {
         return (mode != null && mode != CompetitionNode.EndMode.FIXED) || startLatest != null;
     }
 
@@ -173,6 +223,8 @@ public class CalendarService {
         /** 只有已经参加的比赛之间才算互相撞期，光关注的不算 */
         final boolean joined;
         String conflictWith;
+        /** 截止类节点（见 isDeadline），日历上画成菱形 */
+        boolean deadline;
 
         Item(String id, Layer layer, String layerKey, String layerName, String title, LocalDateTime start,
              LocalDateTime end, boolean allDay, boolean fuzzy, boolean busy, Boolean done, String refType, Long refId,
@@ -199,8 +251,8 @@ public class CalendarService {
         }
 
         CalendarEvent toEvent() {
-            return new CalendarEvent(id, layer, layerKey, layerName, title, start, end, allDay, fuzzy, busy, done,
-                    conflictWith, refType, refId, occurrenceDate);
+            return new CalendarEvent(id, layer, layerKey, layerName, title, start, end, allDay, fuzzy, busy, deadline,
+                    joined, done, conflictWith, refType, refId, occurrenceDate);
         }
     }
 }

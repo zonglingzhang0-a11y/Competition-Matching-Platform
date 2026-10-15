@@ -191,6 +191,51 @@ a:hover {
   margin: 12px 0;
 }
 
+/* 面板：主页各栏和其他页面的分区。标题上面一行双语小标签，右上角放"全部 →" */
+.panel {
+  padding: 16px 18px;
+  background: var(--jd-panel);
+  border: 1px solid var(--jd-line-light);
+}
+
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.panel-title {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.panel-title .count {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--jd-muted);
+}
+
+.panel .more {
+  font-size: 12px;
+  color: var(--jd-muted);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.panel .more:hover {
+  color: var(--jd-accent);
+}
+
+.panel .empty {
+  margin: 8px 0;
+  font-size: 13px;
+  color: var(--jd-muted);
+}
+
 /* ---------- Element Plus 组件微调 ---------- */
 
 .el-button {
@@ -302,6 +347,37 @@ a:hover {
 
 .el-empty__description p {
   color: var(--jd-muted);
+}
+
+/* ---------- FullCalendar ---------- */
+
+.fc {
+  --fc-border-color: var(--jd-line-lighter);
+  --fc-today-bg-color: var(--jd-accent-soft);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: var(--el-fill-color-lighter);
+  --fc-button-bg-color: transparent;
+  --fc-button-border-color: var(--jd-line-strong);
+  --fc-button-text-color: var(--jd-ink);
+  --fc-button-hover-bg-color: var(--el-fill-color-light);
+  --fc-button-hover-border-color: var(--jd-ink);
+  --fc-button-active-bg-color: var(--jd-ink);
+  --fc-button-active-border-color: var(--jd-ink);
+  --fc-event-bg-color: var(--jd-ink);
+  --fc-event-border-color: var(--jd-ink);
+  --fc-small-font-size: 11px;
+}
+
+.fc .fc-button {
+  padding: 2px 8px;
+  border-radius: 2px;
+  box-shadow: none !important;
+  font-size: 12px;
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  color: var(--jd-paper);
 }
 
 /* 新消息提示：能跳到相关页面的，点一下就过去 */

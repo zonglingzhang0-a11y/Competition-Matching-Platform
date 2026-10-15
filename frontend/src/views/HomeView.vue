@@ -1,187 +1,115 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import MatchSummary from '@/components/MatchSummary.vue'
+import { onMounted, ref, watch } from 'vue'
+import HomeMiddle from '@/components/home/HomeMiddle.vue'
+import HomeSide from '@/components/home/HomeSide.vue'
+import HomeTopStrip from '@/components/home/HomeTopStrip.vue'
+import ScheduleCalendar from '@/components/home/ScheduleCalendar.vue'
+import { getHome } from '@/api/home'
+import { listNotifications } from '@/api/notification'
 import { homeRecommendations, surveyProgress } from '@/api/survey'
+import { useNotificationStore } from '@/stores/notification'
 import { useUserStore } from '@/stores/user'
-import type { HomeRecommendation } from '@/types/api'
+import type { HomeData, HomeRecommendation, Notification } from '@/types/api'
 import { showError } from '@/utils/feedback'
 
+/**
+ * 我的主页（项目思路里的 B 版三栏，加上 C 版的一句话状态和每周冲突预警）：
+ * 左边以赛程日历为主体，中间是比赛，右边是组队要你决定的事。
+ */
 const user = useUserStore()
+const notifications = useNotificationStore()
 
+const data = ref<HomeData | null>(null)
 const recs = ref<HomeRecommendation[]>([])
+const messages = ref<Notification[]>([])
 const generalDone = ref(true)
 const generalQuick = ref(false)
 const loading = ref(true)
 
-onMounted(async () => {
+async function load() {
   try {
-    const [r, p] = await Promise.all([homeRecommendations(), surveyProgress()])
+    const [home, r, p, n] = await Promise.all([getHome(), homeRecommendations(), surveyProgress(), listNotifications(1)])
+    data.value = home
     recs.value = r
     generalDone.value = p.generalDone
     generalQuick.value = p.generalQuick
+    messages.value = n.records.slice(0, 4)
   } catch (e) {
     showError(e)
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(load)
+// 推送来了新消息（新的邀请、申请、结果），主页跟着刷新
+watch(() => notifications.latest, load)
 </script>
 
 <template>
-  <div class="home">
-    <h1 class="greeting">你好，{{ user.me?.nickname }}</h1>
-
-    <el-alert
-      v-if="user.me?.verifyStatus === 'NONE'"
-      type="warning"
-      :closable="false"
-      show-icon
-      title="完成学校认证后，就能建队和申请入队"
-      class="notice"
-    >
-      <router-link to="/verify">去认证</router-link>
-    </el-alert>
-
-    <el-alert v-if="!loading && !generalDone" type="info" :closable="false" show-icon class="notice">
-      <template #title>先花 1 分钟填一下组队问卷，推荐队友时才知道你们合不合得来</template>
-      <router-link to="/survey">去填问卷</router-link>
-    </el-alert>
-    <el-alert v-else-if="!loading && generalQuick" type="info" :closable="false" class="notice">
-      <template #title>你填的是快速版，补全完整版后推荐会更准</template>
-      <router-link to="/survey">补全问卷</router-link>
-    </el-alert>
-
-    <section v-loading="loading" class="section">
-      <h2 class="section-title">为你推荐</h2>
-      <el-empty v-if="!loading && recs.length === 0" :image-size="60">
-        <template #description>
-          去<router-link to="/competitions">比赛库</router-link>关注感兴趣的比赛，这里会推荐适合你的队伍
-        </template>
-      </el-empty>
-      <el-card v-for="r in recs" :key="r.edition.editionId" shadow="never" class="card">
-        <template #header>
-          <router-link :to="{ name: 'competition', params: { id: r.edition.competitionId } }" class="edition">
-            {{ r.edition.competitionName }} · {{ r.edition.editionTitle }}
-          </router-link>
-        </template>
-        <el-empty v-if="r.teams.length === 0" :image-size="40" description="这一届暂时没有你能加入的队伍，也可以自己建一支" />
-        <div v-for="t in r.teams" :key="t.team.id" class="item">
-          <router-link :to="{ name: 'team', params: { id: t.team.id } }" class="team-name">{{ t.team.name }}</router-link>
-          <span class="meta">
-            {{ t.team.memberCount }}/{{ t.team.maxMembers }} 人
-            <template v-if="t.team.openNeeds.length"> · 在招 {{ t.team.openNeeds.map((n) => n.roleName).join('、') }}</template>
-          </span>
-          <MatchSummary :match="t.match" compact class="match" />
-        </div>
-      </el-card>
-    </section>
-
-    <div class="shortcuts">
-      <router-link to="/competitions" class="shortcut">
-        <el-card shadow="hover">
-          <div class="shortcut-title">逛比赛库</div>
-          <div class="shortcut-desc">看看哪些比赛正在报名，关注感兴趣的那一届</div>
-        </el-card>
-      </router-link>
-      <router-link to="/profile" class="shortcut">
-        <el-card shadow="hover">
-          <div class="shortcut-title">完善档案</div>
-          <div class="shortcut-desc">填好技能和参赛履历，推荐队友时会用到</div>
-        </el-card>
-      </router-link>
-      <router-link to="/survey" class="shortcut">
-        <el-card shadow="hover">
-          <div class="shortcut-title">组队问卷</div>
-          <div class="shortcut-desc">作息、协作习惯、底线，看你和队友合不合得来</div>
-        </el-card>
-      </router-link>
+  <div v-loading="loading" class="home">
+    <div v-if="user.me?.verifyStatus === 'NONE'" class="notice">
+      完成学校认证后，就能建队和申请入队。<router-link to="/verify">去认证 →</router-link>
     </div>
+    <div v-if="!loading && !generalDone" class="notice">
+      先花 1 分钟填一下组队问卷，推荐队友时才知道你们合不合得来；勾上空闲时段，还能估算每周能投入多少时间。
+      <router-link to="/survey">去填问卷 →</router-link>
+    </div>
+    <div v-else-if="!loading && generalQuick" class="notice">
+      你填的是快速版，补全完整版后推荐会更准。<router-link to="/survey">补全问卷 →</router-link>
+    </div>
+
+    <template v-if="data">
+      <HomeTopStrip :data="data" />
+      <div class="grid">
+        <ScheduleCalendar :semester="data.semester" :today="data.today" class="left" />
+        <HomeMiddle :mine="data.mine" :suggestions="data.suggestions" />
+        <HomeSide :pending="data.pending" :teammates="data.teammates" :recommendations="recs" :messages="messages" @changed="load" />
+      </div>
+    </template>
   </div>
 </template>
 
 <style scoped>
 .home {
-  max-width: 760px;
+  max-width: 1440px;
+  min-height: 360px;
   margin: 0 auto;
 }
 
-.greeting {
-  font-size: 22px;
-  font-weight: 500;
-  margin: 0 0 16px;
-}
-
 .notice {
-  margin-bottom: 16px;
-}
-
-.section {
-  min-height: 80px;
-  margin-bottom: 24px;
-}
-
-.section-title {
-  font-size: 17px;
-  font-weight: 500;
-  margin: 0 0 12px;
-}
-
-.card {
-  border-radius: 12px;
-  margin-bottom: 12px;
-}
-
-.edition {
-  font-weight: 500;
-}
-
-.item {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
-.item:last-child {
-  border-bottom: none;
-}
-
-.team-name {
-  font-weight: 500;
-  margin-right: 8px;
-}
-
-.meta {
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-left: 2px solid var(--jd-accent);
+  background: var(--jd-accent-soft);
   font-size: 13px;
-  color: var(--el-text-color-secondary);
 }
 
-.match {
-  margin-top: 8px;
+.notice a {
+  margin-left: 6px;
+  font-weight: 700;
 }
 
-.shortcuts {
+.grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
+  grid-template-columns: minmax(360px, 1.3fr) minmax(300px, 1fr) minmax(260px, 0.85fr);
+  gap: 16px;
+  align-items: start;
 }
 
-.shortcut {
-  text-decoration: none;
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .left {
+    grid-column: 1 / -1;
+  }
 }
 
-.shortcut :deep(.el-card) {
-  border-radius: 12px;
-  height: 100%;
-}
-
-.shortcut-title {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--el-text-color-primary);
-  margin-bottom: 4px;
-}
-
-.shortcut-desc {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
+@media (max-width: 760px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
