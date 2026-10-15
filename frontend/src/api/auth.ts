@@ -1,4 +1,4 @@
-import { get, post, postForm } from './http'
+import { get, post, postForm, put } from './http'
 import type { LatestVerifyRequest, LoginResponse, Me, RegisterForm, ScreenshotResult, VerifyResult } from '@/types/api'
 
 export const sendRegisterCode = (email: string) => post<void>('/auth/register-code', { email })
@@ -10,6 +10,9 @@ export const login = (email: string, password: string) => post<LoginResponse>('/
 export const logout = () => post<void>('/auth/logout')
 
 export const fetchMe = () => get<Me>('/users/me')
+
+/** 不在网站上时，要不要把没看的新消息汇总发到邮箱 */
+export const setEmailNotify = (enabled: boolean) => put<void>('/users/me/email-notify', { enabled })
 
 export const sendEduCode = (eduEmail: string) => post<void>('/verify/edu/code', { eduEmail })
 

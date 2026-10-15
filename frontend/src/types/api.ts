@@ -13,6 +13,8 @@ export interface Me {
   verifyStatus: VerifyStatus
   verifiedUntil: string | null
   school: { id: number; name: string } | null
+  /** 不在网站上时，把没看的新消息汇总发到邮箱 */
+  emailNotify: boolean
 }
 
 export interface LoginResponse {

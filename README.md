@@ -50,6 +50,7 @@ seed.sql、demo.sql 同理，把文件名换掉即可。
 | `2026-10-crawler.sql` | 比赛通知爬虫：新增抓取来源表，预置 4 个比赛官网 |
 | `2026-10-calendar-feed.sql` | 订阅到手机日历：账号表加一列订阅密钥 |
 | `2026-10-login-store.sql` | 登录状态存进数据库，后端重启后不用重新登录（不跑也能用，只是和以前一样重启后要重新登录；可以重复跑） |
+| `2026-10-notify-mail.sql` | 新消息汇总发邮件：账号表加邮件提醒开关，站内信表加发送时间；升级前的旧消息不补发 |
 
 ```powershell
 & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/upgrade/2026-10-crawler.sql"
@@ -61,6 +62,10 @@ seed.sql、demo.sql 同理，把文件名换掉即可。
 
 ```powershell
 & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/upgrade/2026-10-login-store.sql"
+```
+
+```powershell
+& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/upgrade/2026-10-notify-mail.sql"
 ```
 
 **2. 启动后端**（端口 8090）
@@ -92,6 +97,12 @@ mysql -uroot -p < sql/demo.sql
 ```
 
 导入后会有 11 个演示账号、4 支队伍、问卷答案、一条待处理的入队申请，还有两条等管理员审核的认证申请。账号、身份和统一密码都写在 [sql/demo.sql](sql/demo.sql) 开头的注释里。只用于本地演示，不要导入正式环境。
+
+两届示例比赛（"2026 年（示例数据）"）的报名和比赛时间按导入那天往后排：数学建模 9 天后截止报名，计算机设计大赛 35 天后。导入得早、报名已经截止了（建不了队、申请被拦），跑一次下面这个脚本把日期挪到今天附近，不删数据，可以重复跑：
+
+```powershell
+& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/demo-refresh-dates.sql"
+```
 
 用 `admin@demo.local` 登录，顶部菜单会多出"管理后台"：
 
@@ -137,7 +148,7 @@ mysql -uroot -p < sql/demo.sql
 
 界面风格参考了 [RhineLabUI](https://github.com/LBEILC/RhineLabUI)（MIT）的配色和排版，字体用 MiSans（小米，免费商用），从 jsDelivr 按需加载，连不上时退回系统字体。
 
-## 站内信实时推送
+## 站内信实时推送和邮件提醒
 
 登录后，浏览器和后端保持一条 WebSocket 连接（`/api/ws/notifications`）。有新消息时，后端在业务提交后马上推过来：铃铛数字立刻更新，右上角弹出提示，点提示跳到相关页面。一个页面标了已读，同一个人开着的其他页面也跟着变。连不上时自动退回每分钟查一次，并按 2、5、10、30、60 秒的间隔重连。
 
@@ -156,6 +167,8 @@ location /api/ws/ {
 ```
 
 - 连接和票都存在后端内存里，只支持一台服务器；以后多台部署要用 Redis 在服务器之间转发。
+
+**邮件提醒**：不在网站上的人，新消息超过 10 分钟没看，后端把这几条汇总成一封邮件发到注册邮箱（每 5 分钟检查一次）。这段时间里在网站上看过了、或者正开着网站，就不发；每条消息最多发一次，"有队员退出"这类只是告知的不发。每个人可以在消息页关掉"邮件提醒"。开发模式（`app.mail.mode: log`）下邮件打印在后端控制台；配好 SMTP 后真的发，部署时把 `app.notify-mail.site-url` 改成网站的真实地址（邮件里的链接用它）。时间都在 `application.yml` 的 `app.notify-mail` 里改。
 
 ## 比赛通知爬虫
 
@@ -207,5 +220,6 @@ cd frontend && npm run build
 | 二期 | 里程碑分工待办（认领、指派、勾完成；"我的队伍"里的我的待办；节点提醒里带上没做完的任务） | ✅ |
 | 二期 | 界面重构为「竞搭」：新配色和排版；我的主页（赛程日历、学期赛程带和冲突预警、我参加的比赛、待你处理）；订阅到手机日历 | ✅ |
 | 二期 | 一句话添加个人日程；后端重启后不用重新登录；前端按需引入 Element Plus | ✅ |
+| 二期 | 新消息汇总发邮件（不在线、超过 10 分钟没看才发，可以关掉） | ✅ |
 | 二期 | 加分认定、老师课题 | 待做 |
 | 二期 | 批量撮合 | 暂缓 |

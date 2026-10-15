@@ -1,5 +1,6 @@
 package com.teammatch.user;
 
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.teammatch.common.BizException;
 import com.teammatch.school.School;
 import com.teammatch.school.SchoolMapper;
@@ -35,7 +36,14 @@ public class UserService {
             }
         }
         return new MeResponse(user.getId(), user.getEmail(), user.getNickname(), user.getRole(),
-                effectiveVerifyStatus(user), user.getVerifiedUntil(), school);
+                effectiveVerifyStatus(user), user.getVerifiedUntil(), school, !Boolean.FALSE.equals(user.getEmailNotify()));
+    }
+
+    /** 打开或关掉"新消息汇总发到邮箱" */
+    public void setEmailNotify(long userId, boolean enabled) {
+        userMapper.update(new LambdaUpdateWrapper<SysUser>()
+                .eq(SysUser::getId, userId)
+                .set(SysUser::getEmailNotify, enabled));
     }
 
     /** 建队、申请这类操作要求已认证，没认证直接抛出异常 */

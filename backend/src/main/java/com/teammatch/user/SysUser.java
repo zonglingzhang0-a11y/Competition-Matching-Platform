@@ -26,6 +26,8 @@ public class SysUser {
     private LocalDateTime lastLoginAt;
     /** 日历订阅链接里的密钥，见 CalendarFeedService */
     private String calendarToken;
+    /** 不在网站上时，把没看的新消息汇总发到邮箱，见 NotificationMailJob */
+    private Boolean emailNotify;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

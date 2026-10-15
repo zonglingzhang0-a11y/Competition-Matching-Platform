@@ -41,6 +41,7 @@ CREATE TABLE sys_user (
   verified_until DATE         NULL COMMENT '认证有效期，每学年重新认证',
   last_login_at  DATETIME     NULL,
   calendar_token CHAR(64)     NULL COMMENT '日历订阅链接里的密钥，重置后旧链接失效',
+  email_notify   TINYINT      NOT NULL DEFAULT 1 COMMENT '1 = 不在网站上时，把没看的新消息汇总发到邮箱',
   created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uk_user_email (email),
@@ -597,8 +598,10 @@ CREATE TABLE notification (
   ref_type   VARCHAR(32)   NULL COMMENT '点开后跳转到哪类对象',
   ref_id     BIGINT        NULL,
   read_at    DATETIME      NULL,
+  emailed_at DATETIME      NULL COMMENT '汇总发到邮箱的时间',
   created_at DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_notification_inbox (user_id, read_at, created_at),
+  KEY idx_notification_mail (emailed_at, created_at),
   CONSTRAINT fk_notification_user FOREIGN KEY (user_id) REFERENCES sys_user (id)
 ) COMMENT '站内信';
 

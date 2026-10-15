@@ -3,7 +3,9 @@ import { onMounted, ref, watch } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { useRouter } from 'vue-router'
 import { listNotifications, markAllRead, markRead } from '@/api/notification'
+import { setEmailNotify } from '@/api/auth'
 import { useNotificationStore } from '@/stores/notification'
+import { useUserStore } from '@/stores/user'
 import type { Notification } from '@/types/api'
 import { notificationRoute } from '@/utils/notificationLink'
 import { fmtDateTime } from '@/utils/time'
@@ -11,6 +13,8 @@ import { showError } from '@/utils/feedback'
 
 const router = useRouter()
 const badge = useNotificationStore()
+const user = useUserStore()
+const savingMail = ref(false)
 
 const items = ref<Notification[]>([])
 const total = ref(0)
@@ -54,6 +58,20 @@ async function readAll() {
   }
 }
 
+/** 邮件提醒的开关：存好了再改本地的状态 */
+async function toggleMail(value: string | number | boolean) {
+  if (!user.me) return
+  savingMail.value = true
+  try {
+    await setEmailNotify(!!value)
+    user.me.emailNotify = !!value
+  } catch (e) {
+    showError(e)
+  } finally {
+    savingMail.value = false
+  }
+}
+
 function filterChanged() {
   page.value = 1
   load()
@@ -75,6 +93,16 @@ watch(
     <div class="toolbar">
       <el-checkbox v-model="unreadOnly" @change="filterChanged">只看未读</el-checkbox>
       <el-button size="small" :disabled="badge.unread === 0" @click="readAll">全部标为已读</el-button>
+    </div>
+    <div v-if="user.me" class="mail">
+      <el-switch
+        :model-value="user.me.emailNotify"
+        :loading="savingMail"
+        aria-label="邮件提醒"
+        @update:model-value="toggleMail"
+      />
+      <span class="mail-label">邮件提醒</span>
+      <span class="mail-hint">不在网站上时，新消息超过 10 分钟没看，汇总发到 {{ user.me.email }}</span>
     </div>
     <div v-loading="loading" class="list">
       <el-empty v-if="!loading && items.length === 0" description="没有消息" />
@@ -119,6 +147,24 @@ watch(
   align-items: center;
   justify-content: space-between;
   margin-bottom: 12px;
+}
+
+.mail {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.mail-label {
+  font-weight: 700;
+}
+
+.mail-hint {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
 }
 
 .list {

@@ -20,3 +20,5 @@ app:
 #   mail:
 #     mode: smtp
 #     from: 你的邮箱@qq.com
+#   notify-mail:
+#     site-url: http://你的服务器地址   # 新消息邮件里的链接
