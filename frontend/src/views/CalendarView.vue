@@ -9,6 +9,7 @@ import listPlugin from '@fullcalendar/list'
 import interactionPlugin from '@fullcalendar/interaction'
 import zhCnLocale from '@fullcalendar/core/locales/zh-cn'
 import type { CalendarOptions, DateSelectArg, DatesSetArg, EventClickArg, EventInput } from '@fullcalendar/core'
+import CalendarFeedDialog from '@/components/CalendarFeedDialog.vue'
 import EventDialog from '@/components/EventDialog.vue'
 import { getCalendar } from '@/api/calendar'
 import type { CalendarConflict, CalendarEvent } from '@/types/api'
@@ -23,6 +24,7 @@ const loading = ref(false)
 const range = ref<{ from: string; to: string } | null>(null)
 
 const dialogOpen = ref(false)
+const feedOpen = ref(false)
 const editingId = ref<number | null>(null)
 const editingDate = ref<string | null>(null)
 const preset = ref<{ startAt: string; endAt: string | null; allDay: boolean } | null>(null)
@@ -183,6 +185,7 @@ const options = computed<CalendarOptions>(() => ({
           {{ l.name }}
         </el-check-tag>
       </div>
+      <el-button @click="feedOpen = true">订阅到手机日历</el-button>
       <el-button type="primary" :icon="Plus" @click="newEvent">新建日程</el-button>
     </div>
 
@@ -196,6 +199,7 @@ const options = computed<CalendarOptions>(() => ({
     </el-card>
     <p class="legend">虚线框是时间还没定的节点（比如"成绩预计 11 月中下旬公布"），红框是撞期的。关注的比赛和参加的队伍会自动出现在这里。</p>
 
+    <CalendarFeedDialog v-model="feedOpen" />
     <EventDialog v-model="dialogOpen" :event-id="editingId" :occurrence-date="editingDate" :preset="preset" @saved="load" />
   </div>
 </template>

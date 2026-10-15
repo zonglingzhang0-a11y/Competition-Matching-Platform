@@ -47,6 +47,15 @@ public class CalendarService {
         if (toDate.isBefore(fromDate) || ChronoUnit.DAYS.between(fromDate, toDate) > MAX_DAYS) {
             throw new BizException("日期范围不对，一次最多查 " + MAX_DAYS + " 天");
         }
+        return build(userId, fromDate, toDate);
+    }
+
+    /** 日历订阅用：范围由服务端定（过去一个月到未来半年），不受单次查询天数的限制 */
+    public CalendarView viewForFeed(long userId, LocalDate fromDate, LocalDate toDate) {
+        return build(userId, fromDate, toDate);
+    }
+
+    private CalendarView build(long userId, LocalDate fromDate, LocalDate toDate) {
         LocalDateTime from = fromDate.atStartOfDay();
         LocalDateTime to = toDate.plusDays(1).atStartOfDay();
 

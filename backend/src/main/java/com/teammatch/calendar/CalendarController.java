@@ -13,6 +13,9 @@ import com.teammatch.common.Result;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,8 +26,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -35,6 +40,7 @@ public class CalendarController {
     private final PersonalEventService eventService;
     private final MilestoneService milestoneService;
     private final TaskService taskService;
+    private final CalendarFeedService feedService;
 
     private static long me() {
         return StpUtil.getLoginIdAsLong();
@@ -144,6 +150,29 @@ public class CalendarController {
     public Result<Void> deleteTask(@PathVariable long id) {
         taskService.delete(me(), id);
         return Result.ok();
+    }
+
+    // ---------- 订阅到手机日历 ----------
+
+    /** 我的订阅链接（第一次调用时生成）；path 拼上网站地址就是完整链接 */
+    @GetMapping("/calendar/feed")
+    public Result<Map<String, String>> feed() {
+        return Result.ok(Map.of("path", "/api/ics/" + feedService.token(me()) + ".ics"));
+    }
+
+    /** 链接泄露了就重置，旧链接马上失效 */
+    @PostMapping("/calendar/feed/reset")
+    public Result<Map<String, String>> resetFeed() {
+        return Result.ok(Map.of("path", "/api/ics/" + feedService.reset(me()) + ".ics"));
+    }
+
+    /** 日历应用来取的地址，不用登录，靠链接里的 token 认人 */
+    @GetMapping(value = "/ics/{token}.ics")
+    public ResponseEntity<String> ics(@PathVariable String token) {
+        return ResponseEntity.ok()
+                .contentType(new MediaType("text", "calendar", StandardCharsets.UTF_8))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"jingda.ics\"")
+                .body(feedService.ics(token));
     }
 
     /** 分给我、还没做完的任务 */

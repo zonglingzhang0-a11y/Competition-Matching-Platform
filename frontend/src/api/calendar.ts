@@ -28,3 +28,10 @@ export const releaseTask = (id: number) => post<void>(`/tasks/${id}/release`)
 export const setTaskDone = (id: number, done: boolean) => put<void>(`/tasks/${id}/done`, { done })
 export const deleteTask = (id: number) => del<void>(`/tasks/${id}`)
 export const myTasks = () => get<MyTask[]>('/tasks/mine')
+
+// ---------- 订阅到手机日历 ----------
+
+/** path 拼上网站地址就是订阅链接，第一次调用时生成 */
+export const getCalendarFeed = () => get<{ path: string }>('/calendar/feed')
+/** 重置后旧链接马上失效 */
+export const resetCalendarFeed = () => post<{ path: string }>('/calendar/feed/reset')

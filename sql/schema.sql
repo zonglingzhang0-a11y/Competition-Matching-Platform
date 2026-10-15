@@ -40,9 +40,11 @@ CREATE TABLE sys_user (
   verify_status  VARCHAR(16)  NOT NULL DEFAULT 'NONE' COMMENT 'NONE / PENDING / VERIFIED',
   verified_until DATE         NULL COMMENT '认证有效期，每学年重新认证',
   last_login_at  DATETIME     NULL,
+  calendar_token CHAR(64)     NULL COMMENT '日历订阅链接里的密钥，重置后旧链接失效',
   created_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uk_user_email (email),
+  UNIQUE KEY uk_user_calendar_token (calendar_token),
   KEY idx_user_school (school_id),
   CONSTRAINT fk_user_school FOREIGN KEY (school_id) REFERENCES school (id)
 ) COMMENT '账号';

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import CalendarFeedDialog from '@/components/CalendarFeedDialog.vue'
 import type { HomeData, Upcoming } from '@/types/api'
 import { fmtDate, fmtDateTime, parse } from '@/utils/time'
 
@@ -9,6 +10,7 @@ import { fmtDate, fmtDateTime, parse } from '@/utils/time'
 const props = defineProps<{ data: HomeData }>()
 
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+const feedOpen = ref(false)
 
 const today = computed(() => parse(`${props.data.today}T00:00:00`))
 const dateText = computed(() => `${today.value.getMonth() + 1}月${today.value.getDate()}日`)
@@ -41,7 +43,11 @@ const dash = computed(() => `${((props.data.next?.progress ?? 0) / 100) * CIRC} 
 
 <template>
   <section class="strip">
-    <p class="sentence" :class="{ urgent: data.next && data.next.daysLeft <= 0 && data.next.deadline }">{{ sentence }}</p>
+    <div class="sentence-row">
+      <p class="sentence" :class="{ urgent: data.next && data.next.daysLeft <= 0 && data.next.deadline }">{{ sentence }}</p>
+      <el-button size="small" @click="feedOpen = true">订阅到手机日历</el-button>
+    </div>
+    <CalendarFeedDialog v-model="feedOpen" />
     <div class="cells">
       <div class="cell today">
         <div class="date">{{ dateText }}</div>
@@ -94,8 +100,16 @@ const dash = computed(() => `${((props.data.next?.progress ?? 0) / 100) * CIRC} 
   margin-bottom: 16px;
 }
 
+.sentence-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
 .sentence {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 13px;
   color: var(--jd-ink-2);
 }

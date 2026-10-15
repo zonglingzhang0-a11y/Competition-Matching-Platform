@@ -24,6 +24,8 @@ public class SysUser {
     private VerifyStatus verifyStatus;
     private LocalDate verifiedUntil;
     private LocalDateTime lastLoginAt;
+    /** 日历订阅链接里的密钥，见 CalendarFeedService */
+    private String calendarToken;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
