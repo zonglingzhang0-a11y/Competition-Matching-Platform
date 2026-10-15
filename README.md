@@ -49,6 +49,7 @@ seed.sql、demo.sql 同理，把文件名换掉即可。
 |---|---|
 | `2026-10-crawler.sql` | 比赛通知爬虫：新增抓取来源表，预置 4 个比赛官网 |
 | `2026-10-calendar-feed.sql` | 订阅到手机日历：账号表加一列订阅密钥 |
+| `2026-10-login-store.sql` | 登录状态存进数据库，后端重启后不用重新登录（不跑也能用，只是和以前一样重启后要重新登录；可以重复跑） |
 
 ```powershell
 & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/upgrade/2026-10-crawler.sql"
@@ -56,6 +57,10 @@ seed.sql、demo.sql 同理，把文件名换掉即可。
 
 ```powershell
 & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/upgrade/2026-10-calendar-feed.sql"
+```
+
+```powershell
+& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/upgrade/2026-10-login-store.sql"
 ```
 
 **2. 启动后端**（端口 8090）

@@ -75,6 +75,14 @@ CREATE TABLE email_code (
   KEY idx_code_lookup (email, purpose, created_at)
 ) COMMENT '邮箱验证码（上了 Redis 以后可以改存 Redis）';
 
+CREATE TABLE login_store (
+  store_key   VARCHAR(255) PRIMARY KEY COMMENT 'Sa-Token 的键，比如 Authorization:login:token:<登录凭证>',
+  value_type  CHAR(1)      NOT NULL COMMENT 'S 字符串 / O 对象（JSON）',
+  store_value MEDIUMTEXT   NOT NULL,
+  expire_at   DATETIME     NULL COMMENT '过期时间，空表示永不过期',
+  KEY idx_login_store_expire (expire_at)
+) COMMENT '登录状态（Sa-Token 的数据，内存里一份、这里存一份），后端重启后不用重新登录。里面有登录凭证，不要外传';
+
 CREATE TABLE verification_request (
   id             BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id        BIGINT       NOT NULL,
