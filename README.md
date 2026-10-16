@@ -88,6 +88,12 @@ mysql -uroot -p < sql/demo.sql
 
 导入后会有 11 个演示账号、4 支队伍、问卷答案、一条待处理的入队申请，还有两条等管理员审核的认证申请。账号、身份和统一密码都写在 [sql/demo.sql](sql/demo.sql) 开头的注释里。只用于本地演示，不要导入正式环境。
 
+两届示例比赛（"2026 年（示例数据）"）的报名和比赛时间按导入那天往后排：数学建模 9 天后截止报名，计算机设计大赛 35 天后。导入得早、报名已经截止了（建不了队、申请被拦），跑一次下面这个脚本把日期挪到今天附近，不删数据，可以重复跑：
+
+```powershell
+& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/demo-refresh-dates.sql"
+```
+
 用 `admin@demo.local` 登录，顶部菜单会多出"管理后台"：
 
 - **数据看板**：账号、队伍、申请的概况；技能供需缺口图（队伍还缺的人数和还在找队的人里会这项技能的人数对比），可以按届次筛选。
