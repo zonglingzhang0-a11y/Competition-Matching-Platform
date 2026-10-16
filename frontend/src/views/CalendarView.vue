@@ -209,7 +209,7 @@ const options = computed<CalendarOptions>(() => ({
     <el-card v-loading="loading" shadow="never" class="calendar">
       <FullCalendar :options="options" />
     </el-card>
-    <p class="legend">虚线框是时间还没定的节点（比如"成绩预计 11 月中下旬公布"），红框是撞期的。关注的比赛和参加的队伍会自动出现在这里。</p>
+    <p class="legend">虚线框是时间还没定的（比如"成绩预计 11 月中下旬公布"、"下个月找时间开始复习"），红框是撞期的。关注的比赛和参加的队伍会自动出现在这里。</p>
 
     <CalendarFeedDialog v-model="feedOpen" />
     <EventDialog v-model="dialogOpen" :event-id="editingId" :occurrence-date="editingDate" :preset="preset" @saved="load" />

@@ -59,12 +59,17 @@ public final class CalendarDtos {
             /* WEEKLY 时的星期，1 = 周一 … 7 = 周日 */
             List<Integer> repeatWeekdays,
             LocalDate repeatUntil,
-            boolean busy) {
+            boolean busy,
+            /* 时间说不准（沿用简程的模型）：最晚哪天开始；结束是确定的、一个范围（endAt 到 endLatestAt），还是做完为止 */
+            LocalDateTime startLatestAt,
+            CompetitionNode.EndMode endMode,
+            LocalDateTime endLatestAt) {
     }
 
     public record EventView(Long id, String title, String notes, String color, LocalDateTime startAt,
                             LocalDateTime endAt, boolean allDay, RepeatType repeatType, List<Integer> repeatWeekdays,
-                            LocalDate repeatUntil, boolean busy) {
+                            LocalDate repeatUntil, boolean busy, LocalDateTime startLatestAt,
+                            CompetitionNode.EndMode endMode, LocalDateTime endLatestAt) {
     }
 
     public record MilestoneForm(

@@ -112,7 +112,7 @@ public class CalendarService {
             for (Occurrences.Occurrence o : Occurrences.between(eventService.rule(e), from, to)) {
                 LocalDateTime end = allDay ? o.end().minusDays(1) : o.end();
                 items.add(new Item("event-" + e.getId() + "@" + o.date(), Layer.PERSONAL, "personal", "个人",
-                        e.getTitle(), o.start(), end, allDay, false,
+                        e.getTitle(), o.start(), end, allDay, PersonalEventService.fuzzy(e),
                         Boolean.TRUE.equals(e.getBusy()), null, "EVENT", e.getId(), o.date(), false));
             }
         }

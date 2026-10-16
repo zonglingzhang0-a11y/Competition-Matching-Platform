@@ -1,9 +1,11 @@
-// 一句话添加个人日程：从一句中文里认出日期、时间、时长和重复，剩下的当标题。
-// 改自作者自己的日程应用"简程"（MIT）的 quickParse：去掉了桌面端才有的"智能完成"和"说不准的起止"
-// （个人日程暂时只有确定的时间），加上"周五前交初稿""3 天后""每周三……到 11 月 30 日为止"这几种说法。
+// 一句话添加个人日程：从一句中文里认出日期、时间、时长、重复和说不准的起止，剩下的当标题。
+// 改自作者自己的日程应用"简程"（MIT）的 quickParse：去掉了桌面端才有的"智能完成"，
+// 加上"周五前交初稿""3 天后""每周三……到 11 月 30 日为止"这几种说法。
 // 不依赖项目里的其他文件，测试直接用 node --test 跑（见 __tests__/quickParse.test.ts）。
 
 export type QuickRepeat = 'NONE' | 'DAILY' | 'WEEKDAYS' | 'WEEKLY'
+/** 结束：确定 / 一个范围（endAt 到 endLatestAt）/ 做完为止 */
+export type QuickEndMode = 'FIXED' | 'RANGE' | 'OPEN'
 
 export interface QuickToken {
   kind: 'date' | 'time' | 'repeat' | 'warn'
@@ -20,6 +22,10 @@ export interface QuickDraft {
   /** 1 = 周一 … 7 = 周日 */
   repeatWeekdays: number[]
   repeatUntil: string | null
+  /** 说不准的开始：最晚哪天开始，没有就是 null */
+  startLatestAt: string | null
+  endMode: QuickEndMode
+  endLatestAt: string | null
   /** 认出来的部分，显示在输入框下面给人核对 */
   tokens: QuickToken[]
 }
@@ -81,6 +87,51 @@ const DW =
 const BEFORE = '(?:之前|以前|前(?![端台期往面后沿夕景]))?'
 /** 最长 31 天，和后端一致 */
 const MAX_MINUTES = 31 * 1440
+/** 说不准的日程：从最早开始到最晚结束最多 90 天，和后端一致 */
+const MAX_FUZZY_DAYS = 90
+
+// ---- 说不准的起止（简程）：下个月找时间开始、大概两周、月底前做完、做完为止 ----
+
+/** 时长里的数，比 NUM 多一个"半"（半个月） */
+const LEN_NUM = '(\\d{1,3}|[一两二三四五六七八九]?十[一二三四五六七八九]?|[半一两二三四五六七八九])'
+const LEN_UNIT = '(?:个)?(天|周|星期|礼拜|月)'
+const unitDays = (u: string | undefined): number => (u === '天' ? 1 : u === '月' ? 30 : 7)
+/** 一段说不准具体哪天的时间：下个月、下周、10 月中旬、月底 */
+const PERIOD_W =
+  '下个?月|下个?(?:周|星期|礼拜)(?![一二三四五六日天])|\\d{1,2}月(?:初|上旬|中旬|中|下旬|底|末)|(?:这个?|本)?月(?:初|中旬|下旬|底|末)'
+
+function periodOf(w: string, today: string): [string, string] | null {
+  const t = fromKey(today)
+  if (/^下个?月$/.test(w)) {
+    return [toKey(new Date(t.getFullYear(), t.getMonth() + 1, 1)), toKey(new Date(t.getFullYear(), t.getMonth() + 2, 0))]
+  }
+  if (/^下个?(?:周|星期|礼拜)$/.test(w)) {
+    const monday = addDays(today, -((dow(today) + 6) % 7) + 7)
+    return [monday, addDays(monday, 6)]
+  }
+  const m = w.match(/^(?:(\d{1,2})月|(?:这个?|本)?月)(初|上旬|中旬|中|下旬|底|末)$/)
+  if (!m) return null
+  const month = m[1] ? Number(m[1]) - 1 : t.getMonth()
+  if (month > 11) return null
+  const part = m[2] ?? ''
+  const [d0, d1] = /初|上旬/.test(part) ? [1, 10] : /中/.test(part) ? [11, 20] : [21, 0]
+  const range = (y: number): [string, string] => [
+    toKey(new Date(y, month, d0)),
+    toKey(d1 ? new Date(y, month, d1) : new Date(y, month + 1, 0)),
+  ]
+  let r = range(t.getFullYear())
+  if (r[1] < today) r = range(t.getFullYear() + 1)
+  return [r[0] < today ? today : r[0], r[1]]
+}
+
+/** 今天 / 明天 / 后天 / 10月8日 */
+function shortLabel(date: string, today: string): string {
+  if (date === today) return '今天'
+  if (date === addDays(today, 1)) return '明天'
+  if (date === addDays(today, 2)) return '后天'
+  const d = fromKey(date)
+  return `${d.getMonth() + 1}月${d.getDate()}日`
+}
 
 function toHour(h: number, period: string | undefined, fallbackPm: boolean): number {
   if (period) {
@@ -308,6 +359,57 @@ export function parseQuick(input: string, today: string): QuickDraft {
     end = null
   }
 
+  // ---- 说不准的开始和结束（没有具体时间的事才有）----
+  let endMode: QuickEndMode = 'FIXED'
+  /** 最晚在开始那天之后第几天开始 */
+  let startMax = 0
+  /** 预计的总天数范围 */
+  let length: [number, number] | null = null
+  /** 预计结束的日期范围 */
+  let endPeriod: [string, string] | null = null
+  if (start === null) {
+    // 「找到为止」「做完为止」：还没定结束
+    if (take(/(?:[做找读写搞弄学看改修练考背装][完到好定会成齐]|完成|结束)为止/)) endMode = 'OPEN'
+    // 「预计 10 月初结束」「月底前搞定」
+    const ep = take(
+      new RegExp(`(?:预计|大概|估计|争取|最晚)?\\s*在?\\s*(${PERIOD_W})\\s*(?:之?前)?\\s*(?:结束|完成|搞定|做完|完工|弄完|交)`),
+    )
+    if (ep) endPeriod = periodOf(ep[1] ?? '', today)
+    // 「下个月找个时间开始」「10 月中旬开工」
+    const sp = take(new RegExp(`从?\\s*(${PERIOD_W})\\s*(?:找个?时间|找一天|抽空|某天|的时候)?\\s*(?:开始|动工|开工|启动|动手)`))
+    const sr = sp && periodOf(sp[1] ?? '', today)
+    if (sr) {
+      setDate(sr[0])
+      startMax = Math.max(0, dayDiff(sr[0], sr[1]))
+    }
+    // 「3 到 5 天」「两到三周」
+    const rg = take(
+      new RegExp(`(?:大概|大约|预计|估计|差不多|约莫?)?\\s*(?:要|需要|得)?\\s*${LEN_NUM}\\s*${SEP}\\s*${LEN_NUM}\\s*${LEN_UNIT}(?:左右)?`),
+    )
+    if (rg) {
+      const u = unitDays(rg[3])
+      const a = Math.round(cnNum(rg[1] ?? '') * u)
+      const b = Math.round(cnNum(rg[2] ?? '') * u)
+      if (a > 0 && b > a) length = [a, b]
+    }
+    // 「大概两周」「预计一个月左右」：前后各留四分之一
+    const ab =
+      !length &&
+      take(
+        new RegExp(
+          `(?:大概|大约|预计|估计|差不多|约莫?)\\s*(?:要|需要|得)?\\s*${LEN_NUM}\\s*${LEN_UNIT}(?:左右)?|${LEN_NUM}\\s*${LEN_UNIT}左右`,
+        ),
+      )
+    if (ab) {
+      const total = Math.round(cnNum(ab[1] ?? ab[3] ?? '') * unitDays(ab[2] ?? ab[4]))
+      if (total > 0) {
+        const d = Math.max(1, Math.round(total / 4))
+        length = [Math.max(1, total - d), total + d]
+      }
+    }
+    if (endMode !== 'FIXED' || endPeriod || startMax || length) allDay = true
+  }
+
   // ---- 全天、连续几天 ----
   if (start === null) {
     if (take(/全天|一整天/)) allDay = true
@@ -318,8 +420,32 @@ export function parseQuick(input: string, today: string): QuickDraft {
       allDay = true
       const total = Math.round(cnNum(n[1] ?? '') * (n[2] ? 7 : 1))
       if (total >= 1) days = Math.min(30, total - 1)
+      if (startMax && !length) length = [days + 1, days + 1]
     }
   }
+
+  // 把说不准的部分换成相对开始那天的天数：最早结束不早于最晚开始
+  let daysMax = 0
+  if (allDay) {
+    if (endPeriod && endPeriod[1] >= date) {
+      days = Math.max(startMax, dayDiff(date, endPeriod[0]))
+      daysMax = Math.max(days, dayDiff(date, endPeriod[1]))
+      endMode = daysMax > days ? 'RANGE' : 'FIXED'
+    } else if (length) {
+      days = Math.max(startMax, length[0] - 1)
+      daysMax = Math.max(days, startMax + length[1] - 1)
+      endMode = daysMax > days ? 'RANGE' : 'FIXED'
+    } else if (startMax && endMode === 'FIXED') {
+      // 只说了什么时候开始，没说多久：结束先算没定
+      endMode = 'OPEN'
+    }
+    if (daysMax > MAX_FUZZY_DAYS - 1) {
+      daysMax = MAX_FUZZY_DAYS - 1
+      days = Math.min(days, daysMax)
+      tokens.push({ kind: 'warn', label: `太长了，按最多 ${MAX_FUZZY_DAYS} 天算` })
+    }
+  }
+  const fuzzy = startMax > 0 || endMode !== 'FIXED'
 
   // ---- 时长（有具体开始时间、没说结束时才算）：2 小时、90 分钟、一个半小时 ----
   if (start !== null && end === null) {
@@ -344,11 +470,11 @@ export function parseQuick(input: string, today: string): QuickDraft {
 
   // ---- 重复的收尾 ----
   const multiDay = allDay ? days > 0 : end !== null && start !== null && end - start >= 1440
-  if (multiDay && repeatType !== 'NONE') {
+  if ((multiDay || fuzzy) && repeatType !== 'NONE') {
     repeatType = 'NONE'
     weekdays = []
     until = null
-    tokens.push({ kind: 'warn', label: '跨天的日程不能重复，已按一次算' })
+    tokens.push({ kind: 'warn', label: fuzzy ? '时间说不准的日程不能重复，已按一次算' : '跨天的日程不能重复，已按一次算' })
     repeatLabel = ''
   }
   // 每周但没说星期几：按开始那天
@@ -375,9 +501,25 @@ export function parseQuick(input: string, today: string): QuickDraft {
 
   let startAt: string
   let endAt: string | null
-  if (allDay) {
-    startAt = `${date}T00:00:00`
-    endAt = days > 0 ? `${addDays(date, days)}T00:00:00` : null
+  let startLatestAt: string | null = null
+  let endLatestAt: string | null = null
+  const dayAt = (k: number): string => `${addDays(date, k)}T00:00:00`
+  if (allDay && fuzzy) {
+    startAt = dayAt(0)
+    startLatestAt = startMax ? dayAt(startMax) : null
+    endAt = endMode === 'OPEN' ? null : dayAt(days)
+    endLatestAt = endMode === 'RANGE' ? dayAt(daysMax) : null
+    const sl = (k: number): string => shortLabel(addDays(date, k), today)
+    tokens.unshift(
+      { kind: 'date', label: startMax ? `${sl(0)}–${sl(startMax)} 之间开始` : `${sl(0)}起` },
+      {
+        kind: 'date',
+        label: endMode === 'OPEN' ? '做完为止' : endMode === 'RANGE' ? `预计 ${sl(days)}–${sl(daysMax)} 结束` : `${sl(days)} 结束`,
+      },
+    )
+  } else if (allDay) {
+    startAt = dayAt(0)
+    endAt = days > 0 ? dayAt(days) : null
     const label = days ? `${relLabel(date, today)} – ${relLabel(addDays(date, days), today)} · ${days + 1} 天` : `${relLabel(date, today)} 全天`
     tokens.unshift({ kind: 'date', label: repeatType === 'NONE' ? label : `从${relLabel(date, today)}起` })
   } else {
@@ -405,6 +547,9 @@ export function parseQuick(input: string, today: string): QuickDraft {
     repeatType,
     repeatWeekdays: weekdays,
     repeatUntil: until,
+    startLatestAt,
+    endMode,
+    endLatestAt,
     tokens,
   }
 }

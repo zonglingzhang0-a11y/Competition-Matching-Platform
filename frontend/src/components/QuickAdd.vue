@@ -47,7 +47,11 @@ function toForm(): EventForm | null {
     repeatType: d.repeatType,
     repeatWeekdays: d.repeatWeekdays,
     repeatUntil: d.repeatUntil,
-    busy: true,
+    startLatestAt: d.startLatestAt,
+    endMode: d.endMode,
+    endLatestAt: d.endLatestAt,
+    // 时间说不准的不参与撞期检测
+    busy: !d.startLatestAt && d.endMode === 'FIXED',
   }
 }
 

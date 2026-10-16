@@ -117,6 +117,48 @@ test('识别结果给人核对', () => {
   )
 })
 
+test('说不准的起止', () => {
+  // 下个月哪天开始都行，大概两周（前后各留四分之一：10–18 天）；最早结束不早于最晚开始
+  const got = check('下个月找个时间开始复习线代 大概两周', {
+    title: '复习线代',
+    allDay: true,
+    startAt: '2026-11-01T00:00:00',
+    startLatestAt: '2026-11-30T00:00:00',
+    endMode: 'RANGE',
+    endAt: '2026-11-30T00:00:00',
+    endLatestAt: '2026-12-17T00:00:00',
+  })
+  assert.deepEqual(
+    got.tokens.map((t) => t.label),
+    ['11月1日–11月30日 之间开始', '预计 11月30日–12月17日 结束'],
+  )
+  check('论文初稿 月底前完成', {
+    title: '论文初稿',
+    startAt: '2026-10-15T00:00:00',
+    startLatestAt: null,
+    endMode: 'RANGE',
+    endAt: '2026-10-21T00:00:00',
+    endLatestAt: '2026-10-31T00:00:00',
+  })
+  check('3到5天 写代码', { title: '写代码', endMode: 'RANGE', endAt: '2026-10-17T00:00:00', endLatestAt: '2026-10-19T00:00:00' })
+  check('找队友 找到为止', { title: '找队友', endMode: 'OPEN', endAt: null, endLatestAt: null, startLatestAt: null })
+  // 只说了什么时候开始：结束先算没定
+  check('下周开始准备材料', {
+    title: '准备材料',
+    startAt: '2026-10-19T00:00:00',
+    startLatestAt: '2026-10-25T00:00:00',
+    endMode: 'OPEN',
+    endAt: null,
+  })
+  // 确定的日程不带这些
+  check('明天下午3点到5点 队伍开会', { startLatestAt: null, endMode: 'FIXED', endLatestAt: null })
+})
+
+test('说不准的日程不重复', () => {
+  const got = check('每天 大概两周 背单词', { title: '背单词', repeatType: 'NONE', endMode: 'RANGE' })
+  assert.ok(got.tokens.some((t) => t.kind === 'warn' && t.label.includes('说不准')))
+})
+
 test('只有时间没有标题', () => {
   check('明天下午3点', { title: '', startAt: '2026-10-16T15:00:00' })
 })

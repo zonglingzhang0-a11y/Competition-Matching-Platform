@@ -476,6 +476,10 @@ export interface EventForm {
   repeatWeekdays: number[]
   repeatUntil: string | null
   busy: boolean
+  /** 时间说不准：最晚哪天开始；结束是确定的、一个范围（endAt 到 endLatestAt），还是做完为止。说不准的不能重复、不参与撞期检测 */
+  startLatestAt: string | null
+  endMode: EndMode
+  endLatestAt: string | null
 }
 
 export interface EventView extends EventForm {
