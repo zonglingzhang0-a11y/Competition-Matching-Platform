@@ -106,11 +106,13 @@ public class CalendarService {
             }
         }
 
-        // 个人日程（重复的展开成每一次）
+        // 个人日程（重复的展开成每一次）。全天的和其他图层一样，结束写成最后一天的 0 点（展开出来的是第二天 0 点）
         for (PersonalEvent e : eventService.ofUser(userId)) {
+            boolean allDay = Boolean.TRUE.equals(e.getAllDay());
             for (Occurrences.Occurrence o : Occurrences.between(eventService.rule(e), from, to)) {
+                LocalDateTime end = allDay ? o.end().minusDays(1) : o.end();
                 items.add(new Item("event-" + e.getId() + "@" + o.date(), Layer.PERSONAL, "personal", "个人",
-                        e.getTitle(), o.start(), o.end(), Boolean.TRUE.equals(e.getAllDay()), false,
+                        e.getTitle(), o.start(), end, allDay, false,
                         Boolean.TRUE.equals(e.getBusy()), null, "EVENT", e.getId(), o.date(), false));
             }
         }
@@ -130,8 +132,9 @@ public class CalendarService {
             if (!Boolean.TRUE.equals(e.getBusy())) {
                 continue;
             }
+            // 展开出来的每一次已经是 [开始, 结束)，全天的也已经占满到最后一天结束
             for (Occurrences.Occurrence o : Occurrences.between(eventService.rule(e), from, to)) {
-                period(o.start(), o.end(), Boolean.TRUE.equals(e.getAllDay()), out);
+                period(o.start(), o.end(), false, out);
             }
         }
         Set<Long> joined = calendarMapper.activeTeams(userId).stream().map(ActiveTeam::editionId).collect(Collectors.toSet());
@@ -162,7 +165,7 @@ public class CalendarService {
 
     /**
      * 撞期：个人日程和比赛期间重叠；或者已经参加的两场比赛，比赛期间互相重叠。
-     * 只看标了"参与撞期检测"的（busy）。
+     * 只看标了"参与撞期检测"的（busy）。全天的按整天算：从第一天 0 点到最后一天结束。
      */
     static List<Conflict> markConflicts(List<Item> items) {
         List<Item> official = items.stream().filter(i -> i.layer == Layer.OFFICIAL && i.busy).toList();
@@ -170,7 +173,7 @@ public class CalendarService {
         List<Conflict> out = new ArrayList<>();
         for (Item p : personal) {
             for (Item o : official) {
-                if (Occurrences.overlaps(p.start, p.end, o.start, o.end)) {
+                if (Occurrences.overlaps(p.spanStart(), p.spanEnd(), o.spanStart(), o.spanEnd())) {
                     p.conflictWith = o.layerName + "「" + o.title + "」";
                     o.conflictWith = "个人日程「" + p.title + "」";
                     out.add(new Conflict("个人日程「" + p.title + "」", o.layerName + "「" + o.title + "」", p.start));
@@ -182,7 +185,7 @@ public class CalendarService {
                 Item a = official.get(i);
                 Item b = official.get(j);
                 if (a.joined && b.joined && !a.layerKey.equals(b.layerKey)
-                        && Occurrences.overlaps(a.start, a.end, b.start, b.end)) {
+                        && Occurrences.overlaps(a.spanStart(), a.spanEnd(), b.spanStart(), b.spanEnd())) {
                     a.conflictWith = b.layerName + "「" + b.title + "」";
                     b.conflictWith = a.layerName + "「" + a.title + "」";
                     out.add(new Conflict(a.layerName + "「" + a.title + "」", b.layerName + "「" + b.title + "」",
@@ -257,6 +260,15 @@ public class CalendarService {
 
         LocalDateTime start() {
             return start;
+        }
+
+        /** 撞期检测用的起止：全天的从第一天 0 点到最后一天结束（结束存的是最后一天的 0 点） */
+        LocalDateTime spanStart() {
+            return allDay ? start.toLocalDate().atStartOfDay() : start;
+        }
+
+        LocalDateTime spanEnd() {
+            return allDay ? (end == null ? start : end).toLocalDate().plusDays(1).atStartOfDay() : end;
         }
 
         CalendarEvent toEvent() {

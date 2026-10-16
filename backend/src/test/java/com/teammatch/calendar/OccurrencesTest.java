@@ -90,6 +90,24 @@ class OccurrencesTest {
         assertThat(items.get(3).conflictWith).isNull();
     }
 
+    @Test
+    void allDayItemsCoverWholeDays() {
+        // 全天的结束存的是最后一天的 0 点：10-23 一天的全天日程，和当天 18 点开始的比赛也算撞期
+        List<CalendarService.Item> items = new ArrayList<>(List.of(
+                item("node-1", Layer.OFFICIAL, "edition-1", "国赛", "比赛进行", t(23, 18), t(26, 20), true, true),
+                allDay("event-1@x", "交报名表", t(23, 0), t(23, 0)),
+                allDay("event-2@x", "社团招新", t(20, 0), t(22, 0))));
+        var conflicts = CalendarService.markConflicts(items);
+        assertThat(items.get(1).conflictWith).as("当天的全天日程").isNotNull();
+        assertThat(items.get(2).conflictWith).as("前一天结束的不算").isNull();
+        assertThat(conflicts).hasSize(1);
+    }
+
+    private static CalendarService.Item allDay(String id, String title, LocalDateTime start, LocalDateTime end) {
+        return new CalendarService.Item(id, Layer.PERSONAL, "personal", "个人", title, start, end, true, false, true, null,
+                null, null, null, false);
+    }
+
     private static LocalDateTime t(int day, int hour) {
         return LocalDateTime.of(2026, 10, day, hour, 0);
     }
