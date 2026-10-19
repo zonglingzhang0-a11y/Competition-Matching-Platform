@@ -27,6 +27,15 @@ public final class AuthDtos {
             @NotBlank(message = "请填写昵称") @Size(max = 16, message = "昵称最多 16 个字") String nickname) {
     }
 
+    /** 忘记密码：用邮箱验证码设新密码，密码规则和注册一样 */
+    public record ResetPasswordRequest(
+            @NotBlank(message = "请填写邮箱") @Email(message = "邮箱格式不正确") String email,
+            @NotBlank(message = "请填写验证码") String code,
+            @NotBlank(message = "请填写新密码")
+            @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d).{8,64}$", message = "密码要 8 到 64 位，同时包含字母和数字")
+            String password) {
+    }
+
     public record LoginRequest(
             @NotBlank(message = "请填写邮箱") String email,
             @NotBlank(message = "请填写密码") String password) {

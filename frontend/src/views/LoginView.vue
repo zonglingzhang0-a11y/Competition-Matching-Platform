@@ -11,7 +11,8 @@ const router = useRouter()
 const user = useUserStore()
 
 const formRef = ref<FormInstance>()
-const form = reactive({ email: '', password: '' })
+// 从"重设密码"回来时带着邮箱
+const form = reactive({ email: typeof route.query.email === 'string' ? route.query.email : '', password: '' })
 const loading = ref(false)
 
 const rules: FormRules<typeof form> = {
@@ -43,6 +44,9 @@ async function submit() {
       <el-form-item label="密码" prop="password">
         <el-input v-model="form.password" type="password" show-password autocomplete="current-password" />
       </el-form-item>
+      <div class="forgot">
+        <router-link :to="{ name: 'reset-password', query: form.email ? { email: form.email } : {} }">忘记密码？</router-link>
+      </div>
       <el-button type="primary" native-type="submit" :loading="loading" class="submit">登录</el-button>
     </el-form>
     <template #footer>
@@ -52,6 +56,12 @@ async function submit() {
 </template>
 
 <style scoped>
+.forgot {
+  margin: -8px 0 4px;
+  text-align: right;
+  font-size: 13px;
+}
+
 .submit {
   width: 100%;
   margin-top: 8px;

@@ -9,6 +9,13 @@ export const login = (email: string, password: string) => post<LoginResponse>('/
 
 export const logout = () => post<void>('/auth/logout')
 
+/** 忘记密码：发验证码（邮箱没注册也返回成功） */
+export const sendResetCode = (email: string) => post<void>('/auth/reset-code', { email })
+
+/** 用验证码设新密码，之后要用新密码重新登录 */
+export const resetPassword = (form: { email: string; code: string; password: string }) =>
+  post<void>('/auth/reset-password', form)
+
 export const fetchMe = () => get<Me>('/users/me')
 
 /** 不在网站上时，要不要把没看的新消息汇总发到邮箱 */
