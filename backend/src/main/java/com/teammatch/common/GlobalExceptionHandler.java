@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.util.DisconnectedClientHelper;
 
 @Slf4j
 @RestControllerAdvice
@@ -87,6 +88,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Result<Void>> handleOther(Exception e) {
+        if (DisconnectedClientHelper.isClientDisconnectedException(e)) {
+            // 对方在响应写完前断开了（关了页面、刷新、网络断了），回什么都没人收，也不是服务器出错
+            log.debug("客户端已断开：{}", e.getMessage());
+            return null;
+        }
         log.error("未处理的异常", e);
         return respond(500, "服务器出错了，请稍后再试");
     }

@@ -91,7 +91,7 @@ check("另一处登录不受影响", call("GET", "/users/me", token=token)[0] ==
 
 try:
     with urllib.request.urlopen(f"http://127.0.0.1:{env.PORT}/v3/api-docs") as res:
-        docs_status = res.status
+        docs_status = res.status if b'"openapi"' in res.read() else "内容不对"
 except urllib.error.HTTPError as e:
     docs_status = e.code
 check("接口文档能打开", docs_status == 200, docs_status)
