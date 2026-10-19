@@ -103,6 +103,9 @@ async function remove(e: Experience) {
       <span class="title">{{ e.title }}</span>
       <el-tag v-if="e.award" size="small" effect="plain">{{ e.award }}</el-tag>
       <el-tag v-if="e.source === 'PLATFORM'" size="small" type="success" effect="plain">平台组队</el-tag>
+      <el-tag v-if="e.recognition" size="small" type="warning" effect="plain" title="本校同学标注、多人确认的加分认定级别，仅供参考">
+        本校 {{ e.recognition }}
+      </el-tag>
       <el-link v-if="safeUrl(e.proofUrl)" :href="safeUrl(e.proofUrl)!" target="_blank" :icon="Link" class="proof">证明</el-link>
       <span class="spacer" />
       <el-button v-if="e.source === 'MANUAL'" text type="danger" size="small" @click="remove(e)">删除</el-button>

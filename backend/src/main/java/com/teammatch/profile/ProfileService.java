@@ -14,6 +14,7 @@ import com.teammatch.profile.ProfileDtos.SkillOption;
 import com.teammatch.profile.ProfileMappers.ExperienceMapper;
 import com.teammatch.profile.ProfileMappers.SkillMapper;
 import com.teammatch.profile.ProfileMappers.UserSkillMapper;
+import com.teammatch.recognition.RecognitionService;
 import com.teammatch.user.MeResponse;
 import com.teammatch.user.SysUser;
 import com.teammatch.user.SysUserMapper;
@@ -24,9 +25,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 个人档案：基本资料、技能、参赛履历。只能看和改自己的。
@@ -43,6 +48,7 @@ public class ProfileService {
     private final ExperienceMapper experienceMapper;
     private final CompetitionMapper competitionMapper;
     private final UserPageService userPageService;
+    private final RecognitionService recognitionService;
 
     public ProfileResponse get(long userId) {
         MeResponse me = userService.me(userId);
@@ -112,7 +118,7 @@ public class ProfileService {
         e.setSource(UserExperience.Source.MANUAL);
         e.setVerified(false);
         experienceMapper.insert(e);
-        return toView(e);
+        return toView(e, recognitions(userId, e.getCompetitionId() == null ? List.of() : List.of(e.getCompetitionId())));
     }
 
     /** 只能删自己手填的；平台生成的履历跟着比赛成绩走，不能删 */
@@ -133,11 +139,18 @@ public class ProfileService {
     }
 
     private List<Experience> experiences(long userId) {
-        return experienceMapper.selectList(new LambdaQueryWrapper<UserExperience>()
-                        .eq(UserExperience::getUserId, userId)
-                        .orderByDesc(UserExperience::getYear)
-                        .orderByDesc(UserExperience::getId))
-                .stream().map(ProfileService::toView).toList();
+        List<UserExperience> list = experienceMapper.selectList(new LambdaQueryWrapper<UserExperience>()
+                .eq(UserExperience::getUserId, userId)
+                .orderByDesc(UserExperience::getYear)
+                .orderByDesc(UserExperience::getId));
+        Map<Long, String> labels = recognitions(userId,
+                list.stream().map(UserExperience::getCompetitionId).filter(Objects::nonNull).collect(Collectors.toSet()));
+        return list.stream().map(e -> toView(e, labels)).toList();
+    }
+
+    /** 本校对这些比赛的加分认定（确认好了的） */
+    private Map<Long, String> recognitions(long userId, Collection<Long> competitionIds) {
+        return recognitionService.labelsForSchool(userService.getById(userId).getSchoolId(), competitionIds);
     }
 
     /** 老账号可能没有档案行，查不到就补一行 */
@@ -151,9 +164,10 @@ public class ProfileService {
         return p;
     }
 
-    private static Experience toView(UserExperience e) {
+    private static Experience toView(UserExperience e, Map<Long, String> recognitions) {
         return new Experience(e.getId(), e.getCompetitionId(), e.getTitle(), e.getYear(), e.getAward(),
-                e.getProofUrl(), e.getSource(), Boolean.TRUE.equals(e.getVerified()));
+                e.getProofUrl(), e.getSource(), Boolean.TRUE.equals(e.getVerified()),
+                e.getCompetitionId() == null ? null : recognitions.get(e.getCompetitionId()));
     }
 
     private static String blankToNull(String s) {

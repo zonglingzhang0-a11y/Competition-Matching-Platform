@@ -49,7 +49,9 @@ public final class ProfileDtos {
             String award,
             String proofUrl,
             UserExperience.Source source,
-            boolean verified) {
+            boolean verified,
+            /* 关联了比赛库的，本校同学确认好的加分认定级别，比如"A 类"；整理综测材料时参考 */
+            String recognition) {
     }
 
     public record ProfileForm(

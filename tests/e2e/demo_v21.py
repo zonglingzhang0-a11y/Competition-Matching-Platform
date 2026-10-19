@@ -70,6 +70,9 @@ check("比赛列表：数学建模标着本校 A 类，计设还没确认够", l
       and labels.get("中国大学生计算机设计大赛") is None, labels)
 sug = {x["competitionName"]: x["recognition"] for x in call("/home", tok["linxiao"])[1]["data"]["suggestions"]}
 check("主页适合报名的比赛也标着本校 A 类", sug.get("全国大学生数学建模竞赛") == "A 类", sug)
+exps = call("/profile", tok["chen"])[1]["data"]["experiences"]
+math_exps = [e for e in exps if e["title"] == "全国大学生数学建模竞赛" or e["competitionId"] == next(c["id"] for c in rows if c["name"] == "全国大学生数学建模竞赛")]
+check("陈一舟档案里数学建模的履历标着本校 A 类", math_exps and all(e["recognition"] == "A 类" for e in math_exps), exps)
 cs = next(c["id"] for c in rows if c["name"] == "中国大学生计算机设计大赛")
 b = call(f"/competitions/{cs}/recognitions", tok["linxiao"])[1]["data"]["mySchool"]
 e = b["entries"][0] if b["entries"] else {}

@@ -156,6 +156,8 @@ export interface Experience {
   proofUrl: string | null
   source: 'MANUAL' | 'PLATFORM'
   verified: boolean
+  /** 关联了比赛库的，本校同学确认好的加分认定级别 */
+  recognition: string | null
 }
 
 export interface ProfileForm {
