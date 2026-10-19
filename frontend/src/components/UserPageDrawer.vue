@@ -239,6 +239,7 @@ function contactLine(): string {
                 <div class="exp-title">
                   {{ e.title }}
                   <a v-if="safeUrl(e.proofUrl)" :href="safeUrl(e.proofUrl)!" target="_blank" rel="noopener noreferrer" class="exp-proof">证明 ↗</a>
+                  <span v-else-if="e.hasProof" class="exp-proof-hidden" title="证明材料上一般有真实姓名，只给队友和主动联系过的人看">有证明材料</span>
                 </div>
                 <div class="exp-tags">
                   <el-tag v-if="e.award" size="small" type="warning">{{ e.award }}</el-tag>
@@ -635,6 +636,12 @@ function contactLine(): string {
 
 .exp-title {
   font-size: 14px;
+}
+
+.exp-proof-hidden {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--jd-muted);
 }
 
 .exp-proof {

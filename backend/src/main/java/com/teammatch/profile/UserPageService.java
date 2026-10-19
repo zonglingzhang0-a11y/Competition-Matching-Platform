@@ -86,6 +86,7 @@ public class UserPageService {
         boolean intro = UserPageAccess.canSeeIntro(level);
         boolean history = UserPageAccess.canSeeHistory(level, setting);
         boolean contactVisible = UserPageAccess.canSeeContact(level);
+        boolean details = UserPageAccess.canSeePrivateDetails(level);
 
         UserBrief brief = userBriefs.loadOne(targetId);
         UserProfile profile = profileMapper.selectById(targetId);
@@ -96,7 +97,7 @@ public class UserPageService {
                 creditRow == null || creditRow.ratedRounds() == null ? 0 : creditRow.ratedRounds());
 
         List<TeamRecord> teams = history ? teams(targetId) : List.of();
-        List<ExperienceView> experiences = history ? experiences(targetId) : List.of();
+        List<ExperienceView> experiences = history ? experiences(targetId, details) : List.of();
         LocalDateTime now = LocalDateTime.now(clock);
         Stats stats = history ? new Stats(teams.size(),
                 (int) teams.stream().filter(t -> t.state() == RecordState.FINISHED).count(),
@@ -114,7 +115,7 @@ public class UserPageService {
                 intro && profile != null ? profile.getBio() : null,
                 target.getCreatedAt() == null ? null : target.getCreatedAt().toLocalDate(),
                 brief == null ? List.of() : brief.skills(), credit,
-                text(answers.get(F1)), history ? text(answers.get(F2)) : null,
+                text(answers.get(F1)), details ? text(answers.get(F2)) : null,
                 stats, highlight(experiences), teams, experiences, mutual, contact,
                 new Access(level, history, contactVisible, notice(level, history), self ? setting : null, previewing));
     }
@@ -162,13 +163,15 @@ public class UserPageService {
         }).toList();
     }
 
-    private List<ExperienceView> experiences(long userId) {
+    /** showProof：证明链接给不给看（证书照片上一般有真实姓名） */
+    private List<ExperienceView> experiences(long userId, boolean showProof) {
         return experienceMapper.selectList(new LambdaQueryWrapper<UserExperience>()
                         .eq(UserExperience::getUserId, userId)
                         .orderByDesc(UserExperience::getYear)
                         .orderByDesc(UserExperience::getId))
                 .stream()
-                .map(e -> new ExperienceView(e.getId(), e.getTitle(), e.getYear(), e.getAward(), e.getProofUrl(),
+                .map(e -> new ExperienceView(e.getId(), e.getTitle(), e.getYear(), e.getAward(),
+                        showProof ? e.getProofUrl() : null, e.getProofUrl() != null && !e.getProofUrl().isBlank(),
                         e.getSource(), Boolean.TRUE.equals(e.getVerified())))
                 .toList();
     }

@@ -21,7 +21,7 @@ public final class UserPageDtos {
     /**
      * @param credit    互评信用，和用户卡片上显示的一样，谁都能看
      * @param selfIntro 问卷开放题"我能给队伍带来的三点"
-     * @param weakness  问卷开放题"希望队友包容我的一个短板"，算在履历里，按可见范围控制
+     * @param weakness  问卷开放题"希望队友包容我的一个短板"，只给队友、主动联系过的人和管理员看
      * @param highlight 最高荣誉：优先从平台记录和已核验的履历里挑，没有才用自己填的
      */
     public record UserPage(Long id, String nickname, String schoolName, boolean verified, String major,
@@ -54,7 +54,8 @@ public final class UserPageDtos {
     }
 
     /** source + verified 决定页面上的来源标记：平台记录 / 已核验 / 自己填写 */
-    public record ExperienceView(Long id, String title, Integer year, String award, String proofUrl,
+    /** proofUrl 只给队友、主动联系过的人和管理员；其他人只知道有没有证明（hasProof） */
+    public record ExperienceView(Long id, String title, Integer year, String award, String proofUrl, boolean hasProof,
                                  UserExperience.Source source, boolean verified) {
     }
 

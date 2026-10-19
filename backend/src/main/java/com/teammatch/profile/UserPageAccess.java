@@ -7,6 +7,8 @@ package com.teammatch.profile;
  *   <li>简介、"能给队伍带来的"：已认证的人才能看，防止有人随便注册小号批量扒资料</li>
  *   <li>参赛履历、组队记录、短板：队友和主动联系过的人一定能看；其他已认证同学看本人的设置</li>
  *   <li>联系方式：只有队友能看（沿用档案里"只给队友看"的规则）</li>
+ *   <li>履历的证明链接（证书照片上一般有真实姓名、学号）、问卷里"希望队友包容我的短板"：
+ *       只给真正要一起组队的人看（队友、主动联系过的人、管理员），不受本人"公开"设置的影响</li>
  * </ul>
  */
 public final class UserPageAccess {
@@ -52,6 +54,11 @@ public final class UserPageAccess {
 
     public static boolean canSeeContact(Level level) {
         return level == Level.SELF || level == Level.TEAMMATE;
+    }
+
+    /** 证明链接和短板：比履历更私人，履历公开了也只给要一起组队的人看 */
+    public static boolean canSeePrivateDetails(Level level) {
+        return level == Level.SELF || level == Level.TEAMMATE || level == Level.RELATED;
     }
 
     /**

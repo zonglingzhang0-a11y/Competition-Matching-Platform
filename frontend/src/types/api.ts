@@ -214,7 +214,9 @@ export interface PageExperience {
   title: string
   year: number
   award: string | null
+  /** 证明链接（证书照片上一般有真实姓名）只给队友、主动联系过的人和管理员；其他人只看到 hasProof */
   proofUrl: string | null
+  hasProof: boolean
   source: 'MANUAL' | 'PLATFORM'
   verified: boolean
 }

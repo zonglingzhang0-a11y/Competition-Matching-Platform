@@ -25,6 +25,16 @@ class UserPageAccessTest {
     }
 
     @Test
+    void proofLinksAndWeaknessOnlyForPeopleYouTeamWith() {
+        // 证书照片上一般有真实姓名；短板是为了匹配才填的。履历公开了也不给陌生人看
+        for (Level level : new Level[] {Level.SELF, Level.TEAMMATE, Level.RELATED}) {
+            assertThat(UserPageAccess.canSeePrivateDetails(level)).isTrue();
+        }
+        assertThat(UserPageAccess.canSeePrivateDetails(Level.MEMBER)).isFalse();
+        assertThat(UserPageAccess.canSeePrivateDetails(Level.GUEST)).isFalse();
+    }
+
+    @Test
     void historyFollowsTheOwnersSettingOnlyForStrangers() {
         // 队友和主动联系过的人：不管怎么设置都能看
         for (Level level : new Level[] {Level.SELF, Level.TEAMMATE, Level.RELATED}) {
@@ -83,6 +93,6 @@ class UserPageAccessTest {
     }
 
     private static ExperienceView exp(long id, String award, UserExperience.Source source, boolean verified) {
-        return new ExperienceView(id, "比赛", 2025, award, null, source, verified);
+        return new ExperienceView(id, "比赛", 2025, award, null, false, source, verified);
     }
 }
