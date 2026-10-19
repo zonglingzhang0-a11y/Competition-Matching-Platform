@@ -14,6 +14,10 @@
 --   zheng@demo.local     郑好    和吴迪同校，管理员通过吴迪、收录邮箱后缀时会一起通过
 --   admin@demo.local     管理员  能进"管理后台"：数据看板、认证审核、比赛库管理、匹配配置、账号管理、举报与信用
 --
+-- v2.1 的演示内容（文件末尾）：林晓有每周二四晚上的英语课、一条时间说不准的"复习线代"、一天的校运动会；
+-- 陈一舟的社团换届正好撞上国赛比赛期间，日历上会标出撞期；资料页上有"短板"和带证明链接的履历；
+-- 王思远把履历设成了只给有关联的人看。日期都按导入那天往后排。
+--
 -- 往届数据（演示"互评与信用"）：陈一舟、孙悦、周可 2025 年组过队拿了省一，陈一舟和孙悦 2024 年也组过一次。
 -- 互评已经揭晓：陈一舟信用 95.4、孙悦 100、周可 61.1（被评为有时失联），周可在推荐里会被降分并提示。
 
@@ -269,3 +273,39 @@ INSERT INTO user_credit (user_id, score, rated_rounds) VALUES
 (@chen, 95.37, 2),
 (@sun, 100.00, 2),
 (@zhou, 61.11, 1);
+
+-- ============================================================
+-- v2.1：个人日程、个人资料页
+-- ============================================================
+
+SET @d = CURDATE();
+
+-- 个人日程。林晓的英语课在她勾的晚上空闲时段里，主页的"本周可投入"会扣掉；
+-- "复习线代"开始和结束都说不准（日历上是虚线框，不参与撞期检测）；
+-- 陈一舟的社团换届在第 18 天下午，国赛比赛是第 17–20 天，日历上两边都会标出撞期
+INSERT INTO personal_event (user_id, title, start_at, end_at, all_day, start_latest_at, end_mode, end_latest_at,
+                            repeat_type, repeat_weekdays, repeat_until, exceptions, busy) VALUES
+(@lin, '英语课', TIMESTAMP(@d, '19:00:00'), TIMESTAMP(@d, '20:30:00'), 0, NULL, 'FIXED', NULL,
+ 'WEEKLY', '2,4', @d + INTERVAL 60 DAY, '[]', 1),
+(@lin, '复习线代', @d + INTERVAL 3 DAY, @d + INTERVAL 20 DAY, 1, @d + INTERVAL 10 DAY, 'RANGE', @d + INTERVAL 30 DAY,
+ 'NONE', NULL, NULL, '[]', 0),
+(@lin, '校运动会', @d + INTERVAL 12 DAY, NULL, 1, NULL, 'FIXED', NULL, 'NONE', NULL, NULL, '[]', 1),
+(@chen, '社团换届', TIMESTAMP(@d + INTERVAL 18 DAY, '14:00:00'), TIMESTAMP(@d + INTERVAL 18 DAY, '16:00:00'), 0, NULL, 'FIXED', NULL,
+ 'NONE', NULL, NULL, '[]', 1);
+
+-- 问卷里"希望队友包容我的一个短板"：资料页上只给队友和主动联系过的人看
+UPDATE survey_response SET answers = JSON_SET(answers, '$.F2', '容易一个人闷头做，进度要记得在群里说')
+WHERE user_id = @chen AND edition_id IS NULL;
+UPDATE survey_response SET answers = JSON_SET(answers, '$.F2', '代码能力一般，复杂的程序要靠队友')
+WHERE user_id = @sun AND edition_id IS NULL;
+UPDATE survey_response SET answers = JSON_SET(answers, '$.F2', '晚上 11 点以后基本不在线')
+WHERE user_id = @lin AND edition_id IS NULL;
+
+-- 带证明链接的履历（示例链接）：资料页上只有队友和主动联系过的人看得到链接，其他人只看到"有证明材料"
+UPDATE user_experience SET proof_url = 'https://example.com/demo/linxiao-2025-award.jpg'
+WHERE user_id = @lin AND year = 2025;
+INSERT INTO user_experience (user_id, competition_id, title, year, award, proof_url, source) VALUES
+(@sun, NULL, '全国大学生英语竞赛', 2025, '校级一等奖', 'https://example.com/demo/sunyue-english.jpg', 'MANUAL');
+
+-- 王思远把参赛履历和组队记录设成只给有关联的人看（没关系的人打开他的资料页，会看到"履历没有公开"的提示）
+INSERT INTO user_privacy (user_id, history_visibility) VALUES (@wang, 'RELATED');
