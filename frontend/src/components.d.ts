@@ -35,6 +35,7 @@ declare module 'vue' {
     ElDescriptionsItem: typeof import('element-plus/es')['ElDescriptionsItem']
     ElDialog: typeof import('element-plus/es')['ElDialog']
     ElDivider: typeof import('element-plus/es')['ElDivider']
+    ElDrawer: typeof import('element-plus/es')['ElDrawer']
     ElDropdown: typeof import('element-plus/es')['ElDropdown']
     ElDropdownItem: typeof import('element-plus/es')['ElDropdownItem']
     ElDropdownMenu: typeof import('element-plus/es')['ElDropdownMenu']
@@ -102,6 +103,8 @@ declare module 'vue' {
     TeamFormDialog: typeof import('./components/TeamFormDialog.vue')['default']
     TeamTimeline: typeof import('./components/TeamTimeline.vue')['default']
     UserCard: typeof import('./components/UserCard.vue')['default']
+    UserName: typeof import('./components/UserName.vue')['default']
+    UserPageDrawer: typeof import('./components/UserPageDrawer.vue')['default']
   }
   export interface GlobalDirectives {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

@@ -51,6 +51,7 @@ seed.sql、demo.sql 同理，把文件名换掉即可。
 | `2026-10-calendar-feed.sql` | 订阅到手机日历：账号表加一列订阅密钥 |
 | `2026-10-login-store.sql` | 登录状态存进数据库，后端重启后不用重新登录（不跑也能用，只是和以前一样重启后要重新登录；可以重复跑） |
 | `2026-10-notify-mail.sql` | 新消息汇总发邮件：账号表加邮件提醒开关，站内信表加发送时间；升级前的旧消息不补发 |
+| `2026-10-user-privacy.sql` | 个人资料页：新增隐私设置表，记录参赛履历和组队记录给谁看（不跑也能用，所有人都按"公开"处理，只是改不了可见范围；可以重复跑） |
 
 ```powershell
 & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/upgrade/2026-10-crawler.sql"
@@ -66,6 +67,10 @@ seed.sql、demo.sql 同理，把文件名换掉即可。
 
 ```powershell
 & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/upgrade/2026-10-notify-mail.sql"
+```
+
+```powershell
+& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/upgrade/2026-10-user-privacy.sql"
 ```
 
 **2. 启动后端**（端口 8090）

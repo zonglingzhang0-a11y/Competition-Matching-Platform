@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
+import UserName from '@/components/UserName.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listReviews, rejectReview } from '@/api/admin'
 import ApproveDialog from '@/components/admin/ApproveDialog.vue'
@@ -94,7 +95,7 @@ onMounted(load)
       <el-table v-loading="loading" :data="items" :empty-text="tab === 'PENDING' ? '没有待审核的申请' : '还没有记录'">
         <el-table-column label="申请人" min-width="160">
           <template #default="{ row }">
-            <div>{{ row.user.nickname }}</div>
+            <div><UserName :id="row.user.id" :name="row.user.nickname" /></div>
             <div class="muted">{{ row.user.email }}</div>
           </template>
         </el-table-column>

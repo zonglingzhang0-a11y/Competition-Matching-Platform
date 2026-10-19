@@ -183,6 +183,8 @@ export interface Profile {
   contactQq: string | null
   skills: SkillLevel[]
   experiences: Experience[]
+  /** 个人资料页上的参赛履历和组队记录给谁看 */
+  historyVisibility: HistoryVisibility
 }
 
 export interface ExperienceForm {
@@ -191,6 +193,90 @@ export interface ExperienceForm {
   year: number
   award: string
   proofUrl: string
+}
+
+// ---------- 个人资料页 ----------
+
+/**
+ * 看资料页的人和资料页主人的关系：SELF 自己 / TEAMMATE 队友 /
+ * RELATED 对方主动找过来（申请了我所在的队，或者对方的队邀请了我；或者是管理员）/ MEMBER 其他已认证同学 / GUEST 还没认证
+ */
+export type PageAccessLevel = 'SELF' | 'TEAMMATE' | 'RELATED' | 'MEMBER' | 'GUEST'
+
+/** 参赛履历和组队记录给谁看：PUBLIC 所有已认证同学 / RELATED 只给队友和主动联系过的人 */
+export type HistoryVisibility = 'PUBLIC' | 'RELATED'
+
+/** IN_TEAM 还在队里 / FINISHED 比赛已结束 / LEFT 已离队 / DISBANDED 队伍已解散 */
+export type TeamRecordState = 'IN_TEAM' | 'FINISHED' | 'LEFT' | 'DISBANDED'
+
+export interface PageExperience {
+  id: number
+  title: string
+  year: number
+  award: string | null
+  proofUrl: string | null
+  source: 'MANUAL' | 'PLATFORM'
+  verified: boolean
+}
+
+/** 一条平台内的组队记录；days 是在队天数，比赛结束了又没记下结束时间的为空 */
+export interface PageTeamRecord {
+  teamId: number
+  teamName: string
+  competitionId: number
+  competitionName: string
+  editionTitle: string
+  roleName: string | null
+  captain: boolean
+  state: TeamRecordState
+  /** 比赛结束时队长录入的获奖 */
+  award: string | null
+  joinedAt: string
+  days: number | null
+}
+
+export interface UserPage {
+  id: number
+  nickname: string
+  schoolName: string | null
+  verified: boolean
+  major: string | null
+  enrollYear: number | null
+  degree: string | null
+  bio: string | null
+  joinedAt: string | null
+  skills: SkillLevel[]
+  /** 互评信用；score 为空表示新用户 */
+  credit: { score: number | null; ratedRounds: number }
+  /** 问卷开放题：我能给队伍带来的三点 */
+  selfIntro: string | null
+  /** 问卷开放题：希望队友包容我的一个短板 */
+  weakness: string | null
+  /** 看不到履历时为空 */
+  stats: { teams: number; finished: number; captainTimes: number; awards: number; memberDays: number } | null
+  /** 最高荣誉：优先是平台记录和已核验的 */
+  highlight: PageExperience | null
+  teams: PageTeamRecord[]
+  experiences: PageExperience[]
+  /** 共同点；看自己、或者自己还没认证时为空 */
+  mutual: {
+    sameSchool: boolean
+    editions: { competitionId: number; competitionName: string; editionTitle: string }[]
+    teams: { teamId: number; teamName: string; competitionName: string; current: boolean }[]
+  } | null
+  /** 只有队友能看到 */
+  contact: Contact | null
+  access: {
+    level: PageAccessLevel
+    historyVisible: boolean
+    contactVisible: boolean
+    /** 有内容被隐藏时的说明 */
+    notice: string | null
+    /** 本人的设置，只有看自己时才有 */
+    historyVisibility: HistoryVisibility | null
+    /** 自己在预览"别人看到的我" */
+    preview: boolean
+  }
 }
 
 // ---------- 队伍 ----------
@@ -1111,6 +1197,8 @@ export interface HomePending {
   teamName: string
   competitionName: string
   who: string | null
+  /** 上面这个人的 id，点名字打开他的个人资料页 */
+  whoId: number | null
   roleName: string | null
   message: string | null
   createdAt: string

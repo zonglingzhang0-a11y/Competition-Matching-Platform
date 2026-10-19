@@ -11,6 +11,7 @@ import TeamFormDialog from '@/components/TeamFormDialog.vue'
 import MatchSummary from '@/components/MatchSummary.vue'
 import TeamTimeline from '@/components/TeamTimeline.vue'
 import UserCard from '@/components/UserCard.vue'
+import UserName from '@/components/UserName.vue'
 import { getCompetition } from '@/api/competition'
 import * as api from '@/api/team'
 import { recommendedUsers } from '@/api/survey'
@@ -448,7 +449,7 @@ watch(() => route.params.id, load, { immediate: true })
           <el-collapse-item :title="`处理记录（${handled.length}）`">
             <div v-for="a in handled" :key="a.id" class="history-row">
               <span>{{ a.direction === 'APPLY' ? '申请' : '邀请' }}</span>
-              <span class="history-name">{{ a.user.nickname }}</span>
+              <UserName :id="a.user.id" :name="a.user.nickname" class="history-name" />
               <el-tag size="small" :type="APP_STATUS[a.status].type">{{ APP_STATUS[a.status].label }}</el-tag>
               <span class="time">{{ fmtDateTime(a.handledAt ?? a.createdAt) }}</span>
             </div>

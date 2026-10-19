@@ -80,10 +80,12 @@ public final class HomeDtos {
      *
      * @param kind        INVITE 我收到的邀请 / APPLY 有人申请加入我当队长的队
      * @param who         邀请我的队长，或者申请人
+     * @param whoId       上面这个人的 id，点名字打开他的个人资料页
      * @param consequence 处理之后会怎样，比如"接受后 10 月会有 3 个比赛同时进行"
      */
     public record Pending(String kind, Long applicationId, Long teamId, String teamName, String competitionName,
-                          String who, String roleName, String message, LocalDateTime createdAt, String consequence) {
+                          String who, Long whoId, String roleName, String message, LocalDateTime createdAt,
+                          String consequence) {
     }
 
     /** 给我当队长、还在招人的队推荐的队员 */

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import UserName from '@/components/UserName.vue'
+import { useUserPageStore } from '@/stores/userPage'
 import type { UserBrief } from '@/types/api'
 import { SKILL_LEVEL_LABEL, creditType } from '@/utils/labels'
 
@@ -11,14 +13,17 @@ const subtitle = computed(() =>
     .join(' · '),
 )
 const skills = computed(() => props.user.skills.slice(0, props.maxSkills))
+const userPage = useUserPageStore()
 </script>
 
 <template>
   <div class="user">
-    <div class="avatar" aria-hidden="true">{{ user.nickname.slice(0, 1) }}</div>
+    <button type="button" class="avatar" :aria-label="`查看 ${user.nickname} 的资料`" @click.stop="userPage.open(user.id)">
+      {{ user.nickname.slice(0, 1) }}
+    </button>
     <div class="body">
       <div class="name">
-        {{ user.nickname }}
+        <UserName :id="user.id" :name="user.nickname" />
         <slot name="badge" />
         <el-tag
           v-if="user.credit != null"
@@ -62,7 +67,16 @@ const skills = computed(() => props.user.skills.slice(0, props.maxSkills))
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  border: none;
+  font: inherit;
   font-size: 15px;
+  cursor: pointer;
+}
+
+.avatar:hover {
+  outline: 2px solid var(--jd-accent);
+  outline-offset: 1px;
 }
 
 .body {

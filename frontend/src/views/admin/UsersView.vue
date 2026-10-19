@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
+import UserName from '@/components/UserName.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { listUsers, setUserStatus } from '@/api/admin'
 import type { AdminUserRow, UserRole, UserStatus, VerifyStatus } from '@/types/api'
@@ -90,7 +91,7 @@ onMounted(load)
       <el-table-column label="账号" min-width="200">
         <template #default="{ row }">
           <div>
-            {{ row.nickname }}
+            <UserName :id="row.id" :name="row.nickname" />
             <el-tag v-if="row.role !== 'STUDENT'" size="small" type="primary" class="role">
               {{ ROLE_LABEL[row.role as UserRole] }}
             </el-tag>
