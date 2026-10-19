@@ -86,10 +86,14 @@ def reset(demo=False):
 def backend_command(*extra):
     url = (f"jdbc:mysql://{HOST}:{PORT_DB}/{DB}?useUnicode=true&characterEncoding=utf8"
            f"&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false")
+    defaults = ["--spring.profiles.active=e2e", "--app.mail.mode=log", "--app.code.resend-seconds=0",
+                "--app.crawler.enabled=false"]
+    # 同一个参数传两遍 Spring 会拼成"0,60"，所以测试自己给了的就不再放默认值
+    given = {a.split("=", 1)[0] for a in extra}
+    defaults = [d for d in defaults if d.split("=", 1)[0] not in given]
     return ["java", "-jar", str(JAR), f"--server.port={PORT}", f"--spring.datasource.url={url}",
             f"--spring.datasource.username={USER}", f"--spring.datasource.password={PASSWORD}",
-            "--spring.profiles.active=e2e", "--app.mail.mode=log", "--app.code.resend-seconds=0",
-            "--app.crawler.enabled=false", *extra]
+            *defaults, *extra]
 
 
 def start_backend(log_path, *extra):

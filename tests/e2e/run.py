@@ -35,6 +35,7 @@ class Suite:
 
 
 SUITES = [
+    Suite("m1", "注册、验证码、教育邮箱认证、登录退出", ["--app.code.resend-seconds=60"]),
     Suite("m2", "比赛库、关注、个人档案、管理员录入", ADMIN),
     Suite("m3", "建队、招募、申请和邀请、退队、转让、解散", ADMIN),
     Suite("m4", "问卷和推荐、撞期否决", ADMIN),
