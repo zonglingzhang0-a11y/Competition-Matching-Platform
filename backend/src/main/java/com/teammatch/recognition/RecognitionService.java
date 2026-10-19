@@ -128,10 +128,9 @@ public class RecognitionService {
     /** 提交或修改自己的那条 */
     @Transactional
     public void saveMine(long userId, long competitionId, MineForm form) {
+        lockUserFirst(userId);
         Competition c = requireCompetition(competitionId);
         SysUser me = requireContributor(userId);
-        // 加锁顺序：先锁人（同一个人的几个请求排队），再按 id 锁认定
-        profileMapper.lockUser(userId);
         String label = form.gradeLabel().trim();
         String note = blankToNull(form.note());
         String url = blankToNull(form.sourceUrl());
@@ -182,8 +181,8 @@ public class RecognitionService {
     /** 撤回自己的那条，别人对它的确认一起删掉 */
     @Transactional
     public void withdrawMine(long userId, long competitionId) {
+        lockUserFirst(userId);
         SysUser me = userService.getById(userId);
-        profileMapper.lockUser(userId);
         Recognition r = me.getSchoolId() == null ? null : findMine(me, competitionId);
         if (r == null) {
             throw new BizException(404, "你还没有标注过这个比赛");
@@ -195,8 +194,8 @@ public class RecognitionService {
 
     @Transactional
     public void confirm(long userId, long recognitionId) {
+        lockUserFirst(userId);
         SysUser me = requireContributor(userId);
-        profileMapper.lockUser(userId);
         Recognition peek = recognitionMapper.selectById(recognitionId);
         if (peek == null) {
             throw new BizException(404, "这条认定已经撤回了，请刷新页面");
@@ -337,6 +336,15 @@ public class RecognitionService {
                 .eq(Recognition::getSchoolId, me.getSchoolId())
                 .eq(Recognition::getCompetitionId, competitionId)
                 .eq(Recognition::getSubmittedBy, me.getId()));
+    }
+
+    /**
+     * 同一个人的标注、确认、撤回排队执行，加锁顺序是先锁人、再按 id 锁认定。
+     * 必须是事务里的第一句：可重复读的快照在第一次普通查询时建立，先查了再锁，
+     * 锁到手以后读到的还是排队前的旧数据（看不到自己上一个请求刚确认的那条，一个人就会算两票）。
+     */
+    private void lockUserFirst(long userId) {
+        profileMapper.lockUser(userId);
     }
 
     private void lockInOrder(Collection<Long> ids) {

@@ -14,6 +14,10 @@ spring:
     url: jdbc:mysql://localhost:3306/team_match?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
     username: root
     password: ${DB_PASSWORD:}
+    hikari:
+      # 读已提交：事务里等到锁以后，再查能看到别人刚提交的数据。MySQL 默认的可重复读会一直读事务开始时的快照，
+      # 两个人同时被同意入队时，后一个数人数看不到前一个，队伍满了还显示"招募中"，接着就能超员
+      transaction-isolation: TRANSACTION_READ_COMMITTED
   servlet:
     multipart:
       max-file-size: 5MB      # 截图认证的图片

@@ -235,6 +235,19 @@ check("每人最后只算一票：两条加起来 6 人，人数和状态对得�
       es[x]["confirmCount"] + es[y]["confirmCount"] == 6 and es[x]["confirmCount"] == 3
       and all(e["status"] == ("CONFIRMED" if e["confirmCount"] >= 2 else "PENDING") for e in es.values()), es)
 
+one_vote = []
+for _ in range(5):
+    pair = [threading.Thread(target=confirm, args=(crowd[0], rid)) for rid in (x, y)]
+    for t in pair:
+        t.start()
+    for t in pair:
+        t.join()
+    es = {e["id"]: e for e in board(crowd[0], elec)["mySchool"]["entries"]}
+    one_vote.append(sum(1 for e in es.values() if e["confirmedByMe"]))
+es = {e["id"]: e for e in board(a1, elec)["mySchool"]["entries"]}
+check("同一个人同时点两条：每次都只算一票", one_vote == [1] * 5
+      and es[x]["confirmCount"] + es[y]["confirmCount"] == 6, (one_vote, es))
+
 print()
 print(f"一共 {len(results)} 项，通过 {sum(results)} 项")
 sys.exit(0 if all(results) else 1)
