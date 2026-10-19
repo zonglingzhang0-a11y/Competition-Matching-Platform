@@ -8,6 +8,7 @@
 数据库连接、库名等见 env.py。测试会删库重建，默认用 team_match_e2e，不会碰平时用的 team_match。
 """
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -32,6 +33,7 @@ class Suite:
     site: str | None = None
     site_port: int = 0
     self_managed: bool = False
+    uploads: bool = False  # 给后端一个空的上传目录，目录也传给测试脚本
 
 
 SUITES = [
@@ -51,6 +53,7 @@ SUITES = [
     Suite("reset_password", "忘记密码、登录失败锁定"),
     Suite("profile", "个人资料页按关系分级", demo=True),
     Suite("demo_v21", "演示数据里 v2.1 的内容", demo=True),
+    Suite("ocr", "截图认证（真跑 OCR）", ADMIN, uploads=True),
     Suite("crawl", "比赛通知爬虫（本机假官网）", ADMIN + ["--app.crawler.delay-ms=300"], site="crawlsite", site_port=18765),
     Suite("llm", "爬虫接大模型（本机假官网 + 假大模型）", ADMIN + LLM, site="llmsite", site_port=18768),
     Suite("login_store", "后端重启后登录还在", self_managed=True),
@@ -95,7 +98,14 @@ def run(suite):
                 if not wait_port(suite.site_port):
                     return False, "假官网没起来"
                 extra = [str(site_log)]
-            backend = env.start_backend(backend_log, *suite.args)
+            args = list(suite.args)
+            if suite.uploads:
+                uploads = LOGS / f"{suite.name}_uploads"
+                shutil.rmtree(uploads, ignore_errors=True)
+                uploads.mkdir()
+                args.append(f"--app.screenshot.upload-dir={uploads}")
+                extra.append(str(uploads))
+            backend = env.start_backend(backend_log, *args)
             cmd = [sys.executable, str(script), str(backend_log), *extra]
         r = subprocess.run(cmd, capture_output=True, env=child_env, cwd=env.HERE)
         text = r.stdout.decode("utf-8", "replace") + r.stderr.decode("utf-8", "replace")
