@@ -307,3 +307,4 @@ s, r = call("DELETE", f"/admin/crawl/sources/{src_c}", token=admin)
 check("没抓到过通知的可以删", s == 200, r)
 
 print(f"共 {len(results)} 项，通过 {sum(results)} 项")
+sys.exit(0 if all(results) else 1)

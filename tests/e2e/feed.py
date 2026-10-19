@@ -120,3 +120,4 @@ call("PUT", f"/admin/users/{uid}/status", {"status": "BANNED"}, admin)
 check("账号被停用后链接也失效（404）", fetch(new_path)[0] == 404)
 
 print(f"共 {len(results)} 项，通过 {sum(results)} 项")
+sys.exit(0 if all(results) else 1)

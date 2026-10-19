@@ -8,6 +8,7 @@
 数据库连接、库名等见 env.py。测试会删库重建，默认用 team_match_e2e，不会碰平时用的 team_match。
 """
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -80,6 +81,12 @@ def summary_line(text):
     return lines[-1].strip() if lines else "（没有输出结果）"
 
 
+def all_passed(line):
+    """结尾的"共 N 项，通过 M 项"里 M 和 N 相等；脚本忘了按结果设退出码时靠这个兜底"""
+    m = re.search(r"(\d+) 项，通过 (\d+) 项", line)
+    return bool(m) and m.group(1) == m.group(2)
+
+
 def run(suite):
     child_env = dict(os.environ, PYTHONIOENCODING="utf-8")
     script = env.HERE / f"{suite.name}.py"
@@ -116,7 +123,7 @@ def run(suite):
         logs = [backend_log] if backend_log.exists() and not suite.self_managed else list(LOGS.glob(f"{suite.name}_*.log"))
         for log in logs:
             errors += sum(1 for l in log.read_text(encoding="utf-8", errors="replace").splitlines() if " ERROR " in l)
-        ok = r.returncode == 0 and errors == 0
+        ok = r.returncode == 0 and errors == 0 and all_passed(summary_line(text))
         return ok, summary_line(text) + (f"，后端 ERROR 日志 {errors} 条" if errors else "")
     finally:
         env.stop_backend(backend)

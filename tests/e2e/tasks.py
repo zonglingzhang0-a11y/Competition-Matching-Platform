@@ -229,3 +229,4 @@ cap_reminder = next((n for n in notes(cap) if n["title"] == "队伍节点快到�
 check("队长自己在这一项下没有任务：提醒里不提任务", cap_reminder and "你负责的" not in cap_reminder["content"], cap_reminder)
 
 print(f"共 {len(results)} 项，通过 {sum(results)} 项")
+sys.exit(0 if all(results) else 1)

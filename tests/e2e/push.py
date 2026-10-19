@@ -170,3 +170,4 @@ check("还登录着的人不受影响", ping(mem_ws) == {"type": "pong"})
 mem_ws.close()
 
 print(f"共 {len(results)} 项，通过 {sum(results)} 项")
+sys.exit(0 if all(results) else 1)
