@@ -31,7 +31,8 @@ public final class ProfileDtos {
             String contactWechat,
             String contactQq,
             List<SkillLevel> skills,
-            List<Experience> experiences) {
+            List<Experience> experiences,
+            UserPageAccess.HistoryVisibility historyVisibility) {
     }
 
     public record SkillLevel(Long skillId, String name, String category, Integer level) {

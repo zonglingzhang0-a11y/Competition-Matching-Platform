@@ -64,6 +64,13 @@ CREATE TABLE user_profile (
   CONSTRAINT fk_profile_user FOREIGN KEY (user_id) REFERENCES sys_user (id)
 ) COMMENT '个人档案（和账号一对一）';
 
+CREATE TABLE user_privacy (
+  user_id            BIGINT PRIMARY KEY,
+  history_visibility VARCHAR(16) NOT NULL DEFAULT 'PUBLIC' COMMENT 'PUBLIC 所有已认证同学 / RELATED 只给队友和主动联系过的人',
+  updated_at         DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_privacy_user FOREIGN KEY (user_id) REFERENCES sys_user (id)
+) COMMENT '隐私设置：个人资料页上的参赛履历和组队记录给谁看';
+
 CREATE TABLE email_code (
   id         BIGINT PRIMARY KEY AUTO_INCREMENT,
   email      VARCHAR(128) NOT NULL,

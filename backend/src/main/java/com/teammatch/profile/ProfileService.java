@@ -42,13 +42,15 @@ public class ProfileService {
     private final UserSkillMapper userSkillMapper;
     private final ExperienceMapper experienceMapper;
     private final CompetitionMapper competitionMapper;
+    private final UserPageService userPageService;
 
     public ProfileResponse get(long userId) {
         MeResponse me = userService.me(userId);
         UserProfile p = profileOf(userId);
         return new ProfileResponse(me.email(), me.nickname(), me.verifyStatus(), me.school(),
                 p.getRealName(), p.getGender(), p.getMajor(), p.getEnrollYear(), p.getDegree(), p.getBio(),
-                p.getContactWechat(), p.getContactQq(), skills(userId), experiences(userId));
+                p.getContactWechat(), p.getContactQq(), skills(userId), experiences(userId),
+                userPageService.historyVisibility(userId));
     }
 
     @Transactional

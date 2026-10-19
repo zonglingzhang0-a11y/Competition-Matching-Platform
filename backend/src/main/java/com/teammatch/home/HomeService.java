@@ -304,7 +304,8 @@ public class HomeService {
             Team team = teamSupport.requireTeam(v.team().id());
             String captain = nicknames(List.of(team.getCaptainId())).get(team.getCaptainId());
             out.add(new Pending("INVITE", v.id(), team.getId(), team.getName(), v.team().competitionName(), captain,
-                    v.needRoleName(), v.message(), v.createdAt(), inviteConsequence(team, teams, joined, myNodes)));
+                    team.getCaptainId(), v.needRoleName(), v.message(), v.createdAt(),
+                    inviteConsequence(team, teams, joined, myNodes)));
         }
         for (TeamSummary t : teams) {
             if (t.captain() == null || t.captain().id() != userId) {
@@ -318,8 +319,8 @@ public class HomeService {
                 String consequence = "同意后队伍 " + after + "/" + t.maxMembers() + " 人"
                         + (t.maxMembers() != null && after >= t.maxMembers() ? "，满员" : "");
                 out.add(new Pending("APPLY", v.id(), t.id(), t.name(), t.edition().competitionName(),
-                        v.user() == null ? null : v.user().nickname(), v.needRoleName(), v.message(), v.createdAt(),
-                        consequence));
+                        v.user() == null ? null : v.user().nickname(), v.user() == null ? null : v.user().id(),
+                        v.needRoleName(), v.message(), v.createdAt(), consequence));
             }
         }
         out.sort(Comparator.comparing(Pending::createdAt).reversed());
