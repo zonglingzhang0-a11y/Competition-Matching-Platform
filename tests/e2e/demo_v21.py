@@ -1,4 +1,4 @@
-"""演示数据里 v2.1 的内容：个人日程、撞期、说不准、短板、证明链接、隐私设置。库是刚导入的 schema + seed + demo。"""
+"""演示数据里 v2.1 之后的内容：个人日程、撞期、说不准、短板、证明链接、隐私设置、各校加分认定。库是刚导入的 schema + seed + demo。"""
 import env  # 公共环境：库、端口、mysql 客户端，见 env.py
 import json
 import os
@@ -63,6 +63,21 @@ check("陈一舟看林晓：2025 年的履历有证明，但看不到链接", ex
 s, p = call(f"/users/{uid['wang']}/profile", tok["linxiao"])
 a = p["data"]["access"]
 check("林晓看王思远：履历没公开，有提示", not a["historyVisible"] and a["notice"] and not p["data"]["teams"], a)
+
+rows = call("/competitions?size=20", tok["linxiao"])[1]["data"]["records"]
+labels = {c["name"]: c["recognition"] for c in rows}
+check("比赛列表：数学建模标着本校 A 类，计设还没确认够", labels.get("全国大学生数学建模竞赛") == "A 类"
+      and labels.get("中国大学生计算机设计大赛") is None, labels)
+cs = next(c["id"] for c in rows if c["name"] == "中国大学生计算机设计大赛")
+b = call(f"/competitions/{cs}/recognitions", tok["linxiao"])[1]["data"]["mySchool"]
+e = b["entries"][0] if b["entries"] else {}
+check("计设：王思远标的 B 类有 1 人确认，林晓可以确认", e.get("gradeLabel") == "B 类" and e.get("confirmCount") == 1
+      and b["canContribute"] and not b["hasMine"] and not e.get("confirmedByMe"), b)
+s, r = call(f"/recognitions/{e.get('id')}/confirm", tok["linxiao"], method="POST")
+b = call(f"/competitions/{cs}/recognitions", tok["linxiao"])[1]["data"]["mySchool"]
+notes = call("/notifications?size=50", tok["wang"])[1]["data"]["records"]
+check("林晓确认后显示出来，王思远收到通知", s == 200 and b["shownId"] == e.get("id")
+      and any(n["type"] == "RECOGNITION" for n in notes), (s, b))
 
 print(f"共 {len(results)} 项，通过 {sum(results)} 项")
 sys.exit(0 if all(results) else 1)

@@ -86,6 +86,7 @@ declare module 'vue' {
     PageHeader: typeof import('./components/PageHeader.vue')['default']
     QuickAdd: typeof import('./components/QuickAdd.vue')['default']
     RankingPicker: typeof import('./components/RankingPicker.vue')['default']
+    RecognitionPanel: typeof import('./components/RecognitionPanel.vue')['default']
     RecommendedTeams: typeof import('./components/RecommendedTeams.vue')['default']
     ReportDialog: typeof import('./components/ReportDialog.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

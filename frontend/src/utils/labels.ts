@@ -12,6 +12,7 @@ import type {
   NodeType,
   ReportAction,
   ReportReason,
+  RecognitionStatus,
   ReportStatus,
   ReviewStatus,
   TeamRecordState,
@@ -206,3 +207,12 @@ export const TEAM_RECORD_STATE: Record<TeamRecordState, { label: string; type: T
   LEFT: { label: '已离队', type: 'info' },
   DISBANDED: { label: '队伍已解散', type: 'info' },
 }
+
+export const RECOGNITION_STATUS: Record<RecognitionStatus, { label: string; type: TagType }> = {
+  PENDING: { label: '等同学确认', type: 'warning' },
+  CONFIRMED: { label: '已确认', type: 'success' },
+  REJECTED: { label: '已驳回', type: 'info' },
+}
+
+/** 各校常见的认定写法，填的时候给个参考，也可以自己写 */
+export const RECOGNITION_SUGGESTIONS = ['A 类', 'B 类', 'C 类', '一类竞赛', '二类竞赛', '三类竞赛', '国家级 A 类', '不认定']

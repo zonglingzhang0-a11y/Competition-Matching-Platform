@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, Link } from '@element-plus/icons-vue'
 import EditionTeams from '@/components/EditionTeams.vue'
+import RecognitionPanel from '@/components/RecognitionPanel.vue'
 import RecommendedTeams from '@/components/RecommendedTeams.vue'
 import { followEdition, getCompetition, unfollowEdition } from '@/api/competition'
 import type { CompetitionDetail, CompetitionNode, EditionDetail } from '@/types/api'
@@ -85,6 +86,8 @@ onMounted(load)
         </el-descriptions>
         <p v-if="detail.description" class="desc">{{ detail.description }}</p>
       </el-card>
+
+      <RecognitionPanel :competition-id="detail.id" />
 
       <el-empty v-if="detail.editions.length === 0" description="这个比赛还没有发布届次信息" />
 

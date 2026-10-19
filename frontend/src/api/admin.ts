@@ -21,6 +21,8 @@ import type {
   Overview,
   PageResult,
   PreviewResult,
+  RecognitionAdminRow,
+  RecognitionStatus,
   ReportAction,
   ReportRow,
   ReportStatus,
@@ -151,3 +153,12 @@ export const runCrawl = (sourceId?: number) =>
   post<void>(sourceId === undefined ? '/admin/crawl/run' : `/admin/crawl/sources/${sourceId}/run`)
 
 export const crawlStatus = () => get<CrawlRunStatus>('/admin/crawl/status')
+
+// ---------- 各校加分认定 ----------
+
+export const listRecognitions = (status: RecognitionStatus | undefined, keyword: string, page: number) =>
+  get<PageResult<RecognitionAdminRow>>('/admin/recognitions', { status, keyword: keyword || undefined, page, size: 20 })
+
+export const rejectRecognition = (id: number, note: string) => post<void>(`/admin/recognitions/${id}/reject`, { note })
+
+export const restoreRecognition = (id: number) => post<void>(`/admin/recognitions/${id}/restore`)

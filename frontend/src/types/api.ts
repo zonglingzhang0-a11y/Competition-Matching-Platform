@@ -66,6 +66,8 @@ export interface CompetitionSummary {
   level: CompetitionLevel
   inCaheList: boolean
   currentEdition: EditionBrief | null
+  /** 本校同学标注、确认够了的加分认定级别，比如"A 类" */
+  recognition: string | null
 }
 
 export interface CompetitionNode {
@@ -1231,4 +1233,72 @@ export interface HomeData {
   suggestions: Suggestion[]
   pending: HomePending[]
   teammates: HomeTeammate[]
+}
+
+// ---------- 各校加分认定 ----------
+
+export type RecognitionStatus = 'PENDING' | 'CONFIRMED' | 'REJECTED'
+
+export interface RecognitionEntry {
+  id: number
+  gradeLabel: string
+  note: string | null
+  sourceUrl: string | null
+  /** 确认的人数，不算提交人 */
+  confirmCount: number
+  status: RecognitionStatus
+  mine: boolean
+  confirmedByMe: boolean
+  createdAt: string
+}
+
+export interface RecognitionMySchool {
+  schoolId: number
+  schoolName: string
+  /** 认证有效才能标注和确认 */
+  canContribute: boolean
+  /** 现在对外显示的是哪一条 */
+  shownId: number | null
+  hasMine: boolean
+  entries: RecognitionEntry[]
+}
+
+export interface RecognitionOtherSchool {
+  schoolId: number
+  schoolName: string
+  gradeLabel: string
+  note: string | null
+  sourceUrl: string | null
+  confirmCount: number
+}
+
+export interface RecognitionBoard {
+  /** 没认证（没有学校）时为空 */
+  mySchool: RecognitionMySchool | null
+  others: RecognitionOtherSchool[]
+  confirmsNeeded: number
+}
+
+export interface RecognitionForm {
+  gradeLabel: string
+  note: string
+  sourceUrl: string
+}
+
+export interface RecognitionAdminRow {
+  id: number
+  schoolId: number
+  schoolName: string | null
+  competitionId: number
+  competitionName: string
+  gradeLabel: string
+  note: string | null
+  sourceUrl: string | null
+  confirmCount: number
+  status: RecognitionStatus
+  submitterId: number
+  submitterName: string | null
+  createdAt: string
+  /** 同校同比赛下没被驳回的说法有几种，大于 1 就是有分歧 */
+  variants: number
 }

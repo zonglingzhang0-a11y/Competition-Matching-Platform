@@ -18,6 +18,10 @@
 -- 陈一舟的社团换届正好撞上国赛比赛期间，日历上会标出撞期；资料页上有"短板"和带证明链接的履历；
 -- 王思远把履历设成了只给有关联的人看。日期都按导入那天往后排。
 --
+-- 各校加分认定（文件末尾）：示例大学把数学建模认定为 A 类（陈一舟标注，王思远、赵子航确认，已显示）；
+-- 计算机设计大赛王思远标的是 B 类，钱多多确认了，还差一人——用林晓登录点"我也确认"，就会显示出来，王思远收到通知；
+-- 电子设计竞赛还没人标注，可以演示"标注本校的认定"。
+--
 -- 往届数据（演示"互评与信用"）：陈一舟、孙悦、周可 2025 年组过队拿了省一，陈一舟和孙悦 2024 年也组过一次。
 -- 互评已经揭晓：陈一舟信用 95.4、孙悦 100、周可 61.1（被评为有时失联），周可在推荐里会被降分并提示。
 
@@ -309,3 +313,17 @@ INSERT INTO user_experience (user_id, competition_id, title, year, award, proof_
 
 -- 王思远把参赛履历和组队记录设成只给有关联的人看（没关系的人打开他的资料页，会看到"履历没有公开"的提示）
 INSERT INTO user_privacy (user_id, history_visibility) VALUES (@wang, 'RELATED');
+
+-- 各校加分认定：同校同学标注，另外 2 位同学确认后显示（确认人数不算提交人）。文件链接是示例链接
+SET @c_math = (SELECT id FROM competition WHERE name = '全国大学生数学建模竞赛');
+SET @c_cs = (SELECT id FROM competition WHERE name = '中国大学生计算机设计大赛');
+INSERT INTO school_competition_recognition (school_id, competition_id, grade_label, note, source_url, submitted_by,
+                                            confirm_count, status) VALUES
+(@school, @c_math, 'A 类', '国家级一等奖加 4 分、二等奖加 3 分，省级奖项减半（2025 版综测细则）',
+ 'https://example.com/demo/zongce-2025.pdf', @chen, 2, 'CONFIRMED'),
+(@school, @c_cs, 'B 类', '学院文件里写的是 B 类，国奖加 2 分', NULL, @wang, 1, 'PENDING');
+INSERT INTO recognition_confirm (recognition_id, user_id)
+SELECT r.id, u.id FROM school_competition_recognition r JOIN sys_user u ON u.id IN (@wang, @zhao)
+WHERE r.school_id = @school AND r.competition_id = @c_math;
+INSERT INTO recognition_confirm (recognition_id, user_id)
+SELECT r.id, @qian FROM school_competition_recognition r WHERE r.school_id = @school AND r.competition_id = @c_cs;

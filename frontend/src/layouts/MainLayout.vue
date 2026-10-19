@@ -110,6 +110,7 @@ watch(
             举报与信用
             <span v-if="admin.pendingReports > 0" class="count">{{ admin.pendingReports }}</span>
           </el-menu-item>
+          <el-menu-item index="/admin/recognitions">加分认定</el-menu-item>
           <el-menu-item index="/admin/match-config">匹配配置</el-menu-item>
           <el-menu-item index="/admin/users">账号管理</el-menu-item>
         </el-sub-menu>

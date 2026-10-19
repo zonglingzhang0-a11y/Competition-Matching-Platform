@@ -127,6 +127,9 @@ watch(
           <el-tag size="small" effect="plain">{{ LEVEL_LABEL[c.level] }}</el-tag>
           <el-tag size="small" effect="plain" type="info">{{ c.category }}</el-tag>
           <el-tag v-if="c.inCaheList" size="small" effect="plain" type="success">高教学会竞赛目录</el-tag>
+          <el-tag v-if="c.recognition" size="small" type="warning" effect="plain" title="本校同学标注、多人确认的加分认定级别">
+            本校 {{ c.recognition }}
+          </el-tag>
         </div>
         <div v-if="c.currentEdition" class="edition">
           <el-tag size="small" :type="PHASE[c.currentEdition.phase].type">{{ PHASE[c.currentEdition.phase].label }}</el-tag>
