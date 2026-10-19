@@ -74,6 +74,9 @@ const soon = (days: number | null | undefined) => days !== null && days !== unde
             {{ s.competitionName }}
           </router-link>
           <el-tag v-if="s.level" size="small" effect="plain">{{ LEVEL_LABEL[s.level] }}</el-tag>
+          <el-tag v-if="s.recognition" size="small" type="warning" effect="plain" title="本校同学标注、多人确认的加分认定级别">
+            本校 {{ s.recognition }}
+          </el-tag>
           <span v-if="s.daysLeft !== null" class="due" :class="{ deadline: soon(s.daysLeft) }">
             报名截止{{ s.daysLeft <= 0 ? '就在今天' : `还有 ${s.daysLeft} 天` }}
           </span>

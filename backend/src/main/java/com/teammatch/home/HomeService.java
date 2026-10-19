@@ -31,6 +31,7 @@ import com.teammatch.team.TeamDtos.TeamSummary;
 import com.teammatch.team.TeamMember;
 import com.teammatch.team.TeamService;
 import com.teammatch.team.TeamSupport;
+import com.teammatch.recognition.RecognitionService;
 import com.teammatch.user.SysUser;
 import com.teammatch.user.SysUserMapper;
 import lombok.RequiredArgsConstructor;
@@ -79,6 +80,7 @@ public class HomeService {
     private final RecommendService recommendService;
     private final SurveyService surveyService;
     private final SysUserMapper userMapper;
+    private final RecognitionService recognitionService;
     private final Clock clock;
 
     /**
@@ -130,7 +132,7 @@ public class HomeService {
 
         return new HomeView(today, next, after, thisWeek == null ? null : thisWeek.freeHours(),
                 thisWeek == null ? 0 : thisWeek.deadlines(), semester,
-                mine(userId, teams, nodes, points, info, now), suggestions(joined, followed, now),
+                mine(userId, teams, nodes, points, info, now), suggestions(userId, joined, followed, now),
                 pending(userId, teams, joined, nodes), teammates(userId, teams));
     }
 
@@ -274,7 +276,7 @@ public class HomeService {
     }
 
     /** 正在报名、还没参加的比赛：关注了的在前，其余按报名截止早晚 */
-    private List<Suggestion> suggestions(Set<Long> joined, Set<Long> followed, LocalDateTime now) {
+    private List<Suggestion> suggestions(long userId, Set<Long> joined, Set<Long> followed, LocalDateTime now) {
         List<EditionInfo> open = homeMapper.openEditions(now).stream()
                 .filter(e -> !joined.contains(e.editionId()))
                 .sorted(Comparator.comparing((EditionInfo e) -> !followed.contains(e.editionId())))
@@ -285,11 +287,14 @@ public class HomeService {
         }
         Map<Long, Long> recruiting = homeMapper.recruitingTeams(open.stream().map(EditionInfo::editionId).toList()).stream()
                 .collect(Collectors.toMap(HomeMapper.EditionCount::editionId, HomeMapper.EditionCount::cnt));
+        SysUser me = userMapper.selectById(userId);
+        Map<Long, String> recognitions = recognitionService.labelsForSchool(me == null ? null : me.getSchoolId(),
+                open.stream().map(EditionInfo::competitionId).collect(Collectors.toSet()));
         return open.stream().map(e -> new Suggestion(e.editionId(), e.competitionId(), e.competitionName(), e.level(),
                 e.editionTitle(), e.registrationEnd(),
                 e.registrationEnd() == null ? null : ChronoUnit.DAYS.between(now.toLocalDate(), e.registrationEnd().toLocalDate()),
                 e.teamMax() != null && e.teamMax() == 1, recruiting.getOrDefault(e.editionId(), 0L).intValue(),
-                followed.contains(e.editionId()), e.officialUrl(), e.noticeUrl())).toList();
+                followed.contains(e.editionId()), e.officialUrl(), e.noticeUrl(), recognitions.get(e.competitionId()))).toList();
     }
 
     // ---------- 右栏 ----------

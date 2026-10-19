@@ -72,7 +72,9 @@ public final class HomeDtos {
     /** 适合报名的比赛：正在报名、还没参加。solo：个人赛，不用组队 */
     public record Suggestion(Long editionId, Long competitionId, String competitionName, String level,
                              String editionTitle, LocalDateTime registrationEnd, Long daysLeft, boolean solo,
-                             int recruitingTeams, boolean followed, String officialUrl, String noticeUrl) {
+                             int recruitingTeams, boolean followed, String officialUrl, String noticeUrl,
+                             /* 本校同学确认好的加分认定级别，比如"A 类"；没有就是空 */
+                             String recognition) {
     }
 
     /**

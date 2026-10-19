@@ -68,6 +68,8 @@ rows = call("/competitions?size=20", tok["linxiao"])[1]["data"]["records"]
 labels = {c["name"]: c["recognition"] for c in rows}
 check("比赛列表：数学建模标着本校 A 类，计设还没确认够", labels.get("全国大学生数学建模竞赛") == "A 类"
       and labels.get("中国大学生计算机设计大赛") is None, labels)
+sug = {x["competitionName"]: x["recognition"] for x in call("/home", tok["linxiao"])[1]["data"]["suggestions"]}
+check("主页适合报名的比赛也标着本校 A 类", sug.get("全国大学生数学建模竞赛") == "A 类", sug)
 cs = next(c["id"] for c in rows if c["name"] == "中国大学生计算机设计大赛")
 b = call(f"/competitions/{cs}/recognitions", tok["linxiao"])[1]["data"]["mySchool"]
 e = b["entries"][0] if b["entries"] else {}

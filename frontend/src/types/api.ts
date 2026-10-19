@@ -1191,6 +1191,8 @@ export interface Suggestion {
   followed: boolean
   officialUrl: string | null
   noticeUrl: string | null
+  /** 本校同学确认好的加分认定级别 */
+  recognition: string | null
 }
 
 /** INVITE 我收到的邀请 / APPLY 有人申请加入我当队长的队；consequence 是处理后的影响 */

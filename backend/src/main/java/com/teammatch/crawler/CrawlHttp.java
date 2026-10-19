@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <ul>
  *   <li>User-Agent 写明是谁、怎么联系我们</li>
  *   <li>先看 robots.txt，不让抓的不抓；robots.txt 缓存 12 小时</li>
- *   <li>同一个网站两次请求之间至少隔 {@code app.crawler.delay-ms}，robots.txt 写了 Crawl-delay 就按更久的</li>
+ *   <li>同一个网站上一个请求结束后至少隔 {@code app.crawler.delay-ms} 再发下一个，robots.txt 写了 Crawl-delay 就按更久的</li>
  *   <li>只抓网页，不下载附件；跳转也要过 robots.txt</li>
  * </ul>
  * 爬虫同一时间只有一个线程在跑，所以这里的等待直接 sleep。
@@ -66,7 +66,7 @@ public class CrawlHttp {
                 throw new BlockedException(current);
             }
             // 内容类型自己判断：Jsoup 会连跳转响应（通常没有 Content-Type）一起拒掉
-            Connection.Response res = request(uri, current).followRedirects(false).ignoreContentType(true).execute();
+            Connection.Response res = execute(uri, request(uri, current).followRedirects(false).ignoreContentType(true));
             int status = res.statusCode();
             if (status >= 300 && status < 400 && res.hasHeader("Location")) {
                 try {
@@ -99,9 +99,7 @@ public class CrawlHttp {
         RobotsRules rules;
         Duration ttl = ROBOTS_TTL;
         try {
-            Connection.Response res = request(uri, origin + "/robots.txt")
-                    .ignoreContentType(true)
-                    .execute();
+            Connection.Response res = execute(uri, request(uri, origin + "/robots.txt").ignoreContentType(true));
             int status = res.statusCode();
             if (status >= 200 && status < 300) {
                 rules = RobotsRules.parse(res.body(), AGENT);
@@ -121,8 +119,17 @@ public class CrawlHttp {
         return rules;
     }
 
-    private Connection request(URI uri, String url) throws IOException {
+    /** 发请求：离上次请求这个网站不够间隔就先等；间隔从上一个请求结束算起，网站那边看到的间隔不会比设定的短 */
+    private Connection.Response execute(URI uri, Connection connection) throws IOException {
         waitTurn(uri);
+        try {
+            return connection.execute();
+        } finally {
+            lastRequestAt.put(origin(uri), System.currentTimeMillis());
+        }
+    }
+
+    private Connection request(URI uri, String url) {
         return Jsoup.connect(url)
                 .userAgent(props.userAgent())
                 .header("Accept-Language", "zh-CN,zh;q=0.9")
@@ -131,7 +138,7 @@ public class CrawlHttp {
                 .ignoreHttpErrors(true);
     }
 
-    /** 离这个网站上次被请求不够间隔就等一等 */
+    /** 离这个网站上次请求结束不够间隔就等一等 */
     private void waitTurn(URI uri) throws IOException {
         String origin = origin(uri);
         CachedRobots cached = robotsCache.get(origin);
@@ -151,7 +158,6 @@ public class CrawlHttp {
                 }
             }
         }
-        lastRequestAt.put(origin, System.currentTimeMillis());
     }
 
     /** 网页的可读文字：块级元素和 br 换行，其余连在一起；多余的空白去掉 */
