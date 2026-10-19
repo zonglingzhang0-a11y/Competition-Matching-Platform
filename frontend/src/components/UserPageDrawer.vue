@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Close, Lock } from '@element-plus/icons-vue'
 import { getUserPage } from '@/api/profile'
@@ -14,6 +14,13 @@ import { fmtDate } from '@/utils/time'
  * 能看到哪些部分由后端决定（见后端 UserPageAccess），看不到的字段为空，这里只按有没有数据来显示。
  */
 const store = useUserPageStore()
+
+/** 手机上铺满整屏，不然 500px 宽的抽屉左边会被切掉 */
+const narrowQuery = window.matchMedia('(max-width: 560px)')
+const narrow = ref(narrowQuery.matches)
+const onNarrow = (e: MediaQueryListEvent) => (narrow.value = e.matches)
+narrowQuery.addEventListener('change', onNarrow)
+onBeforeUnmount(() => narrowQuery.removeEventListener('change', onNarrow))
 const route = useRoute()
 
 const page = ref<UserPage | null>(null)
@@ -75,7 +82,7 @@ function contactLine(): string {
 </script>
 
 <template>
-  <el-drawer v-model="store.visible" :with-header="false" size="500px" class="user-page-drawer" append-to-body>
+  <el-drawer v-model="store.visible" :with-header="false" :size="narrow ? '100%' : '500px'" class="user-page-drawer" append-to-body>
     <div v-loading="loading" class="page">
       <button type="button" class="close" aria-label="关闭" @click="store.close()">
         <el-icon :size="16"><Close /></el-icon>

@@ -255,9 +255,22 @@ onMounted(load)
   gap: 4px;
 }
 
+/* 说明文字长，手机上要能换行（Element Plus 的单选默认不换行） */
 .privacy :deep(.el-radio) {
   height: auto;
+  max-width: 100%;
   padding: 4px 0;
+  align-items: flex-start;
+  white-space: normal;
+}
+
+.privacy :deep(.el-radio__input) {
+  margin-top: 3px;
+}
+
+.privacy :deep(.el-radio__label) {
+  line-height: 1.5;
+  white-space: normal;
 }
 
 .privacy-option {

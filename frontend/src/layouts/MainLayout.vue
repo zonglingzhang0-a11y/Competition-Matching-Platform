@@ -367,4 +367,41 @@ watch(
     padding: 16px 12px;
   }
 }
+
+/* 手机：菜单放不下就左右滑动，铃铛和头像始终留在屏幕里 */
+@media (max-width: 640px) {
+  .header {
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .brand-name {
+    font-size: 19px;
+  }
+
+  .menu {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .menu::-webkit-scrollbar {
+    display: none;
+  }
+
+  .menu :deep(.el-menu-item),
+  .menu :deep(.el-sub-menu__title) {
+    flex-shrink: 0;
+    padding: 0 9px;
+  }
+
+  .right {
+    flex-shrink: 0;
+    gap: 10px;
+  }
+
+  .unverified {
+    display: none;
+  }
+}
 </style>

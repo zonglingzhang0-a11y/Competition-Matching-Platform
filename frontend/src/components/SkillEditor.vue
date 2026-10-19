@@ -141,4 +141,25 @@ onMounted(async () => {
   font-size: 13px;
   color: var(--el-color-warning);
 }
+
+/* 手机：分类挤不下就不显示，技能名不再占 140px */
+@media (max-width: 640px) {
+  .row {
+    gap: 8px;
+  }
+
+  .name {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .category {
+    display: none;
+  }
+
+  .picker {
+    flex: 1;
+    width: auto;
+  }
+}
 </style>
