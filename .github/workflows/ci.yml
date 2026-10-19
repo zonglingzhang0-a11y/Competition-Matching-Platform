@@ -1,4 +1,4 @@
-# 推到 main / dev、或者往这两个分支提 PR 时，自动跑后端测试和前端检查。
+# 推到 main / dev、或者往这两个分支提 PR 时，自动跑后端测试、接口测试（MySQL 容器）和前端检查。
 # 本机没有 JDK 21 的同学，提 PR 后在 PR 页面下方就能看到结果。
 name: 检查
 
@@ -28,6 +28,49 @@ jobs:
           cache: maven
       # mvnw 在仓库里没有可执行权限，用 sh 跑
       - run: sh ./mvnw -B -q test
+
+  e2e:
+    name: 接口测试（MySQL）
+    runs-on: ubuntu-latest
+    # 用 GitHub 起的 MySQL 容器，测试库 team_match_e2e 每套测试前删掉重建（见 tests/e2e/env.py）
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          TZ: Asia/Shanghai
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install websockets
+      - name: 打包后端
+        working-directory: backend
+        run: sh ./mvnw -B -q package -DskipTests
+      - name: 接口测试
+        run: python tests/e2e/run.py
+        env:
+          E2E_DB_HOST: 127.0.0.1
+          E2E_DB_PORT: '3306'
+      - name: 失败时把日志传上来
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs
+          path: tests/e2e/logs/
 
   frontend:
     name: 前端检查

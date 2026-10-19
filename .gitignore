@@ -21,3 +21,7 @@ frontend/*.tsbuildinfo
 !.vscode/extensions.json
 .DS_Store
 Thumbs.db
+
+# 接口测试的日志
+tests/e2e/logs/
+__pycache__/

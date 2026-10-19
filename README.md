@@ -215,7 +215,23 @@ cd frontend && npm run build
 
 前端的 `npm test` 用 Node 自带的测试直接跑 TS（目前测的是一句话添加的解析），不用另装测试框架；`build` 会先做类型检查。
 
-推到 `main`、`dev`，或者往这两个分支提 PR 时，GitHub 会自动跑一遍后端测试（JDK 21）和前端的类型检查、代码检查、测试、打包（[.github/workflows/ci.yml](.github/workflows/ci.yml)），结果在 PR 页面下方和仓库的 Actions 页。本机没有 JDK 21 也能看到后端测试过没过。
+**接口测试**（[tests/e2e](tests/e2e)）：19 套、600 多项检查，从注册登录、组队、推荐、日历、互评到爬虫、资料页的权限都有。每套测试开始前，在单独的测试库 `team_match_e2e` 上删库重建、起一个测试后端（端口 18090），跑完关掉；爬虫用本机的假官网和假大模型，不访问真网站。要 Python 3.10 以上：
+
+```bash
+cd backend && ./mvnw package -DskipTests
+```
+
+```bash
+pip install websockets
+```
+
+```bash
+python tests/e2e/run.py
+```
+
+默认连本机 3306 端口的 MySQL、用户 root、空密码；不一样就用环境变量改，比如 PowerShell 里 `$env:E2E_DB_PASSWORD="你的密码"`（其他见 [tests/e2e/env.py](tests/e2e/env.py)）。只跑几套：`python tests/e2e/run.py m3 push`，看有哪些：`--list`。测试会删掉重建 `team_match_e2e`，不会碰平时用的 `team_match`（库名写成 `team_match` 会直接拒绝运行）。
+
+推到 `main`、`dev`，或者往这两个分支提 PR 时，GitHub 会自动跑一遍后端测试（JDK 21）、接口测试（在 MySQL 容器里）和前端的类型检查、代码检查、测试、打包（[.github/workflows/ci.yml](.github/workflows/ci.yml)），结果在 PR 页面下方和仓库的 Actions 页。本机没有 JDK 21、没装 MySQL 也能看到测试过没过。
 
 ## 分支
 
