@@ -7,6 +7,7 @@ import { useUserPageStore } from '@/stores/userPage'
 import type { PageExperience, UserPage } from '@/types/api'
 import { DEGREES, SKILL_LEVEL_LABEL, TEAM_RECORD_STATE, creditType } from '@/utils/labels'
 import { fmtDate } from '@/utils/time'
+import { safeUrl } from '@/utils/url'
 
 /**
  * 个人资料页抽屉：点开任何人的名字，从右边滑出来，不用离开当前页面。
@@ -70,10 +71,6 @@ function sourceOf(e: PageExperience): { label: string; type: 'success' | 'primar
 }
 
 /** 证明链接是用户自己填的，只认 http(s)，防止 javascript: 这类链接 */
-function safeUrl(url: string | null): string | null {
-  return url && /^https?:\/\//i.test(url.trim()) ? url.trim() : null
-}
-
 function contactLine(): string {
   const c = page.value?.contact
   if (!c) return ''

@@ -7,6 +7,7 @@ import { addExperience, deleteExperience } from '@/api/profile'
 import type { Experience, Option } from '@/types/api'
 import { AWARD_SUGGESTIONS } from '@/utils/labels'
 import { showError } from '@/utils/feedback'
+import { isHttpUrlOrEmpty, safeUrl } from '@/utils/url'
 
 const props = defineProps<{ initial: Experience[] }>()
 
@@ -21,6 +22,12 @@ const form = reactive({ title: '', year: new Date().getFullYear(), award: '', pr
 const rules: FormRules<typeof form> = {
   title: [{ required: true, message: '请选择或填写比赛名称', trigger: 'blur' }],
   year: [{ required: true, message: '请填写年份', trigger: 'change' }],
+  proofUrl: [
+    {
+      validator: (_rule, value: string, cb) => (isHttpUrlOrEmpty(value) ? cb() : cb(new Error('请填 http:// 或 https:// 开头的网址'))),
+      trigger: 'blur',
+    },
+  ],
 }
 
 async function open() {
@@ -96,7 +103,7 @@ async function remove(e: Experience) {
       <span class="title">{{ e.title }}</span>
       <el-tag v-if="e.award" size="small" effect="plain">{{ e.award }}</el-tag>
       <el-tag v-if="e.source === 'PLATFORM'" size="small" type="success" effect="plain">平台组队</el-tag>
-      <el-link v-if="e.proofUrl" :href="e.proofUrl" target="_blank" :icon="Link" class="proof">证明</el-link>
+      <el-link v-if="safeUrl(e.proofUrl)" :href="safeUrl(e.proofUrl)!" target="_blank" :icon="Link" class="proof">证明</el-link>
       <span class="spacer" />
       <el-button v-if="e.source === 'MANUAL'" text type="danger" size="small" @click="remove(e)">删除</el-button>
     </div>
@@ -124,7 +131,7 @@ async function remove(e: Experience) {
             class="full"
           />
         </el-form-item>
-        <el-form-item label="证明链接（选填）">
+        <el-form-item label="证明链接（选填）" prop="proofUrl">
           <el-input v-model="form.proofUrl" placeholder="获奖名单、证书照片的网址" />
         </el-form-item>
       </el-form>
