@@ -46,6 +46,8 @@ import java.util.stream.Stream;
  * <p>
  * 同一时间只跑一次抓取（定时任务和管理员手动触发共用），在后台线程里跑，进度看 {@link #status()}。
  * 抓到的内容只进待确认列表，不会直接改比赛库。
+ * <p>
+ * 字段先用规则抽；配了大模型（{@link LlmProperties}）、来源允许交给大模型、规则又没抽全的，再让大模型补。
  */
 @Slf4j
 @Service
@@ -67,6 +69,7 @@ public class CrawlService {
 
     private final CrawlHttp http;
     private final RuleFieldExtractor ruleExtractor;
+    private final LlmFieldExtractor llmExtractor;
     private final CrawlSourceMapper sourceMapper;
     private final CrawlRecordMapper recordMapper;
     private final CrawlerProperties props;
@@ -213,6 +216,12 @@ public class CrawlService {
         }
         String title = cut(StringUtils.hasText(link.title()) ? link.title() : doc.title(), 255);
         Extracted e = ruleExtractor.extract(title, text);
+        if (llmExtractor.ready() && Boolean.TRUE.equals(s.getAllowLlm()) && LlmFieldExtractor.worthAsking(e)) {
+            Extracted more = llmExtractor.extract(title, text);
+            if (more != null) {
+                e = LlmFieldExtractor.merge(e, more);
+            }
+        }
         CrawlRecord r = new CrawlRecord();
         r.setSourceId(s.getId());
         r.setSourceUrl(link.url());

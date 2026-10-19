@@ -36,7 +36,15 @@ const nodesLoading = ref(false)
 
 const extracted = computed<Extracted | null>(() => detail.value?.record.extracted ?? null)
 const editions = computed(() => detail.value?.editions ?? [])
-const evidence = computed(() => Object.entries(extracted.value?.evidence ?? {}))
+/** 依据：大模型补的字段 key 带 "llm:" 前缀 */
+const evidence = computed(() =>
+  Object.entries(extracted.value?.evidence ?? {}).map(([key, sentence]) => {
+    const llm = key.startsWith('llm:')
+    const field = llm ? key.slice(4) : key
+    return { key, sentence, llm, label: EVIDENCE_LABEL[field] ?? field }
+  }),
+)
+const usedLlm = computed(() => evidence.value.some((e) => e.llm))
 
 function blankForm(): EditionForm {
   return {
@@ -245,9 +253,14 @@ async function submit() {
         </el-alert>
         <div v-else class="block">
           <div class="section">从通知里找到的依据（已填进下面的表单，请核对）</div>
-          <div v-for="[key, sentence] in evidence" :key="key" class="evidence">
-            <el-tag size="small" effect="plain">{{ EVIDENCE_LABEL[key] ?? key }}</el-tag>
-            <span>{{ sentence }}</span>
+          <div v-for="e in evidence" :key="e.key" class="evidence">
+            <el-tag size="small" effect="plain" :type="e.llm ? 'warning' : 'info'">
+              {{ e.label }}{{ e.llm ? ' · 大模型' : '' }}
+            </el-tag>
+            <span>{{ e.sentence }}</span>
+          </div>
+          <div v-if="usedLlm" class="llm-note">
+            标了"大模型"的是规则没找到、交给大模型补的：依据确实在原文里，日期和人数也在依据里出现过，但意思可能理解错，请对照原文仔细核对。
           </div>
         </div>
 
@@ -384,6 +397,12 @@ async function submit() {
 
 .evidence .el-tag {
   flex-shrink: 0;
+}
+
+.llm-note {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--el-color-warning);
 }
 
 .raw {

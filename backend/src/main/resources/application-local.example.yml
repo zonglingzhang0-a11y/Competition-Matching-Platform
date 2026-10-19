@@ -22,3 +22,9 @@ app:
 #     from: 你的邮箱@qq.com
 #   notify-mail:
 #     site-url: http://你的服务器地址   # 新消息邮件里的链接
+#   crawler:
+#     llm:                  # 爬虫用大模型补抽字段；本机模型只要 enabled: true，云端模型再填地址、模型名和密钥
+#       enabled: true
+#       base-url: https://api.deepseek.com/v1
+#       model: deepseek-chat
+#       api-key: 你的密钥
