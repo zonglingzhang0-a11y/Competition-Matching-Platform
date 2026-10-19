@@ -1,6 +1,9 @@
 # 公共配置。数据库密码、SMTP 授权码这类本机才有的东西，放在 application-local.yml（不提交，模板见 application-local.example.yml）
 server:
   port: 8090              # 8080 在开发机上被 Steam 占用了
+  tomcat:
+    # 上传超过大小限制时，Tomcat 先把剩下的请求体读掉再回"文件太大"；默认只读 2 MB，超过就直接断开，客户端看到的是连接断了
+    max-swallow-size: 10MB
 
 spring:
   application:
