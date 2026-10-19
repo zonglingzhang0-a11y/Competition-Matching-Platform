@@ -215,6 +215,8 @@ cd frontend && npm run build
 
 前端的 `npm test` 用 Node 自带的测试直接跑 TS（目前测的是一句话添加的解析），不用另装测试框架；`build` 会先做类型检查。
 
+推到 `main`、`dev`，或者往这两个分支提 PR 时，GitHub 会自动跑一遍后端测试（JDK 21）和前端的类型检查、代码检查、测试、打包（[.github/workflows/ci.yml](.github/workflows/ci.yml)），结果在 PR 页面下方和仓库的 Actions 页。本机没有 JDK 21 也能看到后端测试过没过。
+
 ## 分支
 
 - `main`：稳定版本
