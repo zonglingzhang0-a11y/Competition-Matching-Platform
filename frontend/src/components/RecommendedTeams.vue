@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import MatchSummary from '@/components/MatchSummary.vue'
+import UserName from '@/components/UserName.vue'
 import { recommendedTeams } from '@/api/survey'
 import type { EditionDetail, TeamRecommendations } from '@/types/api'
 import { TEAM_STATUS } from '@/utils/labels'
@@ -68,7 +69,7 @@ onMounted(load)
             <router-link :to="{ name: 'team', params: { id: r.team.id } }" class="name">{{ r.team.name }}</router-link>
             <el-tag size="small" :type="TEAM_STATUS[r.team.status].type">{{ TEAM_STATUS[r.team.status].label }}</el-tag>
             <span class="meta">
-              {{ r.team.memberCount }}/{{ r.team.maxMembers }} 人 · 队长 {{ r.team.captain.nickname }}
+              {{ r.team.memberCount }}/{{ r.team.maxMembers }} 人 · 队长 <UserName :id="r.team.captain.id" :name="r.team.captain.nickname" />
               <template v-if="r.team.openNeeds.length"> · 在招 {{ r.team.openNeeds.map((n) => n.roleName).join('、') }}</template>
             </span>
           </div>

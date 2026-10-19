@@ -2,8 +2,10 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Bell, Search } from '@element-plus/icons-vue'
+import UserPageDrawer from '@/components/UserPageDrawer.vue'
 import { useAdminStore } from '@/stores/admin'
 import { useNotificationStore } from '@/stores/notification'
+import { useUserPageStore } from '@/stores/userPage'
 import { useUserStore } from '@/stores/user'
 
 /**
@@ -15,6 +17,7 @@ const router = useRouter()
 const user = useUserStore()
 const notifications = useNotificationStore()
 const admin = useAdminStore()
+const userPage = useUserPageStore()
 
 const keyword = ref('')
 const clock = ref(now())
@@ -46,7 +49,9 @@ function search() {
 
 function onCommand(command: string) {
   if (command === 'logout') logout()
-  else router.push({ name: command })
+  else if (command === 'my-page') {
+    if (user.me) userPage.open(user.me.id)
+  } else router.push({ name: command })
 }
 
 async function logout() {
@@ -136,6 +141,7 @@ watch(
           </button>
           <template #dropdown>
             <el-dropdown-menu>
+              <el-dropdown-item command="my-page">我的资料页</el-dropdown-item>
               <el-dropdown-item command="profile">我的档案</el-dropdown-item>
               <el-dropdown-item command="verify">身份认证</el-dropdown-item>
               <el-dropdown-item command="reviews">互评与信用</el-dropdown-item>
@@ -149,6 +155,9 @@ watch(
     <main class="main">
       <router-view />
     </main>
+
+    <!-- 个人资料页：点任何人的名字从右边滑出 -->
+    <UserPageDrawer />
 
     <footer class="status">
       <span class="kicker">

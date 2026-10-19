@@ -4,13 +4,15 @@ import PageHeader from '@/components/PageHeader.vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import ExperienceList from '@/components/ExperienceList.vue'
 import SkillEditor from '@/components/SkillEditor.vue'
-import { getProfile, updateProfile } from '@/api/profile'
+import { getProfile, setHistoryVisibility, updateProfile } from '@/api/profile'
+import { useUserPageStore } from '@/stores/userPage'
 import { useUserStore } from '@/stores/user'
-import type { Profile, ProfileForm } from '@/types/api'
-import { DEGREES, GENDERS } from '@/utils/labels'
+import type { HistoryVisibility, Profile, ProfileForm } from '@/types/api'
+import { DEGREES, GENDERS, HISTORY_VISIBILITY } from '@/utils/labels'
 import { showError } from '@/utils/feedback'
 
 const user = useUserStore()
+const userPage = useUserPageStore()
 
 const profile = ref<Profile | null>(null)
 const loading = ref(true)
@@ -73,6 +75,24 @@ async function save() {
     showError(e)
   } finally {
     saving.value = false
+  }
+}
+
+/** 个人资料页上的履历给谁看，选了就保存 */
+const savingPrivacy = ref(false)
+async function changeVisibility(v: HistoryVisibility) {
+  if (!profile.value) return
+  const before = profile.value.historyVisibility
+  profile.value.historyVisibility = v
+  savingPrivacy.value = true
+  try {
+    await setHistoryVisibility(v)
+    ElMessage.success('可见范围已保存')
+  } catch (e) {
+    profile.value.historyVisibility = before
+    showError(e)
+  } finally {
+    savingPrivacy.value = false
   }
 }
 
@@ -148,6 +168,30 @@ onMounted(load)
         <template #header>参赛履历</template>
         <ExperienceList :initial="profile.experiences" />
       </el-card>
+
+      <el-card shadow="never" class="block">
+        <template #header>
+          <div class="card-head">
+            <span>个人资料页</span>
+            <el-button v-if="user.me" size="small" @click="userPage.open(user.me.id, { preview: true })">预览别人看到的我</el-button>
+          </div>
+        </template>
+        <p class="privacy-intro">
+          别人点你的名字，会看到你的个人资料页：技能、简介、组队记录和参赛履历。真实姓名和联系方式只给队友看。
+        </p>
+        <div class="privacy-label">参赛履历和组队记录给谁看</div>
+        <el-radio-group
+          :model-value="profile.historyVisibility"
+          :disabled="savingPrivacy"
+          class="privacy"
+          @update:model-value="(v) => changeVisibility(v as HistoryVisibility)"
+        >
+          <el-radio v-for="o in HISTORY_VISIBILITY" :key="o.value" :value="o.value">
+            <span class="privacy-option">{{ o.label }}</span>
+            <span class="privacy-desc">{{ o.desc }}</span>
+          </el-radio>
+        </el-radio-group>
+      </el-card>
     </template>
   </div>
 </template>
@@ -183,5 +227,46 @@ onMounted(load)
 
 .gap {
   margin-left: 12px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.privacy-intro {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--jd-ink-2);
+}
+
+.privacy-label {
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.privacy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.privacy :deep(.el-radio) {
+  height: auto;
+  padding: 4px 0;
+}
+
+.privacy-option {
+  font-size: 14px;
+}
+
+.privacy-desc {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--jd-muted);
 }
 </style>

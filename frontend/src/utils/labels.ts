@@ -6,6 +6,7 @@ import type {
   CrawlStatus,
   EditionPhase,
   EditionStatus,
+  HistoryVisibility,
   MatchPreset,
   MeetingMode,
   NodeType,
@@ -13,6 +14,7 @@ import type {
   ReportReason,
   ReportStatus,
   ReviewStatus,
+  TeamRecordState,
   TeamStatus,
   UserRole,
   UserStatus,
@@ -190,4 +192,17 @@ export const REPORT_ACTION: Record<ReportAction, string> = {
 /** 信用分的颜色：85 以上绿色，70 以上橙色，再低红色 */
 export function creditType(score: number): TagType {
   return score >= 85 ? 'success' : score >= 70 ? 'warning' : 'danger'
+}
+
+export const HISTORY_VISIBILITY: { value: HistoryVisibility; label: string; desc: string }[] = [
+  { value: 'PUBLIC', label: '所有已认证的同学', desc: '找队友的人都能看到，更容易被邀请' },
+  { value: 'RELATED', label: '只给队友和我主动联系过的人', desc: '队友、你申请加入的队伍，以及你的队伍邀请过的人才能看到' },
+]
+
+/** 资料页上组队记录的状态。离队不区分主动退出还是被移出 */
+export const TEAM_RECORD_STATE: Record<TeamRecordState, { label: string; type: TagType }> = {
+  IN_TEAM: { label: '在队中', type: 'primary' },
+  FINISHED: { label: '已完赛', type: 'success' },
+  LEFT: { label: '已离队', type: 'info' },
+  DISBANDED: { label: '队伍已解散', type: 'info' },
 }

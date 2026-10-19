@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UserName from '@/components/UserName.vue'
 import type { TeamSummary } from '@/types/api'
 import { TEAM_STATUS } from '@/utils/labels'
 
@@ -16,7 +17,7 @@ defineProps<{ team: TeamSummary; showCompetition?: boolean }>()
       {{ team.edition.competitionName }} · {{ team.edition.editionTitle }}
     </div>
     <div class="captain">
-      队长 {{ team.captain.nickname }}<template v-if="team.captain.schoolName"> · {{ team.captain.schoolName }}</template>
+      队长 <UserName :id="team.captain.id" :name="team.captain.nickname" /><template v-if="team.captain.schoolName"> · {{ team.captain.schoolName }}</template>
     </div>
     <p v-if="team.intro" class="intro">{{ team.intro }}</p>
     <div v-if="team.openNeeds.length" class="needs">

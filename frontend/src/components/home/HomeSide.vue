@@ -3,8 +3,10 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import MatchSummary from '@/components/MatchSummary.vue'
+import UserName from '@/components/UserName.vue'
 import { acceptApplication, rejectApplication } from '@/api/team'
 import { markRead } from '@/api/notification'
+import { useUserPageStore } from '@/stores/userPage'
 import type { HomePending, HomeRecommendation, HomeTeammate, Notification } from '@/types/api'
 import { notificationRoute } from '@/utils/notificationLink'
 import { fmtDateTime } from '@/utils/time'
@@ -22,6 +24,7 @@ const props = defineProps<{
 const emit = defineEmits<{ changed: [] }>()
 
 const router = useRouter()
+const userPage = useUserPageStore()
 const busy = ref<number | null>(null)
 
 /** 没有当队长要招人的队时，改为推荐可以加入的队伍（每个关注的比赛取最合适的一支） */
@@ -73,12 +76,12 @@ function openMessage(n: Notification) {
               「<router-link :to="{ name: 'team', params: { id: p.teamId } }">{{ p.teamName }}</router-link>」邀请你加入
             </template>
             <template v-else>
-              {{ p.who }} 申请加入「<router-link :to="{ name: 'team', params: { id: p.teamId } }">{{ p.teamName }}</router-link>」
+              <UserName v-if="p.whoId !== null && p.who" :id="p.whoId" :name="p.who" /><template v-else>{{ p.who }}</template> 申请加入「<router-link :to="{ name: 'team', params: { id: p.teamId } }">{{ p.teamName }}</router-link>」
             </template>
             <template v-if="p.roleName">，担任{{ p.roleName }}</template>
           </span>
         </div>
-        <div class="sub">{{ p.competitionName }}<template v-if="p.kind === 'INVITE' && p.who"> · 队长 {{ p.who }}</template> · {{ fmtDateTime(p.createdAt) }}</div>
+        <div class="sub">{{ p.competitionName }}<template v-if="p.kind === 'INVITE' && p.who"> · 队长 <UserName v-if="p.whoId !== null" :id="p.whoId" :name="p.who" /><template v-else>{{ p.who }}</template></template> · {{ fmtDateTime(p.createdAt) }}</div>
         <p v-if="p.message" class="quote">“{{ p.message }}”</p>
         <p v-if="p.consequence" class="consequence" :class="{ risky: risky(p) }">{{ p.consequence }}</p>
         <div class="buttons">
@@ -99,9 +102,11 @@ function openMessage(n: Notification) {
         </div>
       </div>
       <div v-for="t in teammates" :key="t.teamId + '-' + t.userId" class="person">
-        <span class="avatar">{{ t.nickname.slice(0, 1) }}</span>
+        <button type="button" class="avatar" :aria-label="`查看 ${t.nickname} 的资料`" @click="userPage.open(t.userId)">
+          {{ t.nickname.slice(0, 1) }}
+        </button>
         <div class="person-text">
-          <strong>{{ t.nickname }}</strong>
+          <strong><UserName :id="t.userId" :name="t.nickname" /></strong>
           <span class="sub">{{ [t.major, t.enrollYear ? `${t.enrollYear} 级` : null].filter(Boolean).join(' · ') }}</span>
           <span v-if="t.reason" class="sub">{{ t.reason }}</span>
         </div>
@@ -248,9 +253,17 @@ function openMessage(n: Notification) {
   place-items: center;
   width: 30px;
   height: 30px;
+  padding: 0;
+  border: none;
   background: var(--jd-ink-2);
   color: var(--jd-paper);
+  font: inherit;
   font-weight: 700;
+  cursor: pointer;
+}
+
+.avatar:hover {
+  background: var(--jd-accent);
 }
 
 .person-text {

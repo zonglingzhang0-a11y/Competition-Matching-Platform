@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
+import UserName from '@/components/UserName.vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { flaggedReviews, handleReport, listReports, liftSuspension, suspendedUsers } from '@/api/admin'
@@ -178,7 +179,7 @@ load()
         <el-table :data="suspended" empty-text="现在没有被暂停推荐的人">
           <el-table-column label="用户" min-width="180">
             <template #default="{ row }">
-              <div>{{ row.nickname }}</div>
+              <div><UserName :id="row.userId" :name="row.nickname" /></div>
               <div class="muted">{{ row.email }}</div>
             </template>
           </el-table-column>
