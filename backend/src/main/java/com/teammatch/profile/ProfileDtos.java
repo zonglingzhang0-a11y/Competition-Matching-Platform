@@ -17,6 +17,9 @@ public final class ProfileDtos {
     private ProfileDtos() {
     }
 
+    /** 用户填的链接只收 http(s)：javascript: 这类链接被别人点开会在本站执行脚本。空的也行（选填） */
+    public static final String HTTP_URL_OR_EMPTY = "(?i)\\s*(https?://\\S+)?\\s*";
+
     public record ProfileResponse(
             String email,
             String nickname,
@@ -77,7 +80,8 @@ public final class ProfileDtos {
             @NotNull(message = "请填写年份") @Min(value = 2000, message = "年份不对") @Max(value = 2100, message = "年份不对")
             Integer year,
             @Size(max = 32, message = "奖项最多 32 个字") String award,
-            @Size(max = 255, message = "链接太长了") String proofUrl) {
+            @Size(max = 255, message = "链接太长了")
+            @Pattern(regexp = HTTP_URL_OR_EMPTY, message = "证明链接要是 http:// 或 https:// 开头的网址") String proofUrl) {
     }
 
     /** 技能字典里的一项 */
