@@ -30,6 +30,8 @@ public class Notification {
         /** 比赛结束，互评开放 / 互评结果揭晓 / 信用相关（暂停推荐等） / 举报处理结果 */
         REVIEW_OPEN, REVIEW_RESULT, CREDIT, REPORT_RESULT,
         /** 队长把里程碑下的任务分给了你 */
-        TASK
+        TASK,
+        /** 你标注的加分认定确认够了 / 被管理员驳回 */
+        RECOGNITION
     }
 }

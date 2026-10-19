@@ -43,7 +43,7 @@ class CurrentEditionTest {
                 // 比赛 3：报名时间待定的，排在有截止时间的后面
                 edition(31, 3, 2026, null),
                 edition(32, 3, 2026, NOW.plusDays(60))));
-        CompetitionService service = new CompetitionService(null, mapper, null, null, null, Clock.systemDefaultZone());
+        CompetitionService service = new CompetitionService(null, mapper, null, null, null, null, null, Clock.systemDefaultZone());
 
         Map<Long, CompetitionEdition> current = service.currentEditions(List.of(1L, 2L, 3L), NOW);
 

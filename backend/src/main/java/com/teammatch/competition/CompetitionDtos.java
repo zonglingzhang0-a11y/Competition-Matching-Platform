@@ -19,7 +19,9 @@ public final class CompetitionDtos {
             String category,
             Competition.Level level,
             boolean inCaheList,
-            EditionBrief currentEdition) {
+            EditionBrief currentEdition,
+            /* 本校同学标注、确认够了的加分认定级别，比如"A 类"；没有就是空 */
+            String recognition) {
     }
 
     public record EditionBrief(

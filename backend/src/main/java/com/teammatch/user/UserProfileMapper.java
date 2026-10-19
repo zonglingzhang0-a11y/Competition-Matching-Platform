@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.springframework.dao.DuplicateKeyException;
 
 @Mapper
 public interface UserProfileMapper extends BaseMapper<UserProfile> {
@@ -15,4 +16,18 @@ public interface UserProfileMapper extends BaseMapper<UserProfile> {
      */
     @Select("SELECT user_id FROM user_profile WHERE user_id = #{userId} FOR UPDATE")
     Long lockByUserId(@Param("userId") long userId);
+
+    /** 锁住这个人（同一个人的几个请求排队执行）；老账号可能没有档案行，补一行再锁 */
+    default void lockUser(long userId) {
+        if (lockByUserId(userId) == null) {
+            UserProfile p = new UserProfile();
+            p.setUserId(userId);
+            try {
+                insert(p);
+            } catch (DuplicateKeyException ignored) {
+                // 别的请求刚好补上了
+            }
+            lockByUserId(userId);
+        }
+    }
 }

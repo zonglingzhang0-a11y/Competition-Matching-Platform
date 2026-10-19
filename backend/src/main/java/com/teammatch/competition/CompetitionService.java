@@ -16,6 +16,8 @@ import com.teammatch.competition.CompetitionMappers.EditionMapper;
 import com.teammatch.competition.CompetitionMappers.FollowMapper;
 import com.teammatch.competition.CompetitionMappers.NodeMapper;
 import com.teammatch.competition.CompetitionMappers.RoleTemplateItemMapper;
+import com.teammatch.recognition.RecognitionService;
+import com.teammatch.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -43,6 +45,8 @@ public class CompetitionService {
     private final NodeMapper nodeMapper;
     private final RoleTemplateItemMapper roleItemMapper;
     private final FollowMapper followMapper;
+    private final RecognitionService recognitionService;
+    private final UserService userService;
     private final Clock clock;
 
     public PageResult<CompetitionSummary> list(long userId, ListQuery q) {
@@ -68,13 +72,14 @@ public class CompetitionService {
         List<Long> ids = page.getRecords().stream().map(Competition::getId).toList();
         Map<Long, CompetitionEdition> current = currentEditions(ids, now);
         Set<Long> followed = followedAmong(userId, current.values().stream().map(CompetitionEdition::getId).toList());
+        Map<Long, String> recognitions = recognitionService.labelsForSchool(userService.getById(userId).getSchoolId(), ids);
 
         return PageResult.of(page, c -> {
             CompetitionEdition e = current.get(c.getId());
             EditionBrief brief = e == null ? null : new EditionBrief(e.getId(), e.getTitle(), e.getTeamMin(),
                     e.getTeamMax(), e.getRegistrationEnd(), phaseOf(e, now), followed.contains(e.getId()));
             return new CompetitionSummary(c.getId(), c.getName(), c.getShortName(), c.getCategory(), c.getLevel(),
-                    Boolean.TRUE.equals(c.getInCaheList()), brief);
+                    Boolean.TRUE.equals(c.getInCaheList()), brief, recognitions.get(c.getId()));
         });
     }
 

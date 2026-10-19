@@ -51,6 +51,7 @@ SUITES = [
     Suite("fuzzy", "时间说不准的日程、全天日程的结束日"),
     Suite("notify_mail", "新消息汇总发邮件", ADMIN + MAIL),
     Suite("reset_password", "忘记密码、登录失败锁定"),
+    Suite("recognition", "各校加分认定：同校标注、多人确认、驳回", ADMIN),
     Suite("profile", "个人资料页按关系分级", demo=True),
     Suite("demo_v21", "演示数据里 v2.1 的内容", demo=True),
     Suite("ocr", "截图认证（真跑 OCR）", ADMIN, uploads=True),

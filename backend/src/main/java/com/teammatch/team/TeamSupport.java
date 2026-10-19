@@ -14,11 +14,9 @@ import com.teammatch.team.TeamMappers.MemberMapper;
 import com.teammatch.team.TeamMappers.NeedMapper;
 import com.teammatch.team.TeamMappers.TeamMapper;
 import com.teammatch.user.SysUser;
-import com.teammatch.user.UserProfile;
 import com.teammatch.user.UserProfileMapper;
 import com.teammatch.user.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 
 import java.time.Clock;
@@ -57,17 +55,7 @@ public class TeamSupport {
      * 锁的是档案行，原因见 {@link UserProfileMapper#lockByUserId}。
      */
     void lockUser(long userId) {
-        if (profileMapper.lockByUserId(userId) == null) {
-            // 老账号可能没有档案行，补一行再锁
-            UserProfile p = new UserProfile();
-            p.setUserId(userId);
-            try {
-                profileMapper.insert(p);
-            } catch (DuplicateKeyException ignored) {
-                // 别的请求刚好补上了
-            }
-            profileMapper.lockByUserId(userId);
-        }
+        profileMapper.lockUser(userId);
     }
 
     public Team requireTeam(long teamId) {
