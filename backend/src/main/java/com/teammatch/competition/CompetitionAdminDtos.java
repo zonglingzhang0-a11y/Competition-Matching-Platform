@@ -1,10 +1,12 @@
 package com.teammatch.competition;
 
+import com.teammatch.profile.ProfileDtos;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
@@ -25,7 +27,8 @@ public final class CompetitionAdminDtos {
             @NotBlank(message = "请选择学科类别") String category,
             @NotNull(message = "请选择比赛级别") Competition.Level level,
             boolean inCaheList,
-            @Size(max = 255) String officialUrl,
+            @Size(max = 255) @Pattern(regexp = ProfileDtos.HTTP_URL_OR_EMPTY, message = "官网要是 http:// 或 https:// 开头的网址")
+            String officialUrl,
             String description,
             Long roleTemplateId,
             Competition.MatchPreset matchPreset) {
@@ -43,7 +46,8 @@ public final class CompetitionAdminDtos {
             boolean englishRequired,
             LocalDateTime registrationStart,
             LocalDateTime registrationEnd,
-            @Size(max = 255) String noticeUrl,
+            @Size(max = 255) @Pattern(regexp = ProfileDtos.HTTP_URL_OR_EMPTY, message = "通知链接要是 http:// 或 https:// 开头的网址")
+            String noticeUrl,
             CompetitionEdition.Status status) {
     }
 

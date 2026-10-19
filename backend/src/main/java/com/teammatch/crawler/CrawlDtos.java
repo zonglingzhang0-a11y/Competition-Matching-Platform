@@ -4,9 +4,11 @@ import com.teammatch.competition.CompetitionAdminDtos.EditionForm;
 import com.teammatch.competition.CompetitionAdminDtos.NodeForm;
 import com.teammatch.competition.CompetitionEdition;
 import com.teammatch.crawler.CrawlEntities.RecordStatus;
+import com.teammatch.profile.ProfileDtos;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
@@ -23,7 +25,8 @@ public final class CrawlDtos {
     public record SourceForm(
             @NotNull(message = "请选择比赛") Long competitionId,
             @NotBlank(message = "请填写来源名称") @Size(max = 64, message = "名称最多 64 个字") String name,
-            @NotBlank(message = "请填写网址") @Size(max = 512, message = "网址太长了") String listUrl,
+            @NotBlank(message = "请填写网址") @Size(max = 512, message = "网址太长了")
+            @Pattern(regexp = ProfileDtos.HTTP_URL_OR_EMPTY, message = "网址要是 http:// 或 https:// 开头的") String listUrl,
             @NotBlank(message = "请填写通知链接的选择器") @Size(max = 255) String linkSelector,
             @Size(max = 255) String titleKeywords,
             @Size(max = 255) String excludeKeywords,

@@ -179,8 +179,13 @@ template = r["data"][0]["id"]
 
 form = {"name": "测试杯", "shortName": "测杯", "category": "计算机", "level": "PROVINCIAL", "inCaheList": False,
         "roleTemplateId": template, "matchPreset": "SHORT_INTENSIVE"}
+s, r = call("POST", "/admin/competitions", dict(form, officialUrl="javascript:alert(1)"), admin)
+check("官网不是 http(s) 网址（400）", s == 400 and "http" in r["message"], (s, r))
 s, r = call("POST", "/admin/competitions", form, admin)
 cid = r["data"]
+s, r = call("POST", f"/admin/competitions/{cid}/editions",
+            {"year": 2026, "title": "坏链接", "teamMin": 2, "teamMax": 4, "noticeUrl": "javascript:alert(1)", "status": "DRAFT"}, admin)
+check("届次的通知链接不是 http(s)（400）", s == 400 and "http" in r["message"], (s, r))
 ed_form = {"year": 2026, "title": "测试杯 2026", "teamMin": 2, "teamMax": 4,
            "registrationStart": "2026-10-01T00:00:00", "registrationEnd": "2026-12-01T23:59:59", "status": "DRAFT"}
 s, r = call("POST", f"/admin/competitions/{cid}/editions", ed_form, admin)
