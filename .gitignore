@@ -25,3 +25,6 @@ Thumbs.db
 # 接口测试的日志
 tests/e2e/logs/
 __pycache__/
+
+# 公网演示用的 cloudflared.exe（各自下载，不进仓库）
+tools/

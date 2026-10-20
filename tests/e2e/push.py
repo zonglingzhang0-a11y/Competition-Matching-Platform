@@ -1,5 +1,5 @@
 """站内信实时推送（WebSocket）的接口测试。
-后端要用 --app.admin-emails[0]=admin@test.local 启动，库是 schema + seed 的空库。
+后端要用 --app.admin-emails[0]=admin@test.local --app.push.allowed-origin-patterns[0]=https://*.trycloudflare.com 启动，库是 schema + seed 的空库。
 用法：python e2e_push.py <后端日志>"""
 import env  # 公共环境：库、端口、mysql 客户端，见 env.py
 import json
@@ -122,6 +122,11 @@ check("用票连上了", ws is not None)
 check("同一张票不能再用（401）", rejected_status(WS + "?ticket=" + t) == 401)
 check("别的网站的页面连不上（来源检查，403）",
       rejected_status(WS + "?ticket=" + ticket(cap), origin="http://evil.example") == 403)
+tunnel = connect(WS + "?ticket=" + ticket(cap), open_timeout=5, origin="https://demo-abc-123.trycloudflare.com")
+check("配置里放行了隧道域名：公网演示的页面能连上", tunnel is not None)
+tunnel.close()
+check("放行隧道域名不影响别的网站：还是连不上（403）",
+      rejected_status(WS + "?ticket=" + ticket(cap), origin="https://trycloudflare.com.evil.example") == 403)
 check("心跳有回应", ping(ws) == {"type": "pong"})
 
 print("== 推送新消息")

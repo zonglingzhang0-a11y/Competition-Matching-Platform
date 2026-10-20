@@ -11,7 +11,7 @@
 ```
 backend/    Spring Boot 4 + MyBatis-Plus + Sa-Token（Java 21）
 frontend/   Vue 3 + Vite + TypeScript + Pinia + Element Plus
-sql/        schema.sql 建表，seed.sql 初始数据，upgrade/ 旧库的升级脚本
+sql/        demo.sql 演示数据，和两个给旧演示库用的小脚本（建表和初始数据在后端的 db/migration 里，启动时自动执行）
 docs/       设计文档
 ```
 
@@ -25,53 +25,14 @@ Maven 不用另外装，`backend` 里自带 Maven Wrapper。
 
 ## 第一次运行
 
-**1. 建库**
+**1. 数据库：不用手工建**
 
-```bash
-mysql -uroot -p < sql/schema.sql
-```
+装好 MySQL、记住 root 密码就行。后端第一次启动时会自己建库（`team_match`），再由 Flyway 依次执行
+`backend/src/main/resources/db/migration/` 里的迁移文件：V1 建表，V2 填初始数据（技能字典、分工模板、示例学校和比赛、问卷题目和匹配配置），V3 起是之后的改动。执行到哪一步记在库里的 `flyway_schema_history` 表，每次启动只执行还没执行过的。
 
-```bash
-mysql -uroot -p < sql/seed.sql
-```
+**已经建过库的（以前手工导入过 schema.sql）**：什么都不用做。第一次用新版本启动时，后端会把这个库记成"已经到 V2"，接着执行 V3"旧库补齐"：以前那几个升级脚本（爬虫、日历订阅、登录保持、邮件提醒、隐私设置）里缺哪个补哪个，已经跑过的跳过，数据不动。这个过程在 v1.0.0 到 v2.2.0 各个版本建的库上都测过（接口测试 `migrate`）。
 
-Windows 的 PowerShell 不支持 `<`，而且 `mysql` 一般不在 PATH 里，要写全路径，在项目根目录下用 `source`，一次导一个文件：
-
-```powershell
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/schema.sql"
-```
-
-seed.sql、demo.sql 同理，把文件名换掉即可。
-
-**已经建过库、从旧版本升级**：不用删库重建，按顺序跑 `sql/upgrade/` 里还没跑过的脚本，每个只跑一次：
-
-| 脚本 | 内容 |
-|---|---|
-| `2026-10-crawler.sql` | 比赛通知爬虫：新增抓取来源表，预置 4 个比赛官网 |
-| `2026-10-calendar-feed.sql` | 订阅到手机日历：账号表加一列订阅密钥 |
-| `2026-10-login-store.sql` | 登录状态存进数据库，后端重启后不用重新登录（不跑也能用，只是和以前一样重启后要重新登录；可以重复跑） |
-| `2026-10-notify-mail.sql` | 新消息汇总发邮件：账号表加邮件提醒开关，站内信表加发送时间；升级前的旧消息不补发 |
-| `2026-10-user-privacy.sql` | 个人资料页：新增隐私设置表，记录参赛履历和组队记录给谁看（不跑也能用，所有人都按"公开"处理，只是改不了可见范围；可以重复跑） |
-
-```powershell
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/upgrade/2026-10-crawler.sql"
-```
-
-```powershell
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/upgrade/2026-10-calendar-feed.sql"
-```
-
-```powershell
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/upgrade/2026-10-login-store.sql"
-```
-
-```powershell
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/upgrade/2026-10-notify-mail.sql"
-```
-
-```powershell
-& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/upgrade/2026-10-user-privacy.sql"
-```
+用过队友那份自带 Flyway 的压缩包启动过的库，迁移记录和这里的对不上，启动会报"checksum mismatch"。这种库换一个库名，或者删掉重建。
 
 **2. 启动后端**（端口 8090）
 
@@ -95,10 +56,16 @@ cd frontend && npm install && npm run dev
 
 ## 演示数据
 
-想直接看到推荐效果，在 `seed.sql` 之后再导入演示数据：
+想直接看到推荐效果，先让后端启动过一次（表和初始数据就建好了），再导入演示数据：
 
 ```bash
 mysql -uroot -p < sql/demo.sql
+```
+
+Windows 的 PowerShell 不支持 `<`，而且 `mysql` 一般不在 PATH 里，要写全路径，在项目根目录下用 `source`：
+
+```powershell
+& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/demo.sql"
 ```
 
 导入后会有 11 个演示账号、4 支队伍、问卷答案、一条待处理的入队申请，还有两条等管理员审核的认证申请；林晓和陈一舟有几条个人日程（每周的英语课、一条时间说不准的复习计划、一条和国赛撞期的社团换届），资料页上有短板、带证明链接的履历和一个没公开履历的人；示例大学对数学建模的加分认定（A 类）已经确认好，计算机设计大赛的还差一人确认。以前导入过演示数据的，跑一次 `sql/demo-recognition.sql` 补上加分认定的演示内容（可以重复跑）。账号、身份和统一密码都写在 [sql/demo.sql](sql/demo.sql) 开头的注释里。只用于本地演示，不要导入正式环境。
@@ -122,6 +89,18 @@ mysql -uroot -p < sql/demo.sql
 
 **互评与信用**（二期）：队长在队伍页点"比赛结束"，录入奖项后队伍归档、队员履历自动记上这场比赛，并开启 7 天的匿名互评。所有人交齐或到期后统一揭晓，结果计入信用分，信用分会乘进推荐时的匹配分。演示数据里陈一舟、孙悦、周可有往届的互评记录：用陈一舟登录，右上角菜单"互评与信用"能看到各项评价；在"数模冲刺队"的推荐里，周可会因为信用分偏低被降分并提示。也可以用赵子航把"国一冲冲冲"标记为比赛结束，再用钱多多交互评，现场演示揭晓。
 
+## 公网演示（发一个链接，别人在任何网络下都能打开）
+
+在校园网里，别人的电脑往往连不上你的电脑。双击项目根目录的 `public-demo.bat`：它启动后端、打包并启动前端，再开一条 Cloudflare 临时隧道，最后打印一个 `https://xxx.trycloudflare.com` 网址，发给别人就能打开你电脑上的网站。思路来自队友的 `start-demo.bat`，改成了不写死本机路径的版本（脚本在 `scripts/public-demo.ps1`）。
+
+- 要先自己下载 cloudflared：在 [cloudflared 的发布页](https://github.com/cloudflare/cloudflared/releases) 下载 `cloudflared-windows-amd64.exe`，改名为 `cloudflared.exe` 放进项目里的 `tools` 文件夹（已被 git 忽略），或者用环境变量 `CLOUDFLARED` 指向它。
+- 还要 MySQL 在运行、`application-local.yml` 填好了密码；数据库不用手工建。想让别人看到推荐效果，先导入演示数据。
+- 电脑要一直开着、不能休眠，脚本打开的几个窗口都别关；网址每次运行都不一样。
+- **拿到网址的人都能登录演示账号、改数据**，只发给信得过的人。
+- 现在验证码只打印在后端窗口里、不发邮件，别人没法自己注册新账号，请让他们用演示账号。
+- 前端改过代码后，运行 `public-demo.bat -Rebuild` 重新打包。
+- 隧道里浏览器的域名是 `*.trycloudflare.com`，后端看到的是 `localhost`，新消息推送默认会被来源检查拦下来；脚本启动后端时加了 `--app.push.allowed-origin-patterns[0]=https://*.trycloudflare.com` 放行。后端如果是你自己另外启动的，推送会退回每分钟查一次，别的功能不受影响。
+
 ## 开发时的验证码
 
 默认不真的发邮件，验证码打印在**后端控制台**，像这样：
@@ -132,7 +111,7 @@ mysql -uroot -p < sql/demo.sql
 
 想真的发邮件，在 `application-local.yml` 里配置 SMTP，并把 `app.mail.mode` 改成 `smtp`（模板里有 QQ 邮箱的例子）。
 
-**演示教育邮箱认证**：`seed.sql` 里有一所"示例大学"，邮箱后缀是 `stu.example.edu.cn`。随便填一个 `xxx@stu.example.edu.cn`，去后端控制台拿验证码，就能认证成功。填其他学校的 `.edu.cn` 邮箱，会进入"学校待管理员确认"状态。
+**演示教育邮箱认证**：初始数据里有一所"示例大学"，邮箱后缀是 `stu.example.edu.cn`。随便填一个 `xxx@stu.example.edu.cn`，去后端控制台拿验证码，就能认证成功。填其他学校的 `.edu.cn` 邮箱，会进入"学校待管理员确认"状态。
 
 **截图认证**（没有教育邮箱的同学用）：上传学信网学籍页截图或学生证照片，后端用本地 OCR（RapidOCR）认字，和填写的姓名、学校、入学年份比对后交给管理员审核。
 
@@ -192,7 +171,7 @@ location /api/ws/ {
 
 后端每天早上 7:30 抓一次各比赛官网的新通知（管理后台"通知抓取"里也能手动抓），用规则抽出报名起止、比赛时间、每队人数、是否必须同校、是否必须有指导老师，并记下每个字段是从哪句话里抽的。抓到的通知只进待确认列表，管理员核对原文后"采用"，才会生成一届草稿（或更新已有的一届）和官方时间节点。
 
-- 预置了数模、电赛、计设三个官网的抓取来源（`seed.sql`）。来源在后台维护：列表页网址、通知链接的 CSS 选择器、标题关键词和排除词、正文的选择器。写好后点"试抓"，能看到列表里每个链接会不会被抓、为什么。
+- 预置了数模、电赛、计设三个官网的抓取来源（初始数据 `V2__seed.sql`）。来源在后台维护：列表页网址、通知链接的 CSS 选择器、标题关键词和排除词、正文的选择器。写好后点"试抓"，能看到列表里每个链接会不会被抓、为什么。
 - 守规矩：先看网站的 robots.txt，不让抓的不抓；同一网站两次请求至少隔 2 秒；每个来源一次最多打开 10 篇新通知；抓过的链接不再打开；附件（PDF、Word 等）不下载。User-Agent 里写了本仓库的地址。
 - 往年的、时间都已经过去的通知会自动忽略，记录还留着，管理员觉得判断错了可以改为采用。
 - 字段先用规则抽。写在附件里的内容抽不到，要打开原文手动填。
@@ -226,7 +205,7 @@ cd frontend && npm run build
 
 前端的 `npm test` 用 Node 自带的测试直接跑 TS（目前测的是一句话添加的解析），不用另装测试框架；`build` 会先做类型检查。
 
-**接口测试**（[tests/e2e](tests/e2e)）：23 套、747 项检查，从注册登录、组队（含同时同意几个申请的并发）、推荐、日历、互评到截图认证、加分认定、爬虫、资料页的权限都有。每套测试开始前，在单独的测试库 `team_match_e2e` 上删库重建、起一个测试后端（端口 18090），跑完关掉；爬虫用本机的假官网和假大模型，不访问真网站；截图认证用 `tests/e2e/fixtures/ocr` 里画好的假截图（虚构的人和学校），OCR 是真跑的。要 Python 3.10 以上：
+**接口测试**（[tests/e2e](tests/e2e)）：24 套、784 项检查，从注册登录、组队（含同时同意几个申请的并发）、推荐、日历、互评到截图认证、加分认定、爬虫、资料页的权限都有。每套测试开始前，在单独的测试库 `team_match_e2e` 上删库重建、起一个测试后端（端口 18090），跑完关掉；爬虫用本机的假官网和假大模型，不访问真网站；截图认证用 `tests/e2e/fixtures/ocr` 里画好的假截图（虚构的人和学校），OCR 是真跑的。要 Python 3.10 以上：
 
 ```bash
 cd backend && ./mvnw package -DskipTests
