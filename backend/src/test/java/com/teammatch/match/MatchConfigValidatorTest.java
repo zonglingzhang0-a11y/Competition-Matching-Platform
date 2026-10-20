@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * 管理员改匹配配置时的检查。正例用 sql/seed.sql 里的真实配置，反例在它上面改一处。
+ * 管理员改匹配配置时的检查。正例用 初始数据（db/migration/V2__seed.sql）里的真实配置，反例在它上面改一处。
  */
 class MatchConfigValidatorTest {
 
@@ -32,7 +32,7 @@ class MatchConfigValidatorTest {
 
     @BeforeAll
     static void load() throws Exception {
-        seed = Files.readString(Path.of("../sql/seed.sql"));
+        seed = Files.readString(Path.of("src/main/resources/db/migration/V2__seed.sql"));
         defaultJson = extract("DEFAULT");
         codes = new HashSet<>();
         Matcher m = Pattern.compile("\\(@v, '([A-Z0-9]+)', '(GENERAL|COMPETITION)'").matcher(seed);
@@ -44,7 +44,7 @@ class MatchConfigValidatorTest {
     private static String extract(String preset) {
         Matcher m = Pattern.compile("\\(@v, '" + preset + "', '(\\{.*?\\})'\\)", Pattern.DOTALL).matcher(seed);
         if (!m.find()) {
-            throw new IllegalStateException("seed.sql 里没找到 " + preset);
+            throw new IllegalStateException("V2__seed.sql 里没找到 " + preset);
         }
         return m.group(1);
     }

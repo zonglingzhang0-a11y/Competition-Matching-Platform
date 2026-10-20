@@ -112,7 +112,7 @@ public final class UserPageMappers {
 
     /**
      * 隐私设置。没有这一行就当作默认值（履历对所有已认证同学公开）。
-     * 表是 2026-10 新增的，老库要先跑 sql/upgrade/2026-10-user-privacy.sql，没跑时读取按默认值处理，见 UserPageService。
+     * 表由数据库迁移保证有（新库在 V1，旧库在 V3 补上）；万一读不到按默认值处理，见 UserPageService。
      */
     @Mapper
     public interface PrivacyMapper {

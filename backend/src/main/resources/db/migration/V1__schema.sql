@@ -1,10 +1,10 @@
--- 竞赛组队匹配平台 · 数据库结构
+-- 竞赛组队匹配平台 · 数据库结构（Flyway 迁移 V1）
 -- MySQL 8.0（需要 8.0.16 以上，CHECK 约束才会生效），字符集 utf8mb4
 -- 说明见 docs/数据库设计.md
-
-SET NAMES utf8mb4;
-CREATE DATABASE IF NOT EXISTS team_match DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-USE team_match;
+--
+-- 后端启动时由 Flyway 自动执行，不用手工导入；库不存在时 JDBC 连接串里的 createDatabaseIfNotExist 会先建库。
+-- 已经发布的迁移文件不要再改（改了以后，跑过它的库启动时会报校验和不一致）。要改表结构就新加一个
+-- V<下一个编号>__做什么.sql，写法见 CONTRIBUTING.md。
 
 -- ============================================================
 -- 一、用户与认证

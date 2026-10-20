@@ -48,6 +48,8 @@ jobs:
           --health-retries=30
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 迁移测试要用旧版本标签里的建表脚本
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
