@@ -137,7 +137,6 @@ export const PRESET_LABEL: Record<MatchPreset, string> = {
 
 export const ROLE_LABEL: Record<UserRole, string> = {
   STUDENT: '学生',
-  TEACHER: '老师',
   ADMIN: '管理员',
 }
 

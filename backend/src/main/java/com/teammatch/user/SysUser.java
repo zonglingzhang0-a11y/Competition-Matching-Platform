@@ -31,7 +31,7 @@ public class SysUser {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public enum UserRole { STUDENT, TEACHER, ADMIN }
+    public enum UserRole { STUDENT, ADMIN }
 
     public enum UserStatus { ACTIVE, BANNED }
 

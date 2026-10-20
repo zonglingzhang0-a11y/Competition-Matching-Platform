@@ -16,7 +16,6 @@ public class Team {
     private Long editionId;
     private String name;
     private Long captainId;
-    private Long advisorId;
     private String intro;
     private Status status;
     private Integer maxMembers;
