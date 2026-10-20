@@ -34,6 +34,7 @@ PORT = int(os.environ.get("E2E_PORT", "18090"))
 API = f"http://127.0.0.1:{PORT}/api"
 WS = f"ws://127.0.0.1:{PORT}/api/ws/notifications"
 JAR = Path(os.environ.get("E2E_JAR", ROOT / "backend" / "target" / "backend-0.0.1-SNAPSHOT.jar"))
+MIGRATIONS = ROOT / "backend" / "src" / "main" / "resources" / "db" / "migration"
 
 
 def _mysql_exe():
@@ -65,27 +66,42 @@ def sql(stmt):
     return r.stdout.decode("utf-8").strip()
 
 
-def load(sql_file):
-    """导入一个 SQL 文件，文件里写死的 team_match 换成测试库的名字"""
-    text = Path(sql_file).read_text(encoding="utf-8")
+def load(sql_file, text=None):
+    """在测试库上导入一个 SQL 文件（或直接给内容），文件里写死的 team_match 换成测试库的名字"""
+    text = Path(sql_file).read_text(encoding="utf-8") if text is None else text
     text = re.sub(r"\bteam_match\b", DB, text)
-    r = subprocess.run(mysql_args(), input=text.encode("utf-8"), capture_output=True)
+    r = subprocess.run(mysql_args() + [DB], input=text.encode("utf-8"), capture_output=True)
     if r.returncode != 0:
         raise RuntimeError(f"导入 {sql_file} 出错：" + r.stderr.decode("utf-8", "replace"))
 
 
-def reset(demo=False):
-    """删掉测试库，按 schema + seed（+ demo）重建"""
+def drop():
+    """删掉测试库（不重建）"""
     r = subprocess.run(mysql_args() + ["-e", f"DROP DATABASE IF EXISTS `{DB}`"], capture_output=True)
     if r.returncode != 0:
         raise RuntimeError("连不上 MySQL：" + r.stderr.decode("utf-8", "replace"))
-    for name in ["schema", "seed"] + (["demo"] if demo else []):
-        load(ROOT / "sql" / f"{name}.sql")
+
+
+def create():
+    """建一个空的测试库"""
+    stmt = f"CREATE DATABASE `{DB}` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"
+    r = subprocess.run(mysql_args() + ["-e", stmt], capture_output=True)
+    if r.returncode != 0:
+        raise RuntimeError("建库出错：" + r.stderr.decode("utf-8", "replace"))
+
+
+def reset(demo=False):
+    """删掉测试库，导入建表（V1）和初始数据（V2）（+ 演示数据）重建。
+    这样建出来的库没有迁移记录，测试后端启动时会记成"已经到 V2"，再执行 V3 起的迁移，和以前手工建过库的同学一样"""
+    drop()
+    create()
+    for f in [MIGRATIONS / "V1__schema.sql", MIGRATIONS / "V2__seed.sql"] + ([ROOT / "sql" / "demo.sql"] if demo else []):
+        load(f)
 
 
 def backend_command(*extra):
     url = (f"jdbc:mysql://{HOST}:{PORT_DB}/{DB}?useUnicode=true&characterEncoding=utf8"
-           f"&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false")
+           f"&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&createDatabaseIfNotExist=true")
     defaults = ["--spring.profiles.active=e2e", "--app.mail.mode=log", "--app.code.resend-seconds=0",
                 "--app.crawler.enabled=false"]
     # 同一个参数传两遍 Spring 会拼成"0,60"，所以测试自己给了的就不再放默认值

@@ -12,6 +12,6 @@
 ## 改了数据库吗
 
 - [ ] 没改
-- [ ] 改了：`schema.sql` 已同步，升级脚本是 `sql/upgrade/……`，README 的升级脚本表已加一行
+- [ ] 改了：新加的迁移文件是 `db/migration/V……__…….sql`（没有改已经合并的迁移文件），跑过 `python tests/e2e/run.py migrate`
 
 <!-- 详细的约定见 CONTRIBUTING.md -->

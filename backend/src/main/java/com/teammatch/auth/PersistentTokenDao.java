@@ -23,7 +23,7 @@ import java.util.List;
  * 后端启动时再从表里读回内存。这样重启后端，大家不用重新登录。
  * <p>
  * 只有登录、退出、停用账号这些操作会写库；每个请求校验登录只读内存，不多查数据库。
- * 旧库还没建这张表时退回纯内存，和以前一样（重启后要重新登录），日志里会提示跑升级脚本。
+ * 这张表由数据库迁移保证有（新库在 V1，旧库在 V3 补上）；万一被删了就退回纯内存（重启后要重新登录），日志里说怎么补回来。
  */
 @Slf4j
 @Component
@@ -64,7 +64,8 @@ public class PersistentTokenDao extends SaTokenDaoDefaultImpl implements SmartIn
         } catch (DataAccessException e) {
             persistent = false;
             log.warn("读不了 login_store 表，登录状态只存在内存里，重启后端后要重新登录。"
-                    + "旧库请跑一次 sql/upgrade/2026-10-login-store.sql。原因：{}", e.getMostSpecificCause().getMessage());
+                    + "表被删了的话，删掉 flyway_schema_history 里 version = 3 的那一行再重启后端，会重新补上。原因：{}",
+                    e.getMostSpecificCause().getMessage());
             return;
         }
         int restored = 0;

@@ -54,6 +54,21 @@
 			<artifactId>mysql-connector-j</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+		<!-- 数据库迁移：建表、改表都写在 src/main/resources/db/migration，启动时自动执行（队友的方案） -->
+		<dependency>
+			<!-- Spring Boot 4 把自动配置拆成了独立模块，只加 flyway-core 不会自动执行，要带上这个 -->
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-flyway</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<dependency>
+			<!-- MySQL 的支持不在 flyway-core 里 -->
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-mysql</artifactId>
+		</dependency>
 
 		<!-- 登录鉴权 -->
 		<dependency>

@@ -40,12 +40,13 @@ python tests/e2e/run.py
 
 ## 改了数据库
 
-1. `sql/schema.sql` 里改好（新建库的人直接用它）。
-2. 在 `sql/upgrade/` 里加一个升级脚本给已经建过库的人，文件名按 `年-月-做什么.sql`，比如 `2026-10-user-privacy.sql`。能做到的话：
-   - 可以重复跑（`CREATE TABLE IF NOT EXISTS` 这种）；
-   - 不跑也不影响启动（后端读不到新表时退回旧的做法，日志里提示跑脚本）。
-3. README "第一次运行"里的升级脚本表加一行，写清楚做什么、能不能重复跑。
-4. `seed.sql`、`demo.sql` 要跟着改的一起改；演示数据里的日期按导入那天往后排（用 `CURDATE()`），不要写死。
+建表和初始数据都在 `backend/src/main/resources/db/migration/`，后端启动时由 Flyway 按编号执行还没执行过的文件。
+
+1. **新加一个迁移文件**，编号接着往后排：`V<下一个编号>__做什么.sql`（两个下划线），比如 `V5__team_tags.sql`。里面直接写 `ALTER TABLE`、`CREATE TABLE`，不用写 `USE team_match`。
+2. **已经合并进 `dev` 的迁移文件不要再改**：跑过它的库会记下文件的校验和，改了以后这些库启动时报"checksum mismatch"。写错了就再加一个新文件改回来。
+3. 同一个编号两个人都用了，后合并的那个改成下一个号。编号小的迁移后合并也没关系（配置里开了 `out-of-order`，没执行过的照样会补执行），但两个迁移不要互相依赖。
+4. `demo.sql` 要跟着改的一起改；演示数据里的日期按导入那天往后排（用 `CURDATE()`），不要写死。
+5. 接口测试 `migrate` 会检查：全新的库、各版本的旧库启动后表结构都一样。加了迁移文件后跑一下它（`python tests/e2e/run.py migrate`），新文件会自动算进去。
 
 ## 写代码的约定
 

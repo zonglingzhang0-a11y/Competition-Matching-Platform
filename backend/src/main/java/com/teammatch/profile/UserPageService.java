@@ -62,7 +62,7 @@ public class UserPageService {
     private final SurveyService surveyService;
     private final Clock clock;
 
-    /** user_privacy 表不存在（老库没跑升级脚本）时只提醒一次 */
+    /** user_privacy 表读不到（被删了之类）时只提醒一次 */
     private final AtomicBoolean privacyTableWarned = new AtomicBoolean();
 
     /**
@@ -127,8 +127,8 @@ public class UserPageService {
             return value == null ? HistoryVisibility.PUBLIC : HistoryVisibility.valueOf(value);
         } catch (DataAccessException e) {
             if (privacyTableWarned.compareAndSet(false, true)) {
-                log.warn("读不了 user_privacy 表，资料页的可见范围一律按公开处理。老库请运行 sql/upgrade/2026-10-user-privacy.sql：{}",
-                        e.getMessage());
+                log.warn("读不了 user_privacy 表，资料页的可见范围一律按公开处理。表被删了的话，删掉 flyway_schema_history 里"
+                        + " version = 3 的那一行再重启后端，会重新补上：{}", e.getMessage());
             }
             return HistoryVisibility.PUBLIC;
         }
@@ -139,7 +139,7 @@ public class UserPageService {
             privacyMapper.saveHistoryVisibility(userId, visibility.name());
         } catch (DataAccessException e) {
             log.warn("保存资料页可见范围失败：{}", e.getMessage());
-            throw new BizException(500, "可见范围暂时保存不了：数据库还没有 user_privacy 表，请管理员运行 sql/upgrade/2026-10-user-privacy.sql");
+            throw new BizException(500, "可见范围暂时保存不了，请稍后再试或联系管理员");
         }
     }
 

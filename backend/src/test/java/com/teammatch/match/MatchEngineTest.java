@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 用 sql/seed.sql 里真实的匹配配置来测引擎，配置改了测试会跟着用新的。
+ * 用 初始数据（db/migration/V2__seed.sql）里真实的匹配配置来测引擎，配置改了测试会跟着用新的。
  */
 class MatchEngineTest {
 
@@ -53,7 +53,7 @@ class MatchEngineTest {
 
     @BeforeAll
     static void loadConfig() throws Exception {
-        String seed = Files.readString(Path.of("../sql/seed.sql"));
+        String seed = Files.readString(Path.of("src/main/resources/db/migration/V2__seed.sql"));
         JsonMapper json = JsonMapper.builder().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
         defaults = json.readValue(extract(seed, "DEFAULT"), MatchConfig.class);
         shortIntensive = defaults.applyPreset(json.readValue(extract(seed, "SHORT_INTENSIVE"), MatchConfig.class));
@@ -62,7 +62,7 @@ class MatchEngineTest {
 
     private static String extract(String seed, String preset) {
         Matcher m = Pattern.compile("\\(@v, '" + preset + "', '(\\{.*?\\})'\\)", Pattern.DOTALL).matcher(seed);
-        assertThat(m.find()).as("seed.sql 里找到 " + preset + " 配置").isTrue();
+        assertThat(m.find()).as("V2__seed.sql 里找到 " + preset + " 配置").isTrue();
         return m.group(1);
     }
 

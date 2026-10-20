@@ -47,7 +47,7 @@ SUITES = [
     Suite("m6", "管理后台：认证审核、比赛库、账号、看板、匹配配置", ADMIN),
     Suite("review", "赛后互评、信用分、举报", ADMIN + REMIND),
     Suite("fix12", "#3 #4 的修复", ADMIN),
-    Suite("push", "站内信实时推送", ADMIN),
+    Suite("push", "站内信实时推送", ADMIN + ["--app.push.allowed-origin-patterns[0]=https://*.trycloudflare.com"]),
     Suite("tasks", "里程碑分工待办", ADMIN + REMIND),
     Suite("feed", "订阅到手机日历", ADMIN),
     Suite("fuzzy", "时间说不准的日程、全天日程的结束日"),
@@ -59,6 +59,7 @@ SUITES = [
     Suite("ocr", "截图认证（真跑 OCR）", ADMIN, uploads=True),
     Suite("crawl", "比赛通知爬虫（本机假官网）", ADMIN + ["--app.crawler.delay-ms=300"], site="crawlsite", site_port=18765),
     Suite("llm", "爬虫接大模型（本机假官网 + 假大模型）", ADMIN + LLM, site="llmsite", site_port=18768),
+    Suite("migrate", "数据库迁移：全新的库、各版本的旧库都能自动升到最新", self_managed=True),
     Suite("login_store", "后端重启后登录还在", self_managed=True),
     Suite("demo_dates", "演示比赛的日期", self_managed=True),
 ]

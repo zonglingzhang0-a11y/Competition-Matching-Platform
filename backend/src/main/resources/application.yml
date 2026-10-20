@@ -11,13 +11,22 @@ spring:
   profiles:
     active: local
   datasource:
-    url: jdbc:mysql://localhost:3306/team_match?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+    # createDatabaseIfNotExist：库不存在时由驱动先建出来，表和初始数据交给下面的 Flyway
+    url: jdbc:mysql://localhost:3306/team_match?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true
     username: root
     password: ${DB_PASSWORD:}
     hikari:
       # 读已提交：事务里等到锁以后，再查能看到别人刚提交的数据。MySQL 默认的可重复读会一直读事务开始时的快照，
       # 两个人同时被同意入队时，后一个数人数看不到前一个，队伍满了还显示"招募中"，接着就能超员
       transaction-isolation: TRANSACTION_READ_COMMITTED
+  flyway:
+    # 建表、改表都在 src/main/resources/db/migration（V1 建表、V2 初始数据、V3 起是之后的改动），启动时按编号执行没跑过的。
+    # 以前手工导入 schema.sql 建的库没有迁移记录：记成"已经到 V2"，接着从 V3（旧库补齐）往后执行，数据不动
+    baseline-on-migrate: true
+    baseline-version: 2
+    # 允许补执行编号更小、还没执行过的迁移：两个人各自加的迁移后合并的那个照样会执行；
+    # 补回被误删的表时，删掉 flyway_schema_history 里 V3 那一行再启动，V3 会重新执行（它可以重复执行）
+    out-of-order: true
   servlet:
     multipart:
       max-file-size: 5MB      # 截图认证的图片
