@@ -501,6 +501,24 @@ export interface TeamRecommendations {
   note: string | null
 }
 
+/** 批量撮合（只给建议）：一种建议的组合 */
+export interface SuggestedGroup {
+  /** 除了我以外的人 */
+  members: UserBrief[]
+  /** 分数是组合里每个人和其余人打分的平均；推荐理由是我和其余人的 */
+  match: MatchResult
+}
+
+export interface GroupSuggestions {
+  editionId: number
+  currentTeamId: number | null
+  /** 建议的组合是几个人（含我） */
+  groupSize: number
+  /** 没有建议时说明为什么 */
+  note: string | null
+  groups: SuggestedGroup[]
+}
+
 export interface RecommendedUser {
   user: UserBrief
   invited: boolean

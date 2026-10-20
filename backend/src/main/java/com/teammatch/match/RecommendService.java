@@ -6,6 +6,7 @@ import com.teammatch.calendar.Occurrences;
 import com.teammatch.calendar.PersonalEventService;
 import com.teammatch.competition.Competition;
 import com.teammatch.competition.CompetitionEdition;
+import com.teammatch.competition.EditionPhase;
 import com.teammatch.competition.CompetitionMappers.CompetitionMapper;
 import com.teammatch.match.MatchInputs.Facts;
 import com.teammatch.match.MatchInputs.Labels;
@@ -70,6 +71,7 @@ public class RecommendService {
     private final MatchMapper matchMapper;
     private final TeamSupport teamSupport;
     private final TeamService teamService;
+    private final TeamService.SeekerMapper seekerMapper;
     private final SurveyService surveyService;
     private final MatchConfigService configService;
     private final UserService userService;
@@ -89,6 +91,23 @@ public class RecommendService {
     }
 
     public record RecommendedUser(UserBrief user, boolean invited, MatchResult match) {
+    }
+
+    /**
+     * 建议的组合（批量撮合，只给建议）。
+     *
+     * @param members 除了我以外的人
+     * @param match   分数是组合里每个人和其余人打分的平均；推荐理由、要先聊聊的点是"我"和其余人的
+     */
+    public record SuggestedGroup(List<UserBrief> members, MatchResult match) {
+    }
+
+    /**
+     * @param groupSize 建议的组合是几个人（含我）
+     * @param note      没有建议时说明为什么
+     */
+    public record GroupSuggestions(Long editionId, Long currentTeamId, int groupSize, String note,
+                                   List<SuggestedGroup> groups) {
     }
 
     public record HomeRecommendation(EditionRef edition, List<RecommendedTeam> teams) {
@@ -150,6 +169,75 @@ public class RecommendService {
             }
         }
         return out;
+    }
+
+    // ---------- 批量撮合：建议和哪些还没组队的同学一起组（只给建议） ----------
+
+    /** 组合默认 3 个人，比赛限定的人数范围以内 */
+    private static final int PREFERRED_GROUP_SIZE = 3;
+
+    public GroupSuggestions groupsFor(long userId, long editionId) {
+        CompetitionEdition e = teamSupport.requireEdition(editionId);
+        TeamMember current = teamSupport.activeMembership(userId, editionId);
+        if (current != null) {
+            return new GroupSuggestions(editionId, current.getTeamId(), 0, null, List.of());
+        }
+        int max = e.getTeamMax() == null ? PREFERRED_GROUP_SIZE : e.getTeamMax();
+        int min = Math.max(2, e.getTeamMin() == null ? 2 : e.getTeamMin());
+        if (max < 2) {
+            return new GroupSuggestions(editionId, null, 0, "这是个人赛，不用组队", List.of());
+        }
+        if (teamSupport.phase(e) == EditionPhase.CLOSED) {
+            return new GroupSuggestions(editionId, null, 0, "这届报名已经截止了", List.of());
+        }
+        SysUser user = userService.getById(userId);
+        if (!userService.isVerified(user)) {
+            return new GroupSuggestions(editionId, null, 0, "完成学校认证后，可以看到和哪些同学一起组队合适", List.of());
+        }
+
+        // 候选人和"可以邀请的人"一样：关注了这一届、已认证、还没组队的，要求同校的只看同校
+        Long schoolId = Boolean.TRUE.equals(e.getSameSchoolRequired()) ? user.getSchoolId() : null;
+        List<Long> candidateIds = seekerMapper.seekers(editionId, schoolId).stream().filter(id -> id != userId).toList();
+        int target = Math.clamp(PREFERRED_GROUP_SIZE, min, max);
+        if (candidateIds.size() < min - 1) {
+            return new GroupSuggestions(editionId, null, target,
+                    "关注了这一届、还没组队的同学还不够组一队，过几天再来看看，或者先看看上面推荐的队伍", List.of());
+        }
+
+        List<Long> everyone = new ArrayList<>(candidateIds);
+        everyone.add(userId);
+        Map<Long, Person> people = persons(everyone, editionId);
+        Map<Long, Facts> facts = facts(everyone, e);
+        Person me = people.get(userId);
+        if (facts.get(userId).timeConflictWith() != null) {
+            return new GroupSuggestions(editionId, null, target,
+                    "比赛时间和你已经参加的「" + facts.get(userId).timeConflictWith() + "」重叠", List.of());
+        }
+        MatchEngine engine = engine(e);
+        boolean english = Boolean.TRUE.equals(e.getEnglishRequired());
+        // 把"其余的人"当成一支队伍打分；队长按"我"算（建议的组合由我来建队）
+        GroupPlanner.Scorer scorer = (who, others) -> engine.score(who,
+                new TeamContext(0, others.stream().anyMatch(o -> o.userId() == userId) ? userId : others.getFirst().userId(),
+                        others, List.of(), 0, "MIXED", english),
+                facts.get(who.userId()), true);
+        List<Person> candidates = candidateIds.stream().map(people::get).filter(Objects::nonNull).toList();
+
+        // 凑不够默认人数就少几个人试试（不少于比赛的最少人数）
+        List<GroupPlanner.Group> groups = List.of();
+        int size = target;
+        for (; size >= min && groups.isEmpty(); size--) {
+            groups = GroupPlanner.plan(me, candidates, size, scorer);
+        }
+        if (groups.isEmpty()) {
+            return new GroupSuggestions(editionId, null, target,
+                    "暂时凑不出合适的组合（时间冲突或者目标差得太远），可以先看看上面推荐的队伍", List.of());
+        }
+        Map<Long, UserBrief> briefs = userBriefs.load(candidateIds);
+        List<SuggestedGroup> out = groups.stream().map(g -> new SuggestedGroup(
+                g.others().stream().map(p -> briefs.get(p.userId())).filter(Objects::nonNull).toList(),
+                new MatchResult(g.score(), g.forMe().k(), g.forMe().completeness(), g.forMe().dimensions(),
+                        g.forMe().reasons(), g.forMe().talkAbout(), g.forMe().warnings(), null))).toList();
+        return new GroupSuggestions(editionId, null, size + 1, null, out);
     }
 
     // ---------- 给队长推荐人 ----------

@@ -99,6 +99,7 @@ declare module 'vue' {
     SkillEditor: typeof import('./components/SkillEditor.vue')['default']
     SkillGapChart: typeof import('./components/admin/SkillGapChart.vue')['default']
     SlotGrid: typeof import('./components/SlotGrid.vue')['default']
+    SuggestedGroups: typeof import('./components/SuggestedGroups.vue')['default']
     SurveyQuestionItem: typeof import('./components/SurveyQuestionItem.vue')['default']
     TeamCard: typeof import('./components/TeamCard.vue')['default']
     TeamFormDialog: typeof import('./components/TeamFormDialog.vue')['default']

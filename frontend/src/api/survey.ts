@@ -1,5 +1,14 @@
 import { get, put } from './http'
-import type { Answers, EditionAnswers, HomeRecommendation, MyAnswers, RecommendedUser, Survey, TeamRecommendations } from '@/types/api'
+import type {
+  Answers,
+  EditionAnswers,
+  GroupSuggestions,
+  HomeRecommendation,
+  MyAnswers,
+  RecommendedUser,
+  Survey,
+  TeamRecommendations,
+} from '@/types/api'
 
 // 问卷
 export const getSurvey = () => get<Survey>('/survey')
@@ -15,3 +24,5 @@ export const saveEditionAnswers = (editionId: number, answers: Answers, quick: b
 export const recommendedTeams = (editionId: number) => get<TeamRecommendations>(`/editions/${editionId}/recommended-teams`)
 export const recommendedUsers = (teamId: number) => get<RecommendedUser[]>(`/teams/${teamId}/recommended-users`)
 export const homeRecommendations = () => get<HomeRecommendation[]>('/recommendations/home')
+/** 批量撮合（只给建议）：和哪些还没组队的同学一起组 */
+export const suggestedGroups = (editionId: number) => get<GroupSuggestions>(`/editions/${editionId}/suggested-groups`)
