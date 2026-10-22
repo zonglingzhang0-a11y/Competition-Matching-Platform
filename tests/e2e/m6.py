@@ -260,6 +260,13 @@ row = next(e for e in eds if e["editionId"] == E)
 check("届次表：数模 1 支在招、差 2 人、1 人在找队、2 人关注",
       row["recruitingTeams"] == 1 and row["openSlots"] == 2 and row["seekers"] == 1 and row["followers"] == 2, row)
 check("报名中的届次排在已截止的前面", [e["phase"] == "CLOSED" for e in eds] == sorted(e["phase"] == "CLOSED" for e in eds), [e["phase"] for e in eds])
+s, r = call("GET", "/admin/dashboard/funnel", token=stu, params={"editionId": E})
+check("学生看不了组队漏斗（403）", s == 403, s)
+s, r = call("GET", "/admin/dashboard/funnel", token=admin, params={"editionId": E})
+f = r.get("data") or {}
+# 人群：关注的 s1、s2，加上没点关注的队长 cap；s1 申请后入队，cap 建了队；队伍还在招人
+check("组队漏斗：3 人里 0 人填了问卷，2 人申请过或建了队，2 人进了队，0 人的队伍组好了",
+      s == 200 and [f.get(k) for k in ("people", "surveyed", "engaged", "joined", "formed")] == [3, 0, 2, 2, 0], f)
 
 print("== 匹配配置")
 s, r = call("GET", "/admin/match-configs", token=admin)

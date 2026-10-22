@@ -126,6 +126,34 @@ public interface DashboardMapper {
     List<SkillLevelCount> skillSupply(@Param("editionId") Long editionId, @Param("now") LocalDateTime now,
                                       @Param("today") LocalDate today);
 
+    /**
+     * 一届比赛的组队漏斗。人群是关注了这一届、或者已经在这一届队里的人（队长不一定点过关注）。
+     * 申请或邀请过：不管结果，有过一条就算；建了队、已经在队里的也算。队伍组好了：状态是满员、停止招募或已结束。
+     */
+    @Select("""
+            SELECT COUNT(*) AS people,
+                   COALESCE(SUM(EXISTS (SELECT 1 FROM survey_response r
+                                        JOIN survey_version v ON v.id = r.version_id AND v.active = 1
+                                        WHERE r.user_id = p.user_id AND r.edition_id IS NULL)), 0) AS surveyed,
+                   COALESCE(SUM(EXISTS (SELECT 1 FROM team_application a JOIN team t ON t.id = a.team_id AND t.deleted = 0
+                                        WHERE a.user_id = p.user_id AND t.edition_id = #{editionId})
+                                OR EXISTS (SELECT 1 FROM team_member m WHERE m.edition_id = #{editionId}
+                                           AND m.user_id = p.user_id AND m.status = 'ACTIVE')), 0) AS engaged,
+                   COALESCE(SUM(EXISTS (SELECT 1 FROM team_member m WHERE m.edition_id = #{editionId}
+                                        AND m.user_id = p.user_id AND m.status = 'ACTIVE')), 0) AS joined,
+                   COALESCE(SUM(EXISTS (SELECT 1 FROM team_member m JOIN team t ON t.id = m.team_id AND t.deleted = 0
+                                          AND t.status IN ('FULL', 'CLOSED', 'FINISHED')
+                                        WHERE m.edition_id = #{editionId} AND m.user_id = p.user_id
+                                          AND m.status = 'ACTIVE')), 0) AS formed
+            FROM (SELECT user_id FROM competition_follow WHERE edition_id = #{editionId}
+                  UNION
+                  SELECT user_id FROM team_member WHERE edition_id = #{editionId} AND status = 'ACTIVE') p
+            """)
+    FunnelRow funnel(@Param("editionId") long editionId);
+
+    record FunnelRow(Long people, Long surveyed, Long engaged, Long joined, Long formed) {
+    }
+
     record KeyCount(String k, Long v) {
     }
 

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
-import { dashboardEditions, dashboardOverview, skillGap } from '@/api/admin'
+import { dashboardEditions, dashboardFunnel, dashboardOverview, skillGap } from '@/api/admin'
+import EditionRiskChart from '@/components/admin/EditionRiskChart.vue'
+import FormationFunnel from '@/components/admin/FormationFunnel.vue'
 import SkillGapChart from '@/components/admin/SkillGapChart.vue'
-import type { EditionPhase, EditionStat, Overview, SkillGap } from '@/types/api'
+import type { DashboardFunnel, EditionPhase, EditionStat, Overview, SkillGap } from '@/types/api'
 import { PHASE } from '@/utils/labels'
 import { fmtDateTime } from '@/utils/time'
 import { showError } from '@/utils/feedback'
@@ -72,7 +74,35 @@ function pickEdition(row: EditionStat) {
   editionId.value = row.editionId
 }
 
+const funnel = ref<DashboardFunnel | null>(null)
+const funnelLoading = ref(false)
+/** 漏斗只能看一届：没选时看最快截止、还在报名的那一届（列表本来就这么排） */
+const funnelEditionId = computed(
+  () => editionId.value ?? (editions.value.find((e) => e.phase !== 'CLOSED') ?? editions.value[0])?.editionId,
+)
+const funnelTitle = computed(() => {
+  const e = editions.value.find((x) => x.editionId === funnelEditionId.value)
+  return e ? `${e.competitionName} · ${e.editionTitle}` : ''
+})
+
+async function loadFunnel() {
+  const id = funnelEditionId.value
+  if (id === undefined) {
+    funnel.value = null
+    return
+  }
+  funnelLoading.value = true
+  try {
+    funnel.value = await dashboardFunnel(id)
+  } catch (err) {
+    showError(err)
+  } finally {
+    funnelLoading.value = false
+  }
+}
+
 watch(editionId, loadGap)
+watch(funnelEditionId, loadFunnel)
 onMounted(load)
 </script>
 
@@ -97,6 +127,28 @@ onMounted(load)
     <el-card shadow="never" class="block">
       <template #header>
         <div class="header">
+          <span>组队风险和漏斗</span>
+          <span class="muted">点气泡、下面表格的一行或缺口图的下拉框切换届次，几张图一起变</span>
+        </div>
+      </template>
+      <div class="risk-grid">
+        <section>
+          <h4 class="sub-title">各届组队风险</h4>
+          <p class="hint">横轴是离报名截止还有几天，纵轴是关注了还没进队的人，气泡越大队伍还差的人越多。左边高处的最该管。</p>
+          <EditionRiskChart :items="editions" :selected="funnelEditionId" @pick="(id) => (editionId = id)" />
+        </section>
+        <section v-loading="funnelLoading">
+          <h4 class="sub-title">组队漏斗 <span class="muted">{{ funnelTitle }}</span></h4>
+          <p class="hint">关注了这一届或已经在队里的人，一步步走到哪了。</p>
+          <FormationFunnel v-if="funnel" :funnel="funnel" />
+          <p v-else-if="!funnelLoading" class="hint">还没有发布的届次。</p>
+        </section>
+      </div>
+    </el-card>
+
+    <el-card shadow="never" class="block">
+      <template #header>
+        <div class="header">
           <span>技能供需缺口</span>
           <el-select v-model="editionId" clearable placeholder="所有报名中的届次" class="edition-select">
             <el-option v-for="o in editionOptions" :key="o.value" :label="o.label" :value="o.value" />
@@ -104,7 +156,7 @@ onMounted(load)
         </div>
       </template>
       <p class="hint">
-        橙色是队伍招募需求里还缺的人数，蓝色是还在找队的人里会这项技能的人数（关注了这届、已认证、还没进队）。
+        砖红是队伍招募需求里还缺的人数，灰到黑是还在找队的人里会这项技能的人数（按入门、熟练、精通；关注了这届、已认证、还没进队）。
         <template v-if="!editionId">跨届汇总时，一个人同时在两届找队会算两次。</template>
       </p>
       <div v-loading="gapLoading">
@@ -146,7 +198,7 @@ onMounted(load)
         <el-table-column prop="seekers" label="在找队" width="80" align="right" />
         <el-table-column prop="followers" label="关注" width="70" align="right" />
       </el-table>
-      <p class="hint table-hint">点一行，上面的缺口图就只看这一届。</p>
+      <p class="hint table-hint">点一行，上面的漏斗和缺口图就只看这一届。</p>
     </el-card>
   </div>
 </template>
@@ -229,6 +281,29 @@ onMounted(load)
 
 .shortage {
   margin-bottom: 8px;
+}
+
+.risk-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 24px;
+}
+
+.sub-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.sub-title .muted {
+  margin-left: 6px;
+  font-weight: 400;
+}
+
+@media (max-width: 900px) {
+  .risk-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .muted {

@@ -874,6 +874,19 @@ export interface EditionStat {
   followers: number
 }
 
+/** 一届比赛的组队漏斗；人群是关注了这一届或已经在这一届队里的人 */
+export interface DashboardFunnel {
+  editionId: number
+  people: number
+  /** 填了通用问卷 */
+  surveyed: number
+  /** 申请或邀请过（不管结果），建了队、已在队里的也算 */
+  engaged: number
+  joined: number
+  /** 所在队伍满员、停止招募或已结束 */
+  formed: number
+}
+
 export interface SkillGap {
   skillId: number
   name: string

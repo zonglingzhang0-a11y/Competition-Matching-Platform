@@ -2,6 +2,7 @@ package com.teammatch.dashboard;
 
 import com.teammatch.competition.EditionPhase;
 import com.teammatch.dashboard.DashboardMapper.EditionRow;
+import com.teammatch.dashboard.DashboardMapper.FunnelRow;
 import com.teammatch.dashboard.DashboardMapper.KeyCount;
 import com.teammatch.dashboard.DashboardMapper.SkillCount;
 import com.teammatch.dashboard.DashboardMapper.SkillLevelCount;
@@ -23,7 +24,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 数据看板：平台概况、各届组队情况、技能供需缺口。
+ * 数据看板：平台概况、各届组队情况（风险图用同一份数据）、组队漏斗、技能供需缺口。
  */
 @Service
 @RequiredArgsConstructor
@@ -63,6 +64,22 @@ public class DashboardService {
      */
     public record SkillGap(Long skillId, String name, String category, long demand, long supply,
                            List<Long> supplyByLevel, long gap) {
+    }
+
+    /**
+     * 一届比赛的组队漏斗：关注或在队里 → 填了问卷 → 申请或邀请过（含建队）→ 进了队 → 队伍组好了。
+     * 看大家卡在哪一步：没填问卷的多就推问卷，申请发了没结果的多就催队长。
+     */
+    public record Funnel(long editionId, long people, long surveyed, long engaged, long joined, long formed) {
+    }
+
+    public Funnel funnel(long editionId) {
+        FunnelRow r = mapper.funnel(editionId);
+        return new Funnel(editionId, n(r.people()), n(r.surveyed()), n(r.engaged()), n(r.joined()), n(r.formed()));
+    }
+
+    private static long n(Long v) {
+        return v == null ? 0 : v;
     }
 
     public Overview overview() {
