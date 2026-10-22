@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import FullCalendar from '@fullcalendar/vue3'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -18,9 +18,10 @@ import { showError } from '@/utils/feedback'
  * 比赛期间画成横条（参加的实心、关注的虚线框），截止是红色菱形，队伍节点是黑色菱形，个人日程是小圆点。
  * 上面可以一句话添加个人日程；改已有的日程到完整的日历页。
  */
-defineProps<{ semester: Semester; today: string }>()
-/** 加了日程：主页顶部的本周可投入时间、学期赛程带要跟着变 */
-const emit = defineEmits<{ changed: [] }>()
+/** wide：主页把日历栏加宽了（默认占 1/3） */
+const props = defineProps<{ semester: Semester; today: string; wide?: boolean }>()
+/** changed：加了日程，主页顶部的本周可投入时间、学期赛程带要跟着变；toggleWide：点了「加宽 / 收窄」 */
+const emit = defineEmits<{ changed: []; toggleWide: [] }>()
 
 const router = useRouter()
 const raw = ref<CalendarEvent[]>([])
@@ -100,6 +101,12 @@ function switchView(v: 'dayGridMonth' | 'dayGridWeek') {
   calendarRef.value?.getApi().changeView(v)
 }
 
+// 栏宽变了，FullCalendar 要重新量一下格子
+watch(
+  () => props.wide,
+  () => nextTick(() => calendarRef.value?.getApi().updateSize()),
+)
+
 const options = computed<CalendarOptions>(() => ({
   plugins: [dayGridPlugin],
   locale: zhCnLocale,
@@ -127,6 +134,7 @@ const options = computed<CalendarOptions>(() => ({
           <el-radio-button value="dayGridWeek">周</el-radio-button>
           <el-radio-button value="dayGridMonth">月</el-radio-button>
         </el-radio-group>
+        <button type="button" class="more width-toggle" @click="emit('toggleWide')">{{ wide ? '收窄' : '加宽' }}</button>
         <router-link to="/calendar" class="more">完整日历 →</router-link>
       </div>
     </div>
@@ -136,7 +144,7 @@ const options = computed<CalendarOptions>(() => ({
     <FullCalendar ref="calendarRef" :options="options" class="cal">
       <template #eventContent="arg">
         <span class="ev-mark" aria-hidden="true" />
-        <span class="ev-title">{{ arg.event.title }}</span>
+        <span class="ev-title" :title="arg.event.title">{{ arg.event.title }}</span>
       </template>
     </FullCalendar>
 
@@ -169,6 +177,22 @@ const options = computed<CalendarOptions>(() => ({
 
 .more:hover {
   color: var(--jd-accent);
+}
+
+.width-toggle {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* 窄屏时日历本来就占满一行，不用加宽 */
+@media (max-width: 1200px) {
+  .width-toggle {
+    display: none;
+  }
 }
 
 .cal {

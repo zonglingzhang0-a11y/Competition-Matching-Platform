@@ -14,7 +14,7 @@ import { showError } from '@/utils/feedback'
 
 /**
  * 我的主页（项目思路里的 B 版三栏，加上 C 版的一句话状态和每周冲突预警）：
- * 左边以赛程日历为主体，中间是比赛，右边是组队要你决定的事。
+ * 左边是赛程日历（默认占 1/3，可以加宽），中间是比赛，右边是组队要你决定的事。
  */
 const user = useUserStore()
 const notifications = useNotificationStore()
@@ -25,6 +25,28 @@ const messages = ref<Notification[]>([])
 const generalDone = ref(true)
 const generalQuick = ref(false)
 const loading = ref(true)
+
+/** 日历栏默认占 1/3；点日历右上角的「加宽」换回改版前的比例，记在本机 */
+const WIDE_KEY = 'tm_home_wide_calendar'
+
+function loadWide(): boolean {
+  try {
+    return localStorage.getItem(WIDE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+const wideCalendar = ref(loadWide())
+
+function toggleWide() {
+  wideCalendar.value = !wideCalendar.value
+  try {
+    localStorage.setItem(WIDE_KEY, wideCalendar.value ? '1' : '0')
+  } catch {
+    // 存不了就只在这次有效
+  }
+}
 
 async function load() {
   try {
@@ -61,8 +83,15 @@ watch(() => notifications.latest, load)
 
     <template v-if="data">
       <HomeTopStrip :data="data" />
-      <div class="grid">
-        <ScheduleCalendar :semester="data.semester" :today="data.today" class="left" @changed="load" />
+      <div class="grid" :class="{ 'wide-calendar': wideCalendar }">
+        <ScheduleCalendar
+          :semester="data.semester"
+          :today="data.today"
+          :wide="wideCalendar"
+          class="left"
+          @changed="load"
+          @toggle-wide="toggleWide"
+        />
         <HomeMiddle :mine="data.mine" :suggestions="data.suggestions" />
         <HomeSide :pending="data.pending" :teammates="data.teammates" :recommendations="recs" :messages="messages" @changed="load" />
       </div>
@@ -90,15 +119,27 @@ watch(() => notifications.latest, load)
   font-weight: 700;
 }
 
+/* 三栏的宽度比例：日历、比赛、组队。要调比例只改这几个变量 */
 .grid {
+  --col-calendar: 1fr;
+  --col-middle: 1fr;
+  --col-side: 1fr;
   display: grid;
-  grid-template-columns: minmax(360px, 1.3fr) minmax(300px, 1fr) minmax(260px, 0.85fr);
+  grid-template-columns: minmax(320px, var(--col-calendar)) minmax(300px, var(--col-middle)) minmax(260px, var(--col-side));
   gap: 16px;
   align-items: start;
 }
 
+/* 加宽日历：改版前的比例 */
+.grid.wide-calendar {
+  --col-calendar: 1.3fr;
+  --col-middle: 1fr;
+  --col-side: 0.85fr;
+}
+
 @media (max-width: 1200px) {
-  .grid {
+  .grid,
+  .grid.wide-calendar {
     grid-template-columns: 1fr 1fr;
   }
 
@@ -108,7 +149,8 @@ watch(() => notifications.latest, load)
 }
 
 @media (max-width: 760px) {
-  .grid {
+  .grid,
+  .grid.wide-calendar {
     grid-template-columns: 1fr;
   }
 }
