@@ -1241,6 +1241,8 @@ export interface HomeTeammate {
   score: number
   reason: string | null
   invited: boolean
+  /** 完整的打分，主页的匹配六边形用 */
+  match: MatchResult
 }
 
 export interface HomeData {

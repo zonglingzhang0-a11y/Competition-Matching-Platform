@@ -395,7 +395,7 @@ public class HomeService {
                 }
                 String reason = u.match().reasons().isEmpty() ? null : u.match().reasons().getFirst();
                 out.add(new Teammate(t.id(), t.name(), u.user().id(), u.user().nickname(), u.user().major(),
-                        u.user().enrollYear(), u.match().score(), reason, u.invited()));
+                        u.user().enrollYear(), u.match().score(), reason, u.invited(), u.match()));
             }
         }
         return out;
