@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
-import { dashboardEditions, dashboardFunnel, dashboardOverview, skillGap } from '@/api/admin'
+import { dashboardCalibration, dashboardEditions, dashboardFunnel, dashboardOverview, skillGap } from '@/api/admin'
+import CalibrationChart from '@/components/admin/CalibrationChart.vue'
 import EditionRiskChart from '@/components/admin/EditionRiskChart.vue'
 import FormationFunnel from '@/components/admin/FormationFunnel.vue'
 import SkillGapChart from '@/components/admin/SkillGapChart.vue'
-import type { DashboardFunnel, EditionPhase, EditionStat, Overview, SkillGap } from '@/types/api'
+import type { DashboardCalibration, DashboardFunnel, EditionPhase, EditionStat, Overview, SkillGap } from '@/types/api'
 import { PHASE } from '@/utils/labels'
 import { fmtDateTime } from '@/utils/time'
 import { showError } from '@/utils/feedback'
 
 const overview = ref<Overview | null>(null)
 const editions = ref<EditionStat[]>([])
+const calibration = ref<DashboardCalibration | null>(null)
 const gaps = ref<SkillGap[]>([])
 /** 不选就是所有报名中的届次 */
 const editionId = ref<number | undefined>()
@@ -48,9 +50,10 @@ const shortage = computed(() => gaps.value.filter((g) => g.gap > 0).slice(0, 3))
 async function load() {
   loading.value = true
   try {
-    const [o, e] = await Promise.all([dashboardOverview(), dashboardEditions()])
+    const [o, e, c] = await Promise.all([dashboardOverview(), dashboardEditions(), dashboardCalibration()])
     overview.value = o
     editions.value = e
+    calibration.value = c
   } catch (err) {
     showError(err)
   } finally {
@@ -144,6 +147,17 @@ onMounted(load)
           <p v-else-if="!funnelLoading" class="hint">还没有发布的届次。</p>
         </section>
       </div>
+    </el-card>
+
+    <el-card shadow="never" class="block">
+      <template #header>
+        <div class="header">
+          <span>推荐准不准</span>
+          <span class="muted">所有届次一起算</span>
+        </div>
+      </template>
+      <p class="hint">处理完的申请和邀请（同意、拒绝、过期），按发出时的匹配分分段，每段成了多少。分越高成得越多，推荐才算靠谱。</p>
+      <CalibrationChart v-if="calibration" :data="calibration" />
     </el-card>
 
     <el-card shadow="never" class="block">

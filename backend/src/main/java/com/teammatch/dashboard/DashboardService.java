@@ -1,6 +1,7 @@
 package com.teammatch.dashboard;
 
 import com.teammatch.competition.EditionPhase;
+import com.teammatch.dashboard.DashboardMapper.BucketRow;
 import com.teammatch.dashboard.DashboardMapper.EditionRow;
 import com.teammatch.dashboard.DashboardMapper.FunnelRow;
 import com.teammatch.dashboard.DashboardMapper.KeyCount;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,7 +26,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * 数据看板：平台概况、各届组队情况（风险图用同一份数据）、组队漏斗、技能供需缺口。
+ * 数据看板：平台概况、各届组队情况（风险图用同一份数据）、组队漏斗、推荐准不准、技能供需缺口。
  */
 @Service
 @RequiredArgsConstructor
@@ -80,6 +82,29 @@ public class DashboardService {
 
     private static long n(Long v) {
         return v == null ? 0 : v;
+    }
+
+    /**
+     * 推荐准不准：按发出时的匹配分分段，每段处理完的申请和邀请有几条、成了几条。分越高成的比例越高，说明推荐靠谱。
+     *
+     * @param unscored 处理完了、但发出时还没开始记匹配分的（老记录），不在图里
+     */
+    public record Calibration(List<ScoreBucket> buckets, long unscored) {
+    }
+
+    /** from–to 分这一段：处理完 total 条，同意的 accepted 条 */
+    public record ScoreBucket(int from, int to, long total, long accepted) {
+    }
+
+    public Calibration calibration() {
+        Map<Integer, BucketRow> rows = mapper.calibration().stream()
+                .collect(Collectors.toMap(BucketRow::bucket, Function.identity()));
+        List<ScoreBucket> buckets = new ArrayList<>();
+        for (int b = 0; b < 5; b++) {
+            BucketRow r = rows.get(b);
+            buckets.add(new ScoreBucket(b * 20, b * 20 + 20, r == null ? 0 : n(r.total()), r == null ? 0 : n(r.accepted())));
+        }
+        return new Calibration(buckets, mapper.unscoredHandled());
     }
 
     public Overview overview() {

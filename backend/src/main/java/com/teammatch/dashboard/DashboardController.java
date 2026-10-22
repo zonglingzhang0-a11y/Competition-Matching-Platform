@@ -2,6 +2,7 @@ package com.teammatch.dashboard;
 
 import cn.dev33.satoken.annotation.SaCheckRole;
 import com.teammatch.common.Result;
+import com.teammatch.dashboard.DashboardService.Calibration;
 import com.teammatch.dashboard.DashboardService.EditionStat;
 import com.teammatch.dashboard.DashboardService.Funnel;
 import com.teammatch.dashboard.DashboardService.Overview;
@@ -38,6 +39,11 @@ public class DashboardController {
     @GetMapping("/funnel")
     public Result<Funnel> funnel(@RequestParam long editionId) {
         return Result.ok(dashboardService.funnel(editionId));
+    }
+
+    @GetMapping("/calibration")
+    public Result<Calibration> calibration() {
+        return Result.ok(dashboardService.calibration());
     }
 
     /** editionId 不传就汇总所有报名还没截止的届次 */

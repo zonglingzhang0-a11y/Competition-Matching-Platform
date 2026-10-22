@@ -20,6 +20,7 @@ import com.teammatch.user.UserBriefs;
 import com.teammatch.user.UserBriefs.UserBrief;
 import com.teammatch.user.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +46,7 @@ public class ApplicationService {
     private final UserService userService;
     private final UserBriefs userBriefs;
     private final NotificationService notifications;
+    private final ApplicationEventPublisher events;
 
     @Transactional
     public long apply(long userId, long teamId, ApplyRequest req) {
@@ -201,6 +203,8 @@ public class ApplicationService {
             // 两个请求同时到达时，由唯一索引兜底
             throw new BizException(409, "已经有一条待处理的申请或邀请了");
         }
+        // 匹配模块在事务提交后记下当时的匹配分（看板"推荐准不准"用），算分出错不影响申请
+        events.publishEvent(new ApplicationCreated(app.getId(), userId, teamId, direction == TeamApplication.Direction.APPLY));
         return app;
     }
 

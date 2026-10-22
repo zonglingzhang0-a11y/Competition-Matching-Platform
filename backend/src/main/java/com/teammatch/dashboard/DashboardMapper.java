@@ -154,6 +154,29 @@ public interface DashboardMapper {
     record FunnelRow(Long people, Long surveyed, Long engaged, Long joined, Long formed) {
     }
 
+    /**
+     * 推荐准不准：处理完的申请和邀请（同意、拒绝、过期；撤回的不算），按发出时的匹配分每 20 分一段，数一数成了几条。
+     * bucket 0–4 对应 0–20、20–40……80–100 分。
+     */
+    @Select("""
+            SELECT LEAST(FLOOR(match_score / 20), 4) AS bucket, COUNT(*) AS total,
+                   SUM(status = 'ACCEPTED') AS accepted
+            FROM team_application
+            WHERE match_score IS NOT NULL AND status IN ('ACCEPTED', 'REJECTED', 'EXPIRED')
+            GROUP BY bucket
+            """)
+    List<BucketRow> calibration();
+
+    /** 处理完了、但发出时没记匹配分的（V9 之前的老记录） */
+    @Select("""
+            SELECT COUNT(*) FROM team_application
+            WHERE match_score IS NULL AND status IN ('ACCEPTED', 'REJECTED', 'EXPIRED')
+            """)
+    long unscoredHandled();
+
+    record BucketRow(Integer bucket, Long total, Long accepted) {
+    }
+
     record KeyCount(String k, Long v) {
     }
 

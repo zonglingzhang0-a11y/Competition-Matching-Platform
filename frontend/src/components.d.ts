@@ -15,6 +15,7 @@ declare module 'vue' {
     ApproveDialog: typeof import('./components/admin/ApproveDialog.vue')['default']
     AuthCard: typeof import('./components/AuthCard.vue')['default']
     CalendarFeedDialog: typeof import('./components/CalendarFeedDialog.vue')['default']
+    CalibrationChart: typeof import('./components/admin/CalibrationChart.vue')['default']
     CompetitionFormDialog: typeof import('./components/admin/CompetitionFormDialog.vue')['default']
     CrawlApproveDialog: typeof import('./components/admin/CrawlApproveDialog.vue')['default']
     CrawlSourceDialog: typeof import('./components/admin/CrawlSourceDialog.vue')['default']

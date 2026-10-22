@@ -267,6 +267,14 @@ f = r.get("data") or {}
 # 人群：关注的 s1、s2，加上没点关注的队长 cap；s1 申请后入队，cap 建了队；队伍还在招人
 check("组队漏斗：3 人里 0 人填了问卷，2 人申请过或建了队，2 人进了队，0 人的队伍组好了",
       s == 200 and [f.get(k) for k in ("people", "surveyed", "engaged", "joined", "formed")] == [3, 0, 2, 2, 0], f)
+s, r = call("GET", "/admin/dashboard/calibration", token=stu)
+check("学生看不了推荐准不准（403）", s == 403, s)
+s, r = call("GET", "/admin/dashboard/calibration", token=admin)
+cal = r.get("data") or {}
+got = [(b["from"], b["total"], b["accepted"]) for b in cal.get("buckets", []) if b["total"]]
+# s1 发申请时记下了匹配分（都没填问卷，接近 50 分），队长同意了
+check("推荐准不准：s1 的申请发出时记下了匹配分，落在 40–60 分这一段、算成了；没有没记分的老记录",
+      s == 200 and len(cal.get("buckets", [])) == 5 and got == [(40, 1, 1)] and cal.get("unscored") == 0, cal)
 
 print("== 匹配配置")
 s, r = call("GET", "/admin/match-configs", token=admin)

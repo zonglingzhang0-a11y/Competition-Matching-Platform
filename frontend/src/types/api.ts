@@ -887,6 +887,13 @@ export interface DashboardFunnel {
   formed: number
 }
 
+/** 推荐准不准：按发出时的匹配分分段，每段处理完的申请和邀请有几条、成了几条 */
+export interface DashboardCalibration {
+  buckets: { from: number; to: number; total: number; accepted: number }[]
+  /** 处理完了、但发出时还没开始记匹配分的老记录 */
+  unscored: number
+}
+
 export interface SkillGap {
   skillId: number
   name: string
