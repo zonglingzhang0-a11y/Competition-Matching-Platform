@@ -1258,6 +1258,15 @@ export interface HomeTeammate {
   match: MatchResult
 }
 
+/** 主页自定义，面板的 key 见 components/home/layout.ts */
+export interface HomeLayout {
+  /** 面板的先后顺序，每一栏里按这个顺序排 */
+  order: string[]
+  hidden: string[]
+  /** 日历栏加宽（改版前的比例） */
+  wideCalendar: boolean
+}
+
 export interface HomeData {
   today: string
   next: Upcoming | null

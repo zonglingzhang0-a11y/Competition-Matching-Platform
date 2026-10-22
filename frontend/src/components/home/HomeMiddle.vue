@@ -1,17 +1,21 @@
 <script setup lang="ts">
+import { inject } from 'vue'
+import { HOME_LAYOUT, NO_LAYOUT } from '@/components/home/layout'
 import type { MyCompetition, Suggestion } from '@/types/api'
 import { LEVEL_LABEL } from '@/utils/labels'
 import { fmtDate } from '@/utils/time'
 
-/** 主页中栏：我参加的比赛（阶段进度）、适合你报名的比赛（官网、报名入口、找队伍） */
+/** 主页中栏：我参加的比赛（阶段进度）、适合你报名的比赛（官网、报名入口、找队伍）；顺序和显示按主页自定义 */
 defineProps<{ mine: MyCompetition[]; suggestions: Suggestion[] }>()
+
+const layout = inject(HOME_LAYOUT, NO_LAYOUT)
 
 const soon = (days: number | null | undefined) => days !== null && days !== undefined && days <= 3
 </script>
 
 <template>
   <div class="col">
-    <section class="panel">
+    <section v-show="layout.shown('mine')" class="panel" :style="{ order: layout.pos('mine') }">
       <div class="panel-head">
         <div>
           <div class="kicker">MY COMPETITIONS <span class="zh">/ 我参加的比赛</span></div>
@@ -57,7 +61,7 @@ const soon = (days: number | null | undefined) => days !== null && days !== unde
       </article>
     </section>
 
-    <section class="panel">
+    <section v-show="layout.shown('open')" class="panel" :style="{ order: layout.pos('open') }">
       <div class="panel-head">
         <div>
           <div class="kicker">OPEN FOR SIGN-UP <span class="zh">/ 适合你报名</span></div>

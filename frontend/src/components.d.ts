@@ -76,6 +76,7 @@ declare module 'vue' {
     ExperienceList: typeof import('./components/ExperienceList.vue')['default']
     FinishTeamDialog: typeof import('./components/FinishTeamDialog.vue')['default']
     FormationFunnel: typeof import('./components/admin/FormationFunnel.vue')['default']
+    HomeLayoutDrawer: typeof import('./components/home/HomeLayoutDrawer.vue')['default']
     HomeMiddle: typeof import('./components/home/HomeMiddle.vue')['default']
     HomeSide: typeof import('./components/home/HomeSide.vue')['default']
     HomeTopStrip: typeof import('./components/home/HomeTopStrip.vue')['default']

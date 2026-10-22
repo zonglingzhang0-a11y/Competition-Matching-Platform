@@ -7,21 +7,20 @@ import zhCnLocale from '@fullcalendar/core/locales/zh-cn'
 import type { CalendarApi, CalendarOptions, DatesSetArg, DayCellMountArg, EventClickArg, EventInput } from '@fullcalendar/core'
 import EventDialog from '@/components/EventDialog.vue'
 import QuickAdd from '@/components/QuickAdd.vue'
-import SemesterBand from '@/components/home/SemesterBand.vue'
 import { getCalendar } from '@/api/calendar'
-import type { CalendarEvent, EventForm, Semester } from '@/types/api'
+import type { CalendarEvent, EventForm } from '@/types/api'
 import { addDays, fmtDate, parse, toDateStr } from '@/utils/time'
 import { showError } from '@/utils/feedback'
 
 /**
- * 主页左栏：赛程日历（周 / 月）+ 学期赛程带。上面可以一句话添加个人日程；改已有的日程到完整的日历页。
+ * 主页左栏的赛程日历（周 / 月；学期赛程带是单独的面板）。上面可以一句话添加个人日程；改已有的日程到完整的日历页。
  * <p>
  * 月视图只画记号，不写字：比赛期间是细线（参加的实线、关注的虚线），截止是红色菱形，队伍节点是黑色菱形，个人日程是小圆点，
  * 和别的安排撞了的记号带红框。鼠标放到某一天上（手机上点一下）才弹出当天的详情，点详情里的条目跳到比赛或队伍。
  * 周视图格子宽，照旧写出标题。
  */
 /** wide：主页把日历栏加宽了（默认占 1/3） */
-const props = defineProps<{ semester: Semester; today: string; wide?: boolean }>()
+const props = defineProps<{ today: string; wide?: boolean }>()
 /** changed：加了日程，主页顶部的本周可投入时间、学期赛程带要跟着变；toggleWide：点了「加宽 / 收窄」 */
 const emit = defineEmits<{ changed: []; toggleWide: [] }>()
 
@@ -312,9 +311,6 @@ const options = computed<CalendarOptions>(() => ({
         <router-link to="/calendar" class="pop-more" @click="pop = null">在完整日历里看 →</router-link>
       </div>
     </Teleport>
-
-    <hr class="hairline" />
-    <SemesterBand :semester="semester" :today="today" />
 
     <EventDialog v-model="dialogOpen" :event-id="null" :preset="preset" @saved="onAdded" />
   </section>

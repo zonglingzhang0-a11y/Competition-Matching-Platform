@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import MatchHexagon from '@/components/MatchHexagon.vue'
 import MatchSummary from '@/components/MatchSummary.vue'
 import UserName from '@/components/UserName.vue'
+import { HOME_LAYOUT, NO_LAYOUT } from '@/components/home/layout'
 import { acceptApplication, rejectApplication } from '@/api/team'
 import { markRead } from '@/api/notification'
 import { useUserPageStore } from '@/stores/userPage'
@@ -15,6 +16,7 @@ import { showError } from '@/utils/feedback'
 
 /**
  * 主页右栏：只放需要你决定的事。待你处理（邀请、申请，附上处理后的影响）、推荐队友（或推荐队伍）、最近的消息。
+ * 顺序和显示按主页自定义（待你处理不能隐藏）。
  */
 const props = defineProps<{
   pending: HomePending[]
@@ -26,6 +28,7 @@ const emit = defineEmits<{ changed: [] }>()
 
 const router = useRouter()
 const userPage = useUserPageStore()
+const layout = inject(HOME_LAYOUT, NO_LAYOUT)
 const busy = ref<number | null>(null)
 
 /** 没有当队长要招人的队时，改为推荐可以加入的队伍（每个关注的比赛取最合适的一支） */
@@ -85,7 +88,7 @@ function openMessage(n: Notification) {
 
 <template>
   <div class="col">
-    <section class="panel">
+    <section class="panel" :style="{ order: layout.pos('pending') }">
       <div class="panel-head">
         <div>
           <div class="kicker">ACTION <span class="zh">/ 需要你决定</span></div>
@@ -119,7 +122,7 @@ function openMessage(n: Notification) {
       </article>
     </section>
 
-    <section v-if="teammates.length" class="panel">
+    <section v-if="teammates.length" v-show="layout.shown('recommend')" class="panel" :style="{ order: layout.pos('recommend') }">
       <div class="panel-head">
         <div>
           <div class="kicker">RECOMMENDED <span class="zh">/ 推荐队友</span></div>
@@ -170,7 +173,7 @@ function openMessage(n: Notification) {
       </div>
     </section>
 
-    <section v-else-if="teams.length" class="panel">
+    <section v-else-if="teams.length" v-show="layout.shown('recommend')" class="panel" :style="{ order: layout.pos('recommend') }">
       <div class="panel-head">
         <div>
           <div class="kicker">RECOMMENDED <span class="zh">/ 推荐队伍</span></div>
@@ -208,7 +211,7 @@ function openMessage(n: Notification) {
       </div>
     </section>
 
-    <section class="panel">
+    <section v-show="layout.shown('messages')" class="panel" :style="{ order: layout.pos('messages') }">
       <div class="panel-head">
         <div>
           <div class="kicker">MESSAGES <span class="zh">/ 消息</span></div>
