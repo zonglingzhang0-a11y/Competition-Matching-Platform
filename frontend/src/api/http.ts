@@ -88,6 +88,12 @@ export async function postForm<T>(url: string, form: FormData): Promise<T> {
   return res.data.data
 }
 
+/** 要等大模型的请求：后端最多等模型 2 分钟（app.crawler.llm.timeout-ms），这里多给一点 */
+export async function postSlow<T>(url: string, body?: unknown): Promise<T> {
+  const res = await http.post<ApiResult<T>>(url, body, { timeout: 150000 })
+  return res.data.data
+}
+
 /** 取需要登录才能看的图片，比如认证截图。拿到后用 URL.createObjectURL 显示 */
 export async function getBlob(url: string): Promise<Blob> {
   const res = await http.get<Blob>(url, { responseType: 'blob' })

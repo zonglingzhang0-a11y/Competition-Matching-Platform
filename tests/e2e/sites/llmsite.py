@@ -1,5 +1,6 @@
 """爬虫接大模型的 e2e 用：假官网（18768）和假大模型（18096，OpenAI 兼容的 /v1/chat/completions）。内容都是虚构的。
-假大模型按通知标题给不同的回答：正常、编造依据、HTTP 500、很慢（超时）。每个请求记到日志（JSON 一行一个）。
+假大模型按通知标题给不同的回答：正常、编造依据、HTTP 500、很慢（超时）；系统提示是比赛页 AI 总结的，回答 summary_answer。
+每个请求记到日志（JSON 一行一个）。
 用法：python server.py <假大模型请求日志>"""
 import json
 import sys
@@ -60,6 +61,31 @@ MADE_UP = {
     "contest": {"start": "2026-12-08", "end": None, "quote": "竞赛定于十二月五日在各赛区同时举行"},
 }
 
+# 比赛页 AI 总结：两条对得上原文的，一条编的原话，一条数字对不上原话
+SUMMARY_POINTS = [
+    {"label": "组队要求", "text": "每队最多 3 人，须为同一所高校的学生", "quote": "每队不超过三人，须为同一所高校学生"},
+    {"label": "比赛时间", "text": "12 月 5 日在各赛区同时举行", "quote": "竞赛定于十二月五日在各赛区同时举行"},
+    {"label": "报名时间", "text": "11 月 15 日截止报名", "quote": "报名截止时间为2026年11月15日"},
+    {"label": "费用", "text": "报名费 100 元", "quote": "参赛对象：全日制在校本科生"},
+]
+summary_calls = 0
+
+
+def summary_answer(user):
+    """按原话在第几篇通知里填 source；第 2 次只回编的，第 3 次慢 1 秒（测同时点两次）"""
+    global summary_calls
+    with lock:
+        summary_calls += 1
+        n = summary_calls
+    parts = user.split("\n第 ")[1:]
+    points = []
+    for p in SUMMARY_POINTS if n != 2 else SUMMARY_POINTS[2:]:
+        source = next((i + 1 for i, part in enumerate(parts) if p["quote"] in part), 1)
+        points.append(dict(p, source=source))
+    if n == 3:
+        time.sleep(1)
+    return {"points": points}, [part.split("篇通知：", 1)[1].split("\n", 1)[0] for part in parts]
+
 
 class Site(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -85,18 +111,24 @@ class Llm(BaseHTTPRequestHandler):
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))).decode("utf-8"))
         user = body["messages"][-1]["content"]
         title = user.split("\n", 1)[0]
+        summary = "整理比赛的官方通知" in body["messages"][0]["content"]
+        notices = []
+        if summary:
+            answer, notices = summary_answer(user)
         with lock, open(LOG, "a", encoding="utf-8") as f:
             f.write(json.dumps({"title": title, "model": body.get("model"), "path": self.path,
                                 "system": body["messages"][0]["role"] == "system",
-                                "auth": self.headers.get("Authorization"), "chars": len(user)}, ensure_ascii=False) + "\n")
-        if "化学" in title:
-            self.send_response(500)
-            self.end_headers()
-            self.wfile.write(b"engine error")
-            return
-        if "力学" in title:
-            time.sleep(3)
-        answer = MADE_UP if "物理" in title else GOOD
+                                "auth": self.headers.get("Authorization"), "chars": len(user),
+                                "kind": "summary" if summary else "extract", "notices": notices}, ensure_ascii=False) + "\n")
+        if not summary:
+            if "化学" in title:
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(b"engine error")
+                return
+            if "力学" in title:
+                time.sleep(3)
+            answer = MADE_UP if "物理" in title else GOOD
         # 像本机模型那样：前面一句客套话，JSON 包在代码块里；响应头不带 charset
         content = "好的，抽取结果如下：\n```json\n" + json.dumps(answer, ensure_ascii=False) + "\n```"
         data = json.dumps({"choices": [{"message": {"role": "assistant", "content": content}}]}, ensure_ascii=False).encode("utf-8")

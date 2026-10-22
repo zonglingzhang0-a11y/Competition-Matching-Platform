@@ -1,5 +1,6 @@
-import { del, get, post, put } from './http'
+import { del, get, post, postSlow, put } from './http'
 import type {
+  AiSummaryView,
   CompetitionDetail,
   CompetitionQuery,
   CompetitionSummary,
@@ -34,3 +35,11 @@ export const withdrawMyRecognition = (competitionId: number) =>
 export const confirmRecognition = (id: number) => post<void>(`/recognitions/${id}/confirm`)
 
 export const unconfirmRecognition = (id: number) => del<void>(`/recognitions/${id}/confirm`)
+
+// ---------- AI 总结 ----------
+
+export const getAiSummary = (competitionId: number) => get<AiSummaryView>(`/competitions/${competitionId}/ai-summary`)
+
+/** 管理员：调大模型重新整理，本机模型要等几秒到几十秒 */
+export const generateAiSummary = (competitionId: number) =>
+  postSlow<AiSummaryView>(`/admin/competitions/${competitionId}/ai-summary`)

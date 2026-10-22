@@ -7,19 +7,12 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -55,17 +48,16 @@ public class LlmFieldExtractor implements FieldExtractor {
             registration 是报名时间，contest 是比赛（竞赛）本身进行的时间，teamSize 是每队人数，
             sameSchool 是否要求队员同一所学校，advisor 是否要求（或允许）有指导老师。""";
 
-    private final LlmProperties props;
+    private final LlmClient llm;
     private final JsonMapper json;
-    private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 
-    public LlmFieldExtractor(LlmProperties props, JsonMapper json) {
-        this.props = props;
+    public LlmFieldExtractor(LlmClient llm, JsonMapper json) {
+        this.llm = llm;
         this.json = json;
     }
 
     public boolean ready() {
-        return props.ready();
+        return llm.ready();
     }
 
     /** 规则缺了报名截止、比赛时间、人数里的任何一项，才值得问大模型 */
@@ -78,7 +70,7 @@ public class LlmFieldExtractor implements FieldExtractor {
     public Extracted extract(String title, String text) {
         String content;
         try {
-            content = ask(title, text);
+            content = llm.chat(SYSTEM, userPrompt(title, text, llm.maxChars()), 800);
         } catch (IOException e) {
             log.info("大模型请求失败，这篇只用规则抽取：{}", e.getMessage());
             return null;
@@ -91,34 +83,6 @@ public class LlmFieldExtractor implements FieldExtractor {
         } catch (IllegalArgumentException e) {
             log.info("大模型的回答用不了，这篇只用规则抽取：{}", e.getMessage());
             return null;
-        }
-    }
-
-    private String ask(String title, String text) throws IOException, InterruptedException {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("model", props.model());
-        body.put("temperature", 0);
-        body.put("max_tokens", 800);
-        body.put("messages", List.of(
-                Map.of("role", "system", "content", SYSTEM),
-                Map.of("role", "user", "content", userPrompt(title, text, props.maxChars()))));
-        HttpRequest.Builder req = HttpRequest.newBuilder(URI.create(props.baseUrl() + "/chat/completions"))
-                .timeout(Duration.ofMillis(props.timeoutMs()))
-                .header("Content-Type", "application/json; charset=utf-8")
-                .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(body), StandardCharsets.UTF_8));
-        if (props.apiKey() != null && !props.apiKey().isBlank()) {
-            req.header("Authorization", "Bearer " + props.apiKey().strip());
-        }
-        HttpResponse<byte[]> res = client.send(req.build(), HttpResponse.BodyHandlers.ofByteArray());
-        // 本机引擎的响应头不带 charset，自己按 UTF-8 解
-        String raw = new String(res.body(), StandardCharsets.UTF_8);
-        if (res.statusCode() != 200) {
-            throw new IOException("HTTP " + res.statusCode() + " " + cut(raw, 200));
-        }
-        try {
-            return json.readTree(raw).path("choices").path(0).path("message").path("content").asString("");
-        } catch (JacksonException e) {
-            throw new IOException("接口返回的不是 JSON");
         }
     }
 
@@ -341,7 +305,4 @@ public class LlmFieldExtractor implements FieldExtractor {
         return s == null ? "" : s.replaceAll("\\s+", "");
     }
 
-    private static String cut(String s, int max) {
-        return s.length() <= max ? s : s.substring(0, max);
-    }
 }

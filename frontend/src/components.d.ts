@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AiSummaryDrawer: typeof import('./components/AiSummaryDrawer.vue')['default']
     ApproveDialog: typeof import('./components/admin/ApproveDialog.vue')['default']
     AuthCard: typeof import('./components/AuthCard.vue')['default']
     CalendarFeedDialog: typeof import('./components/CalendarFeedDialog.vue')['default']

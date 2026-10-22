@@ -1324,3 +1324,53 @@ export interface RecognitionAdminRow {
   /** 同校同比赛下没被驳回的说法有几种，大于 1 就是有分歧 */
   variants: number
 }
+
+// ---------- AI 总结 ----------
+
+/** 一条要点；quote 是官方通知里的原话，sourceTitle / sourceUrl 是出自哪篇 */
+export interface AiSummaryPoint {
+  label: string
+  text: string
+  quote: string
+  recordId: number
+  sourceTitle: string | null
+  sourceUrl: string | null
+}
+
+export interface AiSummary {
+  points: AiSummaryPoint[]
+  model: string
+  generatedAt: string
+}
+
+/** 平台抓到的这个比赛的通知 */
+export interface AiSummarySource {
+  id: number
+  title: string | null
+  url: string
+  fetchedAt: string
+  /** 来源网站允许内容交给大模型；不允许的只列链接 */
+  aiAllowed: boolean
+  /** 当前的总结用到了这篇 */
+  used: boolean
+}
+
+/** 信息渠道；url 为空的是"去哪里问"这类建议 */
+export interface AiSummaryChannel {
+  name: string
+  url: string | null
+  hint: string | null
+}
+
+export interface AiSummaryView {
+  /** 后端打开了大模型 */
+  llmReady: boolean
+  /** 当前用户能重新整理（管理员） */
+  canGenerate: boolean
+  /** 还没整理过时为空 */
+  summary: AiSummary | null
+  /** 报名时间、比赛时间、组队要求里没整理出来的 */
+  missing: string[]
+  sources: AiSummarySource[]
+  channels: AiSummaryChannel[]
+}

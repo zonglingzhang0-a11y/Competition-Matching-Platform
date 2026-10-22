@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Link } from '@element-plus/icons-vue'
+import { ArrowLeft, Link, MagicStick } from '@element-plus/icons-vue'
+import AiSummaryDrawer from '@/components/AiSummaryDrawer.vue'
 import EditionTeams from '@/components/EditionTeams.vue'
 import RecognitionPanel from '@/components/RecognitionPanel.vue'
 import RecommendedTeams from '@/components/RecommendedTeams.vue'
@@ -18,6 +19,7 @@ const router = useRouter()
 const detail = ref<CompetitionDetail | null>(null)
 const loading = ref(true)
 const activeEdition = ref<number>()
+const aiOpen = ref(false)
 
 async function load() {
   loading.value = true
@@ -69,10 +71,13 @@ onMounted(load)
 
     <template v-if="detail">
       <el-card shadow="never" class="block">
-        <h1 class="title">
-          {{ detail.name }}
-          <span v-if="detail.shortName" class="short">（{{ detail.shortName }}）</span>
-        </h1>
+        <div class="title-row">
+          <h1 class="title">
+            {{ detail.name }}
+            <span v-if="detail.shortName" class="short">（{{ detail.shortName }}）</span>
+          </h1>
+          <el-button :icon="MagicStick" @click="aiOpen = true">AI 帮我整理</el-button>
+        </div>
         <div class="tags">
           <el-tag size="small" effect="plain">{{ LEVEL_LABEL[detail.level] }}</el-tag>
           <el-tag size="small" effect="plain" type="info">{{ detail.category }}</el-tag>
@@ -141,6 +146,8 @@ onMounted(load)
           </el-tab-pane>
         </el-tabs>
       </el-card>
+
+      <AiSummaryDrawer v-model="aiOpen" :competition-id="detail.id" :competition-name="detail.name" />
     </template>
   </div>
 </template>
@@ -159,6 +166,14 @@ onMounted(load)
 .block {
   border-radius: 2px;
   margin-bottom: 16px;
+}
+
+.title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .title {
