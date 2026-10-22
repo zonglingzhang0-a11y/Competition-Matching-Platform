@@ -78,6 +78,7 @@ declare module 'vue' {
     HomeSide: typeof import('./components/home/HomeSide.vue')['default']
     HomeTopStrip: typeof import('./components/home/HomeTopStrip.vue')['default']
     JoinDialog: typeof import('./components/JoinDialog.vue')['default']
+    MatchHexagon: typeof import('./components/MatchHexagon.vue')['default']
     MatchSummary: typeof import('./components/MatchSummary.vue')['default']
     MatrixDialog: typeof import('./components/admin/MatrixDialog.vue')['default']
     MilestoneTasks: typeof import('./components/MilestoneTasks.vue')['default']
