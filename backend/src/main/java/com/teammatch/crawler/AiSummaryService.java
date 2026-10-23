@@ -22,15 +22,24 @@ import com.teammatch.crawler.CrawlEntities.CrawlRecordMapper;
 import com.teammatch.crawler.CrawlEntities.CrawlSource;
 import com.teammatch.crawler.CrawlEntities.CrawlSourceMapper;
 import com.teammatch.crawler.CrawlEntities.RecordStatus;
+import com.teammatch.recognition.RecognitionService;
+import com.teammatch.school.School;
+import com.teammatch.school.SchoolMapper;
+import com.teammatch.user.SysUser;
+import com.teammatch.user.UserService;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Service;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -66,13 +75,17 @@ public class AiSummaryService {
     private final CrawlSourceMapper sourceMapper;
     private final CrawlRecordMapper recordMapper;
     private final SummaryMapper summaryMapper;
+    private final ChannelMapper channelMapper;
+    private final UserService userService;
+    private final SchoolMapper schoolMapper;
+    private final RecognitionService recognitionService;
     private final LlmClient llm;
     private final JsonMapper json;
     private final Clock clock;
     /** 本机模型一次只处理一个请求：同一时间只整理一个比赛 */
     private final AtomicBoolean generating = new AtomicBoolean();
 
-    public View view(long competitionId, boolean admin) {
+    public View view(long competitionId, long userId, boolean admin) {
         Competition c = requireCompetition(competitionId);
         Map<Long, CrawlSource> sources = sources(competitionId);
         List<CrawlRecord> records = records(sources.keySet());
@@ -100,7 +113,7 @@ public class AiSummaryService {
         Set<Long> usedIds = used;
         List<SourceView> sourceViews = records.stream().map(r -> new SourceView(r.getId(), r.getTitle(), r.getSourceUrl(),
                 r.getFetchedAt(), aiAllowed(sources.get(r.getSourceId())), usedIds.contains(r.getId()))).toList();
-        return new View(llm.ready(), admin, summary, missing, sourceViews, channels(c, sources.values()));
+        return new View(llm.ready(), admin, summary, missing, sourceViews, channels(c, sources.values(), userId));
     }
 
     /** 管理员点"生成"：调大模型，核对通过的要点存起来；失败时保留原来的总结 */
@@ -156,7 +169,7 @@ public class AiSummaryService {
         } else {
             summaryMapper.updateById(s);
         }
-        return view(competitionId, true);
+        return view(competitionId, adminId, true);
     }
 
     private Competition requireCompetition(long competitionId) {
@@ -189,12 +202,15 @@ public class AiSummaryService {
         return s != null && Boolean.TRUE.equals(s.getAllowLlm());
     }
 
-    /** 更多信息渠道：官网、各届的官方通知、平台抓取的通知列表页，再加几条"去哪里问"的建议 */
-    private List<Channel> channels(Competition c, Iterable<CrawlSource> sources) {
+    /**
+     * 更多信息渠道：官网、各届的官方通知、平台抓取的通知列表页（同一个网址只列一次），
+     * 再加上按"我"和平台数据写实的四条：本校教务处（直接搜）、公众号（复制全称）、往届参赛的同学、本校的加分认定。
+     */
+    private List<Channel> channels(Competition c, Iterable<CrawlSource> sources, long userId) {
         List<Channel> out = new ArrayList<>();
-        Set<String> urls = new HashSet<>();
-        if (c.getOfficialUrl() != null && urls.add(c.getOfficialUrl())) {
-            out.add(new Channel("比赛官网", c.getOfficialUrl(), "最新通知、报名入口、往届赛题"));
+        Set<String> seen = new HashSet<>();
+        if (c.getOfficialUrl() != null && seen.add(sameSite(c.getOfficialUrl()))) {
+            out.add(Channel.link("比赛官网", c.getOfficialUrl(), "最新通知、报名入口、往届赛题"));
         }
         editionMapper.selectList(new LambdaQueryWrapper<CompetitionEdition>()
                         .eq(CompetitionEdition::getCompetitionId, c.getId())
@@ -202,20 +218,50 @@ public class AiSummaryService {
                         .isNotNull(CompetitionEdition::getNoticeUrl)
                         .orderByDesc(CompetitionEdition::getYear))
                 .forEach(e -> {
-                    if (urls.add(e.getNoticeUrl())) {
-                        out.add(new Channel(e.getTitle() + "的官方通知", e.getNoticeUrl(), null));
+                    if (seen.add(sameSite(e.getNoticeUrl()))) {
+                        out.add(Channel.link(e.getTitle() + "的官方通知", e.getNoticeUrl(), null));
                     }
                 });
         for (CrawlSource s : sources) {
-            if (urls.add(s.getListUrl())) {
-                out.add(new Channel(s.getName(), s.getListUrl(), "平台定期从这里抓新通知"));
+            if (seen.add(sameSite(s.getListUrl()))) {
+                out.add(Channel.link(s.getName(), s.getListUrl(), "平台定期从这里抓新通知"));
             }
         }
-        out.add(new Channel("学校教务处、学院的竞赛通知", null, "校赛选拔、报名入口和本校的认定办法常在这里"));
-        out.add(new Channel("比赛的官方微信公众号", null, "在微信里搜比赛全称，赛题、答疑、延期的消息常常先发在这里"));
-        out.add(new Channel("往届参赛的学长学姐、指导老师", null, "备赛经验和容易踩的坑"));
-        out.add(new Channel("本页的「加分认定」", null, "看本校同学标注的认定级别"));
+
+        SysUser me = userService.getById(userId);
+        School school = me.getSchoolId() == null || !userService.isVerified(me) ? null : schoolMapper.selectById(me.getSchoolId());
+        String schoolName = school == null ? null : school.getName();
+
+        out.add(Channel.link(schoolName == null ? "学校教务处、学院的竞赛通知" : schoolName + "教务处、学院的竞赛通知",
+                search((schoolName == null ? "" : schoolName + " ") + c.getName() + " 校赛 通知"),
+                "校赛选拔、报名入口和本校的认定办法常在这里，点开直接搜" + (schoolName == null ? "（认证学校后会搜本校的）" : "")));
+
+        out.add(new Channel("比赛的官方微信公众号", null,
+                "在微信里搜「" + c.getName() + "」，赛题、答疑、延期的消息常常先发在这里", c.getName(), null));
+
+        PastRow past = channelMapper.pastParticipants(c.getId(), userId, me.getSchoolId());
+        long total = past == null || past.total() == null ? 0 : past.total();
+        long mine = past == null || past.sameSchool() == null ? 0 : past.sameSchool();
+        out.add(total == 0
+                ? new Channel("往届参赛的学长学姐、指导老师", null, "平台上还没有这个比赛往届的参赛记录，可以问问身边参加过的人", null, null)
+                : new Channel("平台上参加过往届的同学", null, total + " 人参加完了往届比赛" + (schoolName == null ? "" : "（本校 " + mine + " 人）")
+                        + "，在本页往届的队伍里能找到他们，问问备赛经验", null, "editions"));
+
+        String label = school == null ? null : recognitionService.labelsForSchool(school.getId(), List.of(c.getId())).get(c.getId());
+        String recognitionHint = school == null ? "看各校同学标注的认定级别"
+                : label != null ? "本校同学确认过：「" + label + "」（以学校当年的文件为准）"
+                : "本校还没有确认过的认定，知道的话可以去标注";
+        out.add(new Channel("本页的「加分认定」", null, recognitionHint, null, "recognition"));
         return out;
+    }
+
+    /** 判断是不是同一个网址：不管 http / https、www 和末尾的斜杠 */
+    static String sameSite(String url) {
+        return url.strip().toLowerCase().replaceFirst("^https?://", "").replaceFirst("^www\\.", "").replaceAll("/+$", "");
+    }
+
+    private static String search(String keywords) {
+        return "https://www.baidu.com/s?wd=" + URLEncoder.encode(keywords, StandardCharsets.UTF_8);
     }
 
     /** competition_ai_summary 的一行 */
@@ -233,5 +279,25 @@ public class AiSummaryService {
 
     @Mapper
     public interface SummaryMapper extends BaseMapper<AiSummary> {
+    }
+
+    @Mapper
+    public interface ChannelMapper {
+
+        /** 参加完往届的人数（队伍标记了比赛结束、人还在队里），不算自己；另数和我同校的 */
+        @Select("""
+                SELECT COUNT(DISTINCT m.user_id) AS total,
+                       COUNT(DISTINCT CASE WHEN u.school_id = #{schoolId} THEN m.user_id END) AS sameSchool
+                FROM team_member m
+                JOIN team t ON t.id = m.team_id AND t.deleted = 0 AND t.status = 'FINISHED'
+                JOIN competition_edition e ON e.id = t.edition_id AND e.competition_id = #{competitionId}
+                JOIN sys_user u ON u.id = m.user_id
+                WHERE m.status = 'ACTIVE' AND m.user_id <> #{userId}
+                """)
+        PastRow pastParticipants(@Param("competitionId") long competitionId, @Param("userId") long userId,
+                                 @Param("schoolId") Long schoolId);
+    }
+
+    public record PastRow(Long total, Long sameSchool) {
     }
 }

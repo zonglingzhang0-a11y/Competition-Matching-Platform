@@ -140,6 +140,12 @@ s, r = call("GET", f"/competitions/{comp}/ai-summary", token=stu)
 v = r.get("data") or {}
 check("学生能看：还没整理过，看得到抓到的 6 篇通知和信息渠道", s == 200 and v.get("summary") is None
       and not v.get("canGenerate") and len(v.get("sources", [])) == 6 and len(v.get("channels", [])) >= 6, r)
+chs = v.get("channels", [])
+sites = [re.sub(r"^https?://(www\.)?|/+$", "", c["url"].lower()) for c in chs if c["url"] and "baidu.com" not in c["url"]]
+check("信息渠道：同一个网址只列一次，教务处给了搜索链接", len(sites) == len(set(sites))
+      and any((c["url"] or "").startswith("https://www.baidu.com/s?wd=") for c in chs), chs)
+check("信息渠道：公众号给比赛全称让复制，加分认定能跳到本页那一块",
+      any(c["copy"] and c["copy"] in c["hint"] for c in chs) and any(c["anchor"] == "recognition" for c in chs), chs)
 blocked = [x for x in v.get("sources", []) if not x["aiAllowed"]]
 check("不让 AI 读的那篇也列出来，标成只放链接", len(blocked) == 1 and "数学竞赛" in (blocked[0]["title"] or ""), blocked)
 s, r = call("POST", f"/admin/competitions/{comp}/ai-summary", token=stu)

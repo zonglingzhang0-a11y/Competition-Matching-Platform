@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 import { Check, Close, Link } from '@element-plus/icons-vue'
 import { generateAiSummary, getAiSummary } from '@/api/competition'
 import type { AiSummaryView } from '@/types/api'
@@ -15,6 +16,17 @@ import { showError } from '@/utils/feedback'
  */
 const props = defineProps<{ competitionId: number; competitionName: string }>()
 const open = defineModel<boolean>({ required: true })
+/** 点了"去看看"：跳到比赛页上的加分认定或往届队伍 */
+const emit = defineEmits<{ jump: [anchor: 'recognition' | 'editions'] }>()
+
+async function copyText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success(`已复制「${text}」，去微信里搜吧`)
+  } catch {
+    ElMessage.info(`复制不了，手动记一下：${text}`)
+  }
+}
 
 /** 手机上铺满整屏 */
 const narrowQuery = window.matchMedia('(max-width: 560px)')
@@ -203,10 +215,14 @@ function sourceLabel(title: string | null): string {
             <h3 class="sub">更多信息渠道</h3>
             <ul class="channels">
               <li v-for="c in view.channels" :key="c.name + (c.url ?? '')">
-                <a v-if="safeUrl(c.url)" :href="safeUrl(c.url)!" target="_blank" rel="noopener noreferrer" class="channel-name">
-                  {{ c.name }} ↗
-                </a>
-                <span v-else class="channel-name">{{ c.name }}</span>
+                <span class="channel-head">
+                  <a v-if="safeUrl(c.url)" :href="safeUrl(c.url)!" target="_blank" rel="noopener noreferrer" class="channel-name">
+                    {{ c.name }} ↗
+                  </a>
+                  <span v-else class="channel-name">{{ c.name }}</span>
+                  <button v-if="c.copy" type="button" class="channel-action" @click="copyText(c.copy)">复制名称</button>
+                  <button v-if="c.anchor" type="button" class="channel-action" @click="emit('jump', c.anchor)">去看看 →</button>
+                </span>
                 <span v-if="c.hint" class="channel-hint">{{ c.hint }}</span>
               </li>
             </ul>
@@ -412,6 +428,28 @@ function sourceLabel(title: string | null): string {
 
 .channel-name {
   font-weight: 700;
+}
+
+.channel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.channel-action {
+  padding: 0 6px;
+  border: 1px solid var(--jd-line-strong);
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  color: var(--jd-ink-2);
+  cursor: pointer;
+}
+
+.channel-action:hover {
+  border-color: var(--jd-accent);
+  color: var(--jd-accent);
 }
 
 .channel-hint,

@@ -35,7 +35,17 @@ public final class AiSummaryDtos {
     public record SourceView(Long id, String title, String url, LocalDateTime fetchedAt, boolean aiAllowed, boolean used) {
     }
 
-    /** 信息渠道；url 为空的是"去哪里问"这类建议 */
-    public record Channel(String name, String url, String hint) {
+    /**
+     * 信息渠道。
+     *
+     * @param url    外部链接（官网、通知、搜索）
+     * @param copy   给一个"复制"按钮，复制这段文字（比如去微信里搜的比赛全称）
+     * @param anchor 跳到比赛页上的某一块：recognition 加分认定、editions 各届和队伍
+     */
+    public record Channel(String name, String url, String hint, String copy, String anchor) {
+
+        static Channel link(String name, String url, String hint) {
+            return new Channel(name, url, hint, null, null);
+        }
     }
 }

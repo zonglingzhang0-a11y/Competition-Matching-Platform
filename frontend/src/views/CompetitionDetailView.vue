@@ -21,6 +21,12 @@ const loading = ref(true)
 const activeEdition = ref<number>()
 const aiOpen = ref(false)
 
+/** AI 整理抽屉里点了"去看看"：关掉抽屉，滚到加分认定或往届队伍那一块（抽屉开着时页面锁住不能滚，稍等它解锁） */
+function jumpTo(anchor: 'recognition' | 'editions') {
+  aiOpen.value = false
+  setTimeout(() => document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+}
+
 async function load() {
   loading.value = true
   try {
@@ -93,11 +99,11 @@ onMounted(load)
         <p v-if="detail.description" class="desc">{{ detail.description }}</p>
       </el-card>
 
-      <RecognitionPanel :competition-id="detail.id" />
+      <RecognitionPanel id="recognition" :competition-id="detail.id" />
 
       <el-empty v-if="detail.editions.length === 0" description="这个比赛还没有发布届次信息" />
 
-      <el-card v-else shadow="never" class="block">
+      <el-card v-else id="editions" shadow="never" class="block">
         <el-tabs v-model="activeEdition">
           <el-tab-pane v-for="e in detail.editions" :key="e.id" :label="e.title" :name="e.id">
             <div class="edition-head">
@@ -147,7 +153,7 @@ onMounted(load)
         </el-tabs>
       </el-card>
 
-      <AiSummaryDrawer v-model="aiOpen" :competition-id="detail.id" :competition-name="detail.name" />
+      <AiSummaryDrawer v-model="aiOpen" :competition-id="detail.id" :competition-name="detail.name" @jump="jumpTo" />
     </template>
   </div>
 </template>

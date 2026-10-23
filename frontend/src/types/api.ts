@@ -1386,11 +1386,16 @@ export interface AiSummarySource {
   used: boolean
 }
 
-/** 信息渠道；url 为空的是"去哪里问"这类建议 */
+/** 信息渠道 */
 export interface AiSummaryChannel {
   name: string
+  /** 外部链接（官网、通知、搜索） */
   url: string | null
   hint: string | null
+  /** 给一个"复制"按钮，复制这段文字（比如去微信里搜的比赛全称） */
+  copy: string | null
+  /** 跳到比赛页上的某一块：recognition 加分认定、editions 各届和队伍 */
+  anchor: 'recognition' | 'editions' | null
 }
 
 export interface AiSummaryView {

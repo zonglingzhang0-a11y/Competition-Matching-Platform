@@ -23,7 +23,7 @@ public class AiSummaryController {
 
     @GetMapping("/competitions/{id}/ai-summary")
     public Result<View> view(@PathVariable long id) {
-        return Result.ok(service.view(id, StpUtil.hasRole("ADMIN")));
+        return Result.ok(service.view(id, StpUtil.getLoginIdAsLong(), StpUtil.hasRole("ADMIN")));
     }
 
     /** 调大模型重新生成，本机模型要等几十秒 */
