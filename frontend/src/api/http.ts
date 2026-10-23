@@ -72,6 +72,12 @@ export async function post<T>(url: string, body?: unknown): Promise<T> {
   return res.data.data
 }
 
+/** 会等一下的 POST：AI 分析要请求模型，可能十几秒，默认 15 秒的超时不够 */
+export async function postSlow<T>(url: string, body?: unknown): Promise<T> {
+  const res = await http.post<ApiResult<T>>(url, body, { timeout: 75000 })
+  return res.data.data
+}
+
 export async function put<T>(url: string, body?: unknown): Promise<T> {
   const res = await http.put<ApiResult<T>>(url, body)
   return res.data.data

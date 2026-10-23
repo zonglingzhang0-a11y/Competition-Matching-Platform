@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import ExperienceList from '@/components/ExperienceList.vue'
 import SkillEditor from '@/components/SkillEditor.vue'
+import SkillRadar, { type RadarSeries } from '@/components/SkillRadar.vue'
+import RadarSkillGroups from '@/components/RadarSkillGroups.vue'
+import AiProfileCard from '@/components/AiProfileCard.vue'
 import { getProfile, setHistoryVisibility, updateProfile } from '@/api/profile'
 import { useUserPageStore } from '@/stores/userPage'
 import { useUserStore } from '@/stores/user'
@@ -40,6 +43,11 @@ const rules: FormRules<ProfileForm> = {
 
 const currentYear = new Date().getFullYear()
 const years = Array.from({ length: 10 }, (_, i) => currentYear - i)
+
+/** 档案页的雷达只有一条线：我的能力 */
+const myRadarSeries = computed<RadarSeries[]>(() => [
+  { name: '我的能力', values: profile.value?.radar.axes.map((a) => a.score) ?? [], color: '#121310' },
+])
 
 async function load() {
   loading.value = true
@@ -160,9 +168,30 @@ onMounted(load)
       </el-card>
 
       <el-card shadow="never" class="block">
-        <template #header>技能</template>
-        <SkillEditor :initial="profile.skills" />
+        <template #header>
+          <div class="card-head">
+            <span>能力雷达</span>
+            <span class="radar-count">{{ profile.radar.count }} 项技能 → 六类能力</span>
+          </div>
+        </template>
+        <p class="radar-hint">
+          技能按竞赛里常见的六类能力归并：编程开发、建模与算法、数据与调研、设计表达、写作答辩、硬件工程。没有填具体技能的轴不会算 0，
+          按专业和相关技能估了基础分（图上标「推断」「基础」）；有具体技能时以技能为准。
+        </p>
+        <SkillRadar :axes="profile.radar.axes" :series="myRadarSeries" :height="260" />
+        <p class="radar-advice">{{ profile.radar.advice }}</p>
+        <div class="radar-groups">
+          <div class="groups-title">技能归类</div>
+          <RadarSkillGroups :axes="profile.radar.axes" mode="person" />
+        </div>
       </el-card>
+
+      <el-card shadow="never" class="block">
+        <template #header>技能</template>
+        <SkillEditor :initial="profile.skills" @saved="load" />
+      </el-card>
+
+      <AiProfileCard @applied="load" />
 
       <el-card shadow="never" class="block">
         <template #header>参赛履历</template>
@@ -219,6 +248,35 @@ onMounted(load)
 .inline-link {
   margin-left: 12px;
   font-size: 13px;
+}
+
+.radar-hint {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--jd-ink-2);
+}
+
+.radar-advice {
+  margin: 4px 0 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--jd-ink-2);
+}
+
+.radar-count {
+  font-size: 12px;
+  color: var(--jd-muted);
+}
+
+.radar-groups {
+  margin-top: 14px;
+}
+
+.groups-title {
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .short {

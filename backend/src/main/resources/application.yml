@@ -70,6 +70,13 @@ app:
     resend-seconds: 60
     max-attempts: 5
   admin-emails: []          # 用这些邮箱注册的账号自动成为管理员，在 application-local.yml 里填
+  ai:
+    enabled: false          # 打开后才会把资料发给模型做分析；关着时用本地规则，页面会标明"本地规则"
+    base-url: https://api.deepseek.com/v1
+    model: deepseek-chat
+    timeout-ms: 30000       # 云端模型一般几秒到十几秒
+    max-tokens: 1200
+    cooldown-seconds: 60    # 同一个人 / 同一支队两次 AI 分析至少隔多久，防止反复点
   screenshot:
     upload-dir: uploads     # 截图认证的原图存这里（相对启动目录），审核完就删
     ocr-enabled: true       # 本地 OCR 预审；关掉就只存图、全靠管理员人工看

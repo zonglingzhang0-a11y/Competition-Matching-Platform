@@ -11,6 +11,8 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AiProfileCard: typeof import('./components/AiProfileCard.vue')['default']
+    AiRecruitCard: typeof import('./components/AiRecruitCard.vue')['default']
     ApproveDialog: typeof import('./components/admin/ApproveDialog.vue')['default']
     AuthCard: typeof import('./components/AuthCard.vue')['default']
     CalendarFeedDialog: typeof import('./components/CalendarFeedDialog.vue')['default']
@@ -85,6 +87,7 @@ declare module 'vue' {
     NodesDialog: typeof import('./components/admin/NodesDialog.vue')['default']
     PageHeader: typeof import('./components/PageHeader.vue')['default']
     QuickAdd: typeof import('./components/QuickAdd.vue')['default']
+    RadarSkillGroups: typeof import('./components/RadarSkillGroups.vue')['default']
     RankingPicker: typeof import('./components/RankingPicker.vue')['default']
     RecognitionPanel: typeof import('./components/RecognitionPanel.vue')['default']
     RecommendedTeams: typeof import('./components/RecommendedTeams.vue')['default']
@@ -98,6 +101,7 @@ declare module 'vue' {
     SendCodeButton: typeof import('./components/SendCodeButton.vue')['default']
     SkillEditor: typeof import('./components/SkillEditor.vue')['default']
     SkillGapChart: typeof import('./components/admin/SkillGapChart.vue')['default']
+    SkillRadar: typeof import('./components/SkillRadar.vue')['default']
     SlotGrid: typeof import('./components/SlotGrid.vue')['default']
     SuggestedGroups: typeof import('./components/SuggestedGroups.vue')['default']
     SurveyQuestionItem: typeof import('./components/SurveyQuestionItem.vue')['default']

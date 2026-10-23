@@ -11,7 +11,7 @@
 ```
 backend/    Spring Boot 4 + MyBatis-Plus + Sa-Token（Java 21）
 frontend/   Vue 3 + Vite + TypeScript + Pinia + Element Plus
-sql/        demo.sql 演示数据，和两个给旧演示库用的小脚本（建表和初始数据在后端的 db/migration 里，启动时自动执行）
+sql/        demo.sql 演示数据，和几个给旧演示库用的小脚本（建表和初始数据在后端的 db/migration 里，启动时自动执行）；技能字典在 V7 里扩到 70 多项
 docs/       设计文档
 ```
 
@@ -74,6 +74,12 @@ Windows 的 PowerShell 不支持 `<`，而且 `mysql` 一般不在 PATH 里，�
 
 ```powershell
 & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/demo-refresh-dates.sql"
+```
+
+想看铺开的能力雷达（招募需求横跨好几类能力），再跑一次这个脚本，给演示队伍的招募需求多补几项技能要求，可以重复跑：
+
+```powershell
+& "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -uroot -p --default-character-set=utf8mb4 -e "source sql/demo-radar.sql"
 ```
 
 用 `admin@demo.local` 登录，顶部菜单会多出"管理后台"：
@@ -188,6 +194,30 @@ location /api/ws/ {
   规则抽到的字段不会被换掉，大模型只补缺的。每个字段都要带上原文里的一句话当依据，这句话在原文里找不到、或者句子里没有它给的日期和人数，就不要这个字段，防止大模型编造。确认页面里大模型补的依据会标"大模型"。没配、连不上、超时都只用规则，不影响抓取和启动。
 - 在 robots.txt 里拒绝 AI 爬虫的网站（抓取时会自动标出来）始终只用规则，不交给大模型。挑战杯官网就是这种情况，所以默认停用。
 - 不想定时抓（比如在本地开发），在 `application-local.yml` 里设 `app.crawler.enabled: false`，手动抓不受影响。
+
+## AI 能力分析和招募建议（可选，默认关）
+
+注册时只填邮箱，还没有"特长、经历、性格"可分析；真正的信号来自档案（技能、简介、履历）和组队问卷，所以入口在"我的档案"：
+
+- **个人**：填完快速问卷（7 题）和技能后，点"AI 能力分析"，会读技能、履历、简介和问卷里合作相关的题，给出总结、优势、合作风格、建议补的技能（每条带资料原话）。建议的技能要自己勾选、调熟练度、点"加入我的技能"才会写进档案，雷达图随后更新。
+- **队伍**：队长在队伍页点"AI 招募建议"，会结合队员的技能、雷达、问卷特点和还开着的需求，给出最缺的能力、该找什么样的人、组队前问什么。需求技能的差距是后端算的，模型只解释。
+
+接的是 OpenAI 兼容接口（DeepSeek、通义、本机 Ollama / llama.cpp 都行），在 `application-local.yml` 里打开：
+
+```yaml
+app:
+  ai:
+    enabled: true
+    base-url: https://api.deepseek.com/v1   # 本机模型换成 http://127.0.0.1:11434/v1 之类
+    model: deepseek-chat
+    api-key: 你的密钥                        # 本机模型通常不用填
+    cooldown-seconds: 60                     # 同一个人 / 同一支队两次分析的间隔
+```
+
+- **没配或连不上会降级**：自动用本地规则算（技能 + 问卷 + 需求雷达），页面上标"本地规则"，不会假装是 AI；配置好后点"重新分析"即可换成模型结果。
+- **防编造**：模型给的每条优势、性格、技能都要带资料里的原话，找不到就丢掉；技能名必须在技能字典里，等级只能是 1–3。
+- **隐私**：只发技能、履历、专业和合作相关的问卷题；邮箱、联系方式、真实姓名、完整问卷答案都不发。个人分析是本人点的，招募建议只有队长能看。
+- **成本**：结果存在 `ai_analysis` 表里，打开页面不重复请求；同一人/队 60 秒内重复点会直接用上次结果。
 
 ## 测试
 

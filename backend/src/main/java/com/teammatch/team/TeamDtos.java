@@ -1,6 +1,8 @@
 package com.teammatch.team;
 
 import com.teammatch.competition.EditionPhase;
+import com.teammatch.radar.RadarDtos.Radar;
+import com.teammatch.radar.RadarDtos.TeamRadar;
 import com.teammatch.user.UserBriefs.Contact;
 import com.teammatch.user.UserBriefs.UserBrief;
 import jakarta.validation.Valid;
@@ -71,7 +73,7 @@ public final class TeamDtos {
                              EditionPhase phase, Integer teamMin, Integer teamMax, boolean sameSchoolRequired) {
     }
 
-    public record NeedSkillView(Long skillId, String name, Integer minLevel) {
+    public record NeedSkillView(Long skillId, String name, String category, Integer minLevel) {
     }
 
     public record NeedView(Long id, String roleName, Integer headcount, Integer filled, String note,
@@ -94,13 +96,19 @@ public final class TeamDtos {
 
     public record TeamDetail(Long id, String name, String intro, Team.Status status, Integer maxMembers,
                              Team.MeetingMode meetingMode, int memberCount, EditionRef edition, Long captainId,
-                             List<MemberView> members, List<NeedView> needs, MyRelation me, LocalDateTime createdAt,
+                             List<MemberView> members, List<NeedView> needs,
+                             /* 招募需求雷达 + 看的人自己的能力雷达 + 覆盖率，见 RadarMath.team */
+                             TeamRadar radar,
+                             MyRelation me, LocalDateTime createdAt,
                              /* 比赛结束时队长录入的奖项，没录为空 */
                              String award) {
     }
 
     public record TeamSummary(Long id, String name, String intro, Team.Status status, Integer maxMembers,
-                              int memberCount, UserBrief captain, List<NeedView> openNeeds, EditionRef edition) {
+                              int memberCount, UserBrief captain, List<NeedView> openNeeds,
+                              /* 招募需求雷达，队伍列表里直接画出来；没有招募或没勾技能时是六个空轴 */
+                              Radar needRadar,
+                              EditionRef edition) {
     }
 
     public record TeamRef(Long id, String name, String competitionName, String editionTitle) {

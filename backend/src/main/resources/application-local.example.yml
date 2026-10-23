@@ -28,3 +28,11 @@ app:
 #       base-url: https://api.deepseek.com/v1
 #       model: deepseek-chat
 #       api-key: 你的密钥
+#   ai:                     # AI 能力分析 / 招募建议，OpenAI 兼容接口（DeepSeek、通义、本机 Ollama 都行）
+#     enabled: true         # 打开后才会请求模型；关着或连不上时用本地规则，页面会标明来源
+#     base-url: https://api.deepseek.com/v1
+#     model: deepseek-chat
+#     api-key: 你的密钥
+#     timeout-ms: 30000
+#     max-tokens: 1200
+#     cooldown-seconds: 60

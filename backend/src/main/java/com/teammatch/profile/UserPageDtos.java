@@ -3,6 +3,7 @@ package com.teammatch.profile;
 import com.teammatch.profile.ProfileDtos.SkillLevel;
 import com.teammatch.profile.UserPageAccess.HistoryVisibility;
 import com.teammatch.profile.UserPageAccess.Level;
+import com.teammatch.radar.RadarDtos.Radar;
 import com.teammatch.user.UserBriefs.Contact;
 import jakarta.validation.constraints.NotNull;
 
@@ -26,6 +27,7 @@ public final class UserPageDtos {
      */
     public record UserPage(Long id, String nickname, String schoolName, boolean verified, String major,
                            Integer enrollYear, String degree, String bio, LocalDate joinedAt, List<SkillLevel> skills,
+                           Radar radar,
                            Credit credit, String selfIntro, String weakness, Stats stats, ExperienceView highlight,
                            List<TeamRecord> teams, List<ExperienceView> experiences, Mutual mutual, Contact contact,
                            Access access) {
