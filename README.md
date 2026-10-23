@@ -46,6 +46,12 @@ cd backend && ./mvnw spring-boot:run
 
 Windows 的 cmd 或 PowerShell 里用 `mvnw.cmd spring-boot:run`。接口文档：<http://localhost:8090/swagger-ui.html>
 
+打成 jar 运行时（`./mvnw package`），`application-local.yml` 不会打进 jar（里面有数据库密码，免得 jar 发给别人时带出去）。在 `backend` 目录下这样运行，让它读源码目录里的那份：
+
+```bash
+java -jar target/backend-0.0.1-SNAPSHOT.jar --spring.config.additional-location=file:src/main/resources/
+```
+
 **3. 启动前端**（端口 5173，`/api` 自动转发到后端）
 
 ```bash
