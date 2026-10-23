@@ -62,7 +62,11 @@ onMounted(load)
       </el-tooltip>
     </div>
     <div v-loading="loading" class="list">
-      <el-empty v-if="!loading && teams.length === 0" :image-size="60" description="还没有人建队，你可以第一个" />
+      <el-empty
+        v-if="!loading && teams.length === 0"
+        :image-size="60"
+        :description="edition.phase === 'CLOSED' ? '这一届平台上没有队伍' : '还没有人建队，你可以第一个'"
+      />
       <TeamCard v-for="t in teams" :key="t.id" :team="t" />
     </div>
     <TeamFormDialog

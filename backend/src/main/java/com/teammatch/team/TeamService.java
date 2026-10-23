@@ -307,12 +307,13 @@ public class TeamService {
     }
 
     /** 某一届的队伍，招募中的排前面 */
+    /** 一届的队伍：招募中的在前，然后是满员和停止招募的，比完赛的放最后（往届比赛页上能看到谁参加过） */
     public List<TeamSummary> listByEdition(long editionId) {
         List<Team> teams = teamMapper.selectList(new LambdaQueryWrapper<Team>()
                 .eq(Team::getEditionId, editionId)
-                .in(Team::getStatus, List.of(Team.Status.RECRUITING, Team.Status.FULL, Team.Status.CLOSED))
+                .in(Team::getStatus, List.of(Team.Status.RECRUITING, Team.Status.FULL, Team.Status.CLOSED, Team.Status.FINISHED))
                 .orderByDesc(Team::getCreatedAt));
-        teams.sort(Comparator.comparing(t -> t.getStatus() != Team.Status.RECRUITING));
+        teams.sort(Comparator.comparingInt(t -> t.getStatus() == Team.Status.RECRUITING ? 0 : t.getStatus() == Team.Status.FINISHED ? 2 : 1));
         return summaries(teams);
     }
 
