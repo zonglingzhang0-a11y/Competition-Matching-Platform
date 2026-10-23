@@ -1,5 +1,6 @@
 package com.teammatch.crawler;
 
+import com.teammatch.llm.LlmClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
@@ -18,7 +19,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 规则没抽全的通知交给大模型补（OpenAI 兼容接口，见 {@link LlmProperties}）。
+ * 规则没抽全的通知交给大模型补（OpenAI 兼容接口，见 {@link com.teammatch.llm.LlmProperties}）。
  * <p>
  * 大模型会编，所以每个字段都要带上原文里的一句话当依据：这句话在原文里找不到、或者句子里没有它给的日期 / 人数，
  * 这个字段就不要。补出来的字段在依据里标成"llm:xxx"，管理员核对时看得出是大模型抽的。

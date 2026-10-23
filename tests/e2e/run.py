@@ -21,8 +21,8 @@ import env
 ADMIN = ["--app.admin-emails[0]=admin@test.local"]
 REMIND = ["--app.reminder.interval-ms=3000", "--app.reminder.initial-delay-ms=1000"]
 MAIL = ["--app.notify-mail.delay-seconds=3", "--app.notify-mail.interval-ms=1000", "--app.notify-mail.initial-delay-ms=1000"]
-LLM = ["--app.crawler.delay-ms=200", "--app.crawler.llm.enabled=true", "--app.crawler.llm.base-url=http://127.0.0.1:18096/v1",
-       "--app.crawler.llm.api-key=test-key", "--app.crawler.llm.timeout-ms=1500"]
+LLM = ["--app.crawler.delay-ms=200", "--app.llm.enabled=true", "--app.llm.base-url=http://127.0.0.1:18096/v1",
+       "--app.llm.api-key=test-key", "--app.llm.timeout-ms=1500"]
 
 
 @dataclass
@@ -60,7 +60,9 @@ SUITES = [
     Suite("ocr", "截图认证（真跑 OCR）", ADMIN, uploads=True),
     Suite("crawl", "比赛通知爬虫（本机假官网）", ADMIN + ["--app.crawler.delay-ms=300"], site="crawlsite", site_port=18765),
     Suite("llm", "爬虫接大模型、比赛页 AI 总结（本机假官网 + 假大模型）", ADMIN + LLM, site="llmsite", site_port=18768),
-    Suite("migrate", "数据库迁移：全新的库、各版本的旧库都能自动升到最新", self_managed=True),
+    Suite("radar_ai", "能力雷达、AI 能力分析和招募建议（假大模型）", ADMIN + LLM + ["--app.ai.enabled=true", "--app.ai.cooldown-seconds=2"],
+          site="llmsite", site_port=18768),
+    Suite("migrate","数据库迁移：全新的库、各版本的旧库都能自动升到最新", self_managed=True),
     Suite("login_store", "后端重启后登录还在", self_managed=True),
     Suite("demo_dates", "演示比赛的日期", self_managed=True),
 ]

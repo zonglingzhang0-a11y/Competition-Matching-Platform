@@ -22,6 +22,7 @@ import com.teammatch.crawler.CrawlEntities.CrawlRecordMapper;
 import com.teammatch.crawler.CrawlEntities.CrawlSource;
 import com.teammatch.crawler.CrawlEntities.CrawlSourceMapper;
 import com.teammatch.crawler.CrawlEntities.RecordStatus;
+import com.teammatch.llm.LlmClient;
 import com.teammatch.recognition.RecognitionService;
 import com.teammatch.school.School;
 import com.teammatch.school.SchoolMapper;
@@ -120,7 +121,7 @@ public class AiSummaryService {
     public View generate(long adminId, long competitionId) {
         Competition c = requireCompetition(competitionId);
         if (!llm.ready()) {
-            throw new BizException(400, "后端还没打开大模型：在配置里打开 app.crawler.llm.enabled，填好接口地址");
+            throw new BizException(400, "后端还没打开大模型：在配置里打开 app.llm.enabled，填好接口地址");
         }
         Map<Long, CrawlSource> sources = sources(competitionId);
         List<Source> input = records(sources.keySet()).stream()

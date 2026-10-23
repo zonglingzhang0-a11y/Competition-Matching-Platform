@@ -1,5 +1,7 @@
-package com.teammatch.crawler;
+package com.teammatch.llm;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.json.JsonMapper;
@@ -14,21 +16,31 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 /**
- * 调大模型（OpenAI 兼容的 /chat/completions，配置见 {@link LlmProperties}）：爬虫补抽字段、比赛页的 AI 总结都用它。
- * 本机的小模型、DeepSeek 之类的云端模型都行；一次只发一个请求，等回答回来。
+ * 调大模型（OpenAI 兼容的 /chat/completions，配置见 {@link LlmProperties}）：爬虫补抽字段、比赛页的 AI 整理、
+ * AI 能力分析都用它。本机的小模型、DeepSeek 之类的云端模型都行。
+ * <p>
+ * 本机模型一次只能处理一个请求，所以这里同一时间只放一个请求出去，其余的排队；排队超过 wait-ms 就当这次没连上，
+ * 各功能照常退回规则。
  */
+@Slf4j
 @Component
 public class LlmClient {
 
     private final LlmProperties props;
     private final JsonMapper json;
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
+    private final Semaphore oneAtATime = new Semaphore(1, true);
 
-    public LlmClient(LlmProperties props, JsonMapper json) {
+    public LlmClient(LlmProperties props, JsonMapper json, Environment env) {
         this.props = props;
         this.json = json;
+        if (env.containsProperty("app.crawler.llm.enabled") || env.containsProperty("app.crawler.llm.base-url")) {
+            log.warn("大模型配置改名了：app.crawler.llm 下面的设置要挪到 app.llm 下面（爬虫、AI 整理、AI 能力分析共用），旧名字已经不起作用");
+        }
     }
 
     /** 打开了并且填了地址 */
@@ -44,8 +56,19 @@ public class LlmClient {
         return props.maxChars();
     }
 
-    /** 返回大模型回答的文字；连不上、超时、HTTP 出错时抛 IOException */
+    /** 返回大模型回答的文字；排队等不到、连不上、超时、HTTP 出错时抛 IOException */
     public String chat(String system, String user, int maxTokens) throws IOException, InterruptedException {
+        if (!oneAtATime.tryAcquire(props.waitMs(), TimeUnit.MILLISECONDS)) {
+            throw new IOException("大模型正在回答别的请求，排队超过 " + props.waitMs() / 1000 + " 秒");
+        }
+        try {
+            return send(system, user, maxTokens);
+        } finally {
+            oneAtATime.release();
+        }
+    }
+
+    private String send(String system, String user, int maxTokens) throws IOException, InterruptedException {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", props.model());
         body.put("temperature", 0);

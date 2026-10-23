@@ -3,7 +3,10 @@ package com.teammatch.profile;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.teammatch.common.BizException;
 import com.teammatch.profile.ProfileMappers.ExperienceMapper;
+import com.teammatch.profile.ProfileDtos.SkillLevel;
 import com.teammatch.profile.UserPageAccess.HistoryVisibility;
+import com.teammatch.radar.RadarDtos.Radar;
+import com.teammatch.radar.RadarMath;
 import com.teammatch.profile.UserPageAccess.Level;
 import com.teammatch.profile.UserPageDtos.Access;
 import com.teammatch.profile.UserPageDtos.Credit;
@@ -89,6 +92,7 @@ public class UserPageService {
         boolean details = UserPageAccess.canSeePrivateDetails(level);
 
         UserBrief brief = userBriefs.loadOne(targetId);
+        List<SkillLevel> targetSkills = brief == null ? List.of() : brief.skills();
         UserProfile profile = profileMapper.selectById(targetId);
         Map<String, Object> answers = intro ? surveyService.generalAnswers(List.of(targetId)).getOrDefault(targetId, Map.of())
                 : Map.of();
@@ -114,10 +118,17 @@ public class UserPageService {
                 intro && profile != null ? profile.getDegree() : null,
                 intro && profile != null ? profile.getBio() : null,
                 target.getCreatedAt() == null ? null : target.getCreatedAt().toLocalDate(),
-                brief == null ? List.of() : brief.skills(), credit,
+                targetSkills, radar(targetSkills, brief == null ? null : brief.major()), credit,
                 text(answers.get(F1)), details ? text(answers.get(F2)) : null,
                 stats, highlight(experiences), teams, experiences, mutual, contact,
                 new Access(level, history, contactVisible, notice(level, history), self ? setting : null, previewing));
+    }
+
+    /** 个人资料页上的六维能力雷达，和档案页算的是同一套分 */
+    private static Radar radar(List<SkillLevel> skills, String major) {
+        return RadarMath.person(skills.stream()
+                .map(s -> new RadarMath.Entry(s.name(), s.category(), s.level() == null ? 0 : s.level()))
+                .toList(), major);
     }
 
     /** 本人的履历可见范围，没设置过就是公开。老库还没有 user_privacy 表时也按公开处理，不影响其他功能 */

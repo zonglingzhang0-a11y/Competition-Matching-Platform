@@ -22,9 +22,11 @@ app:
 #     from: 你的邮箱@qq.com
 #   notify-mail:
 #     site-url: http://你的服务器地址   # 新消息邮件里的链接
-#   crawler:
-#     llm:                  # 爬虫用大模型补抽字段；本机模型只要 enabled: true，云端模型再填地址、模型名和密钥
-#       enabled: true
-#       base-url: https://api.deepseek.com/v1
-#       model: deepseek-chat
-#       api-key: 你的密钥
+#   llm:                    # 大模型连接：爬虫补抽、比赛页 AI 整理、AI 能力分析共用（以前叫 crawler.llm）
+#     enabled: true         # 本机模型只要 enabled: true；云端模型再填地址、模型名和密钥
+#     base-url: https://api.deepseek.com/v1
+#     model: deepseek-chat
+#     api-key: 你的密钥
+#   ai:                     # AI 能力分析 / 招募建议：会把档案发给上面的模型，单独开关
+#     enabled: true         # 关着或模型连不上时用本地规则，页面会标明来源
+#     cooldown-seconds: 60

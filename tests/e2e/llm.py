@@ -1,6 +1,6 @@
 """爬虫接大模型（#9）和比赛页 AI 总结的接口测试。假官网 18768、假大模型 18096 要先跑着（llmsite/server.py）。
-后端用 --app.admin-emails[0]=admin@test.local --app.crawler.delay-ms=200 --app.crawler.llm.enabled=true
---app.crawler.llm.base-url=http://127.0.0.1:18096/v1 --app.crawler.llm.api-key=test-key --app.crawler.llm.timeout-ms=1500 启动。
+后端用 --app.admin-emails[0]=admin@test.local --app.crawler.delay-ms=200 --app.llm.enabled=true
+--app.llm.base-url=http://127.0.0.1:18096/v1 --app.llm.api-key=test-key --app.llm.timeout-ms=1500 启动。
 用法：python e2e_llm.py <后端日志> <假大模型请求日志>"""
 import env  # 公共环境：库、端口、mysql 客户端，见 env.py
 import json

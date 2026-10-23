@@ -14,6 +14,9 @@ import com.teammatch.profile.ProfileDtos.SkillOption;
 import com.teammatch.profile.ProfileMappers.ExperienceMapper;
 import com.teammatch.profile.ProfileMappers.SkillMapper;
 import com.teammatch.profile.ProfileMappers.UserSkillMapper;
+import com.teammatch.profile.UserPageDtos.UserPage;
+import com.teammatch.radar.RadarDtos.Radar;
+import com.teammatch.radar.RadarMath;
 import com.teammatch.recognition.RecognitionService;
 import com.teammatch.user.MeResponse;
 import com.teammatch.user.SysUser;
@@ -53,10 +56,18 @@ public class ProfileService {
     public ProfileResponse get(long userId) {
         MeResponse me = userService.me(userId);
         UserProfile p = profileOf(userId);
+        List<SkillLevel> skills = skills(userId);
         return new ProfileResponse(me.email(), me.nickname(), me.verifyStatus(), me.school(),
                 p.getRealName(), p.getGender(), p.getMajor(), p.getEnrollYear(), p.getDegree(), p.getBio(),
-                p.getContactWechat(), p.getContactQq(), skills(userId), experiences(userId),
+                p.getContactWechat(), p.getContactQq(), skills, radar(skills, p.getMajor()), experiences(userId),
                 userPageService.historyVisibility(userId));
+    }
+
+    /** 六维能力雷达：技能按竞赛里常见的六类能力归并；没填技能的轴按专业和相关技能估基础分，见 RadarMath */
+    private static Radar radar(List<SkillLevel> skills, String major) {
+        return RadarMath.person(skills.stream()
+                .map(s -> new RadarMath.Entry(s.name(), s.category(), s.level() == null ? 0 : s.level()))
+                .toList(), major);
     }
 
     @Transactional

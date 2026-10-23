@@ -1,5 +1,6 @@
 package com.teammatch.profile;
 
+import com.teammatch.radar.RadarDtos.Radar;
 import com.teammatch.user.MeResponse;
 import com.teammatch.user.SysUser;
 import jakarta.validation.Valid;
@@ -34,6 +35,8 @@ public final class ProfileDtos {
             String contactWechat,
             String contactQq,
             List<SkillLevel> skills,
+            /* 六维能力雷达：技能按竞赛里常见的六类能力归并算分，见 RadarMath */
+            Radar radar,
             List<Experience> experiences,
             UserPageAccess.HistoryVisibility historyVisibility) {
     }

@@ -70,6 +70,25 @@ SUMMARY_POINTS = [
 ]
 summary_calls = 0
 
+# AI 能力分析：一条对得上的优势、一条编的；技能里 MATLAB 对得上，量子计算不在字典里，LaTeX 的原话是编的
+PROFILE_ANSWER = {
+    "summary": "做过数学建模，负责写求解代码。",
+    "strengths": [{"title": "能写求解代码", "detail": "建模比赛里负责编程", "evidence": "负责用 Python 写求解代码"},
+                  {"title": "获奖经验丰富", "detail": "编的", "evidence": "拿过三次国家一等奖"}],
+    "skills": [{"name": "MATLAB", "level": 2, "evidence": "也会用 MATLAB 画图"},
+               {"name": "量子计算", "level": 3, "evidence": "负责用 Python 写求解代码"},
+               {"name": "LaTeX 排版", "level": 2, "evidence": "论文都是我排的版"}],
+    "personality": [{"trait": "愿意扛编程", "evidence": "负责用 Python 写求解代码"}],
+    "axisHints": [{"axis": "WRITE", "reason": "写作还空着"}, {"axis": "MAGIC", "reason": "不存在的轴"}],
+}
+# AI 招募建议：WRITE 真缺；CODE 队里已经够了（后端会去掉）；MAGIC 不存在
+TEAM_ANSWER = {
+    "summary": "队里缺写论文、排版的人。",
+    "weakAxes": [{"axis": "WRITE", "reason": "没人会排版"}, {"axis": "CODE", "reason": "其实已经够了"},
+                 {"axis": "MAGIC", "reason": "x"}],
+    "suggestions": ["找一个会 LaTeX 的同学"], "candidateProfile": ["写过论文"], "questions": ["排过几篇论文？"],
+}
+
 
 def summary_answer(user):
     """按原话在第几篇通知里填 source；第 2 次只回编的，第 3 次慢 1 秒（测同时点两次）"""
@@ -111,16 +130,29 @@ class Llm(BaseHTTPRequestHandler):
         body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))).decode("utf-8"))
         user = body["messages"][-1]["content"]
         title = user.split("\n", 1)[0]
-        summary = "整理比赛的官方通知" in body["messages"][0]["content"]
+        system = body["messages"][0]["content"]
+        summary = "整理比赛的官方通知" in system
+        kind = "summary" if summary else "profile" if "能力分析助手" in system else "team" if "招募顾问" in system else "extract"
         notices = []
         if summary:
             answer, notices = summary_answer(user)
+        elif kind == "profile":
+            answer = PROFILE_ANSWER
+        elif kind == "team":
+            answer = TEAM_ANSWER
         with lock, open(LOG, "a", encoding="utf-8") as f:
             f.write(json.dumps({"title": title, "model": body.get("model"), "path": self.path,
                                 "system": body["messages"][0]["role"] == "system",
                                 "auth": self.headers.get("Authorization"), "chars": len(user),
-                                "kind": "summary" if summary else "extract", "notices": notices}, ensure_ascii=False) + "\n")
-        if not summary:
+                                "kind": kind, "notices": notices,
+                                # AI 分析的请求把全文记下来，测试里查有没有把邮箱、联系方式发出去
+                                "user": user if kind in ("profile", "team") else None}, ensure_ascii=False) + "\n")
+        if kind == "profile" and "请让模型出错" in user:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(b"engine error")
+            return
+        if kind == "extract":
             if "化学" in title:
                 self.send_response(500)
                 self.end_headers()

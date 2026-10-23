@@ -164,7 +164,7 @@ function sourceLabel(title: string | null): string {
           </el-button>
         </div>
         <p v-if="view.canGenerate && !view.llmReady" class="hint">
-          后端还没打开大模型（配置里的 app.crawler.llm.enabled），现在只能看已经存好的结果。
+          后端还没打开大模型（配置里的 app.llm.enabled），现在只能看已经存好的结果。
         </p>
         <p v-if="generating" class="hint">正在请大模型整理，本机模型要等几秒到几十秒……</p>
 

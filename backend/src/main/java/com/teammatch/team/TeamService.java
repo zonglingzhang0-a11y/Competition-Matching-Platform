@@ -8,7 +8,11 @@ import com.teammatch.competition.EditionPhase;
 import com.teammatch.notification.Notification;
 import com.teammatch.notification.NotificationService;
 import com.teammatch.profile.ProfileMappers.SkillMapper;
+import com.teammatch.profile.ProfileDtos.SkillLevel;
 import com.teammatch.profile.Skill;
+import com.teammatch.radar.RadarDtos.Radar;
+import com.teammatch.radar.RadarDtos.TeamRadar;
+import com.teammatch.radar.RadarMath;
 import com.teammatch.team.TeamDtos.AppBrief;
 import com.teammatch.team.TeamDtos.CreateTeamRequest;
 import com.teammatch.team.TeamDtos.EditionRef;
@@ -301,9 +305,12 @@ public class TeamService {
                 contacts.get(m.getUserId()))).toList();
 
         List<NeedView> needs = needViews(List.of(teamId), false).getOrDefault(teamId, List.of());
+        UserBrief viewerBrief = userBriefs.loadOne(viewerId);
+        TeamRadar radar = RadarMath.team(needRadar(needs), personRadar(
+                viewerBrief == null ? List.of() : viewerBrief.skills(), viewerBrief == null ? null : viewerBrief.major()));
         return new TeamDetail(t.getId(), t.getName(), t.getIntro(), t.getStatus(), t.getMaxMembers(),
                 t.getMeetingMode(), members.size(), support.editionRef(e), t.getCaptainId(), memberViews, needs,
-                relation(viewerId, t, e, viewerIsMember), t.getCreatedAt(), t.getAward());
+                radar, relation(viewerId, t, e, viewerIsMember), t.getCreatedAt(), t.getAward());
     }
 
     /** 某一届的队伍，招募中的排前面 */
@@ -368,7 +375,26 @@ public class TeamService {
         Map<Long, EditionRef> editions = support.editionRefs(teams.stream().map(Team::getEditionId).collect(Collectors.toSet()));
         return teams.stream().map(t -> new TeamSummary(t.getId(), t.getName(), t.getIntro(), t.getStatus(),
                 t.getMaxMembers(), counts.getOrDefault(t.getId(), 0), captains.get(t.getCaptainId()),
-                needs.getOrDefault(t.getId(), List.of()), editions.get(t.getEditionId()))).toList();
+                needs.getOrDefault(t.getId(), List.of()),
+                needRadar(needs.getOrDefault(t.getId(), List.of())),
+                editions.get(t.getEditionId()))).toList();
+    }
+
+    /** 招募需求雷达：只看还开着的需求，队长写清楚要什么技能，别人一眼看出这支队缺什么样的人 */
+    private static Radar needRadar(List<NeedView> needs) {
+        List<NeedView> open = needs.stream().filter(n -> n.status() == TeamNeed.Status.OPEN).toList();
+        List<RadarMath.Requirement> requirements = open.stream()
+                .flatMap(n -> n.skills().stream().map(s -> new RadarMath.Requirement(n.roleName(), s.name(),
+                        s.category(), s.minLevel() == null ? 0 : s.minLevel())))
+                .toList();
+        return RadarMath.need(requirements, open.size());
+    }
+
+    /** 看队伍的人自己的能力雷达，用来和需求叠在一起比 */
+    private static Radar personRadar(List<SkillLevel> skills, String major) {
+        return RadarMath.person(skills.stream()
+                .map(s -> new RadarMath.Entry(s.name(), s.category(), s.level() == null ? 0 : s.level()))
+                .toList(), major);
     }
 
     /** openOnly：列表里只显示还在招的需求；详情页显示全部（不含已取消的） */
@@ -383,7 +409,8 @@ public class TeamService {
         }
         Map<Long, List<NeedSkillView>> skills = needSkillMapper.listByNeeds(needs.stream().map(TeamNeed::getId).toList())
                 .stream().collect(Collectors.groupingBy(NeedSkillMapper.NeedSkillRow::needId,
-                        Collectors.mapping(r -> new NeedSkillView(r.skillId(), r.name(), r.minLevel()), Collectors.toList())));
+                        Collectors.mapping(r -> new NeedSkillView(r.skillId(), r.name(), r.category(), r.minLevel()),
+                                Collectors.toList())));
         return needs.stream().collect(Collectors.groupingBy(TeamNeed::getTeamId,
                 Collectors.mapping(n -> new NeedView(n.getId(), n.getRoleName(), n.getHeadcount(), n.getFilled(),
                         n.getNote(), n.getStatus(), skills.getOrDefault(n.getId(), List.of())), Collectors.toList())));

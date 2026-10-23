@@ -33,6 +33,17 @@ const available = computed(() => {
   return options.value.filter((o) => !chosen.has(o.id))
 })
 
+/** 技能字典按类别分组，70 多项技能也能快速找到 */
+const groups = computed(() => {
+  const map = new Map<string, SkillOption[]>()
+  for (const o of available.value) {
+    const list = map.get(o.category) ?? []
+    list.push(o)
+    map.set(o.category, list)
+  }
+  return [...map.entries()].map(([category, items]) => ({ category, items }))
+})
+
 watch(open, async (value) => {
   if (!value) return
   const n = props.need
@@ -105,14 +116,18 @@ async function onSubmit() {
             v-model="picking"
             filterable
             default-first-option
-            placeholder="添加技能要求"
+            placeholder="添加技能要求（按类别分组）"
             :disabled="form.skills.length >= 10"
             class="picker"
             @change="addSkill"
           >
-            <el-option v-for="o in available" :key="o.id" :label="`${o.name}（${o.category}）`" :value="o.id" />
+            <el-option-group v-for="g in groups" :key="g.category" :label="g.category">
+              <el-option v-for="o in g.items" :key="o.id" :label="o.name" :value="o.id" />
+            </el-option-group>
           </el-select>
-          <div class="hint block">推荐队友时，会拿这里的技能去和每个人的档案比，看谁能补上这个缺口。</div>
+          <div class="hint block">
+            最多 10 项。推荐队友时，会拿这里的技能去和每个人的档案比，看谁能补上这个缺口；队伍页的需求雷达也按这六类能力画。
+          </div>
         </div>
       </el-form-item>
       <el-form-item label="补充说明">

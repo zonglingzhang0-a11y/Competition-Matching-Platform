@@ -147,6 +147,54 @@ export interface SkillLevel {
   level: number
 }
 
+// ---------- 能力雷达 ----------
+
+/** 雷达图的一轴：0–100 分，下面带着归到这个轴的具体技能 */
+export interface RadarAxis {
+  key: string
+  label: string
+  hint: string
+  score: number
+  /** 有具体技能：入门 / 熟练 / 精通；没有时：推断 / 基础；需求：要求入门 / 要求熟练 / 要求精通 / 无要求 */
+  band: string
+  /** 这一轴的具体技能；个人雷达是熟练度，需求雷达是要求的最低熟练度 */
+  skills: { name: string; category: string; level: number }[]
+  /** 需求雷达：这一轴对应哪些缺人的角色；个人雷达为空 */
+  roles: string[]
+  /** SKILL 有具体技能 / INFERRED 按专业或相关技能推断 / BASE 基础分 / NEED 有要求 / NONE 没要求 */
+  basis: 'SKILL' | 'INFERRED' | 'BASE' | 'NEED' | 'NONE'
+  /** 推断或基础分的依据，页面上直接显示；有具体技能时为 null */
+  reason: string | null
+}
+
+export interface Radar {
+  axes: RadarAxis[]
+  /** 个人是技能项数，需求是还开着的招募需求条数 */
+  count: number
+  strongestKey: string | null
+  strongestLabel: string | null
+  advice: string
+}
+
+export interface RadarGap {
+  key: string
+  label: string
+  need: number
+  mine: number
+  /** COVERED 达标 / PARTIAL 差一档 / MISSING 还没有 */
+  status: 'COVERED' | 'PARTIAL' | 'MISSING'
+  text: string
+}
+
+export interface TeamRadar {
+  need: Radar
+  mine: Radar
+  /** 0–100，需求里没勾技能、或者我没填技能时为空 */
+  fit: number | null
+  gaps: RadarGap[]
+  verdict: string
+}
+
 export interface Experience {
   id: number
   competitionId: number | null
@@ -186,6 +234,8 @@ export interface Profile {
   contactWechat: string | null
   contactQq: string | null
   skills: SkillLevel[]
+  /** 六维能力雷达 */
+  radar: Radar
   experiences: Experience[]
   /** 个人资料页上的参赛履历和组队记录给谁看 */
   historyVisibility: HistoryVisibility
@@ -252,6 +302,8 @@ export interface UserPage {
   bio: string | null
   joinedAt: string | null
   skills: SkillLevel[]
+  /** 六维能力雷达，和档案页算的是同一套分 */
+  radar: Radar
   /** 互评信用；score 为空表示新用户 */
   credit: { score: number | null; ratedRounds: number }
   /** 问卷开放题：我能给队伍带来的三点 */
@@ -329,7 +381,7 @@ export interface NeedView {
   filled: number
   note: string | null
   status: NeedStatus
-  skills: { skillId: number; name: string; minLevel: number }[]
+  skills: { skillId: number; name: string; category: string; minLevel: number }[]
 }
 
 export interface MemberView {
@@ -368,6 +420,8 @@ export interface TeamDetail {
   captainId: number
   members: MemberView[]
   needs: NeedView[]
+  /** 招募需求雷达 + 我的能力雷达 + 覆盖率 */
+  radar: TeamRadar
   me: MyRelation
   createdAt: string
   /** 比赛结束时录入的奖项 */
@@ -383,6 +437,8 @@ export interface TeamSummary {
   memberCount: number
   captain: UserBrief
   openNeeds: NeedView[]
+  /** 招募需求雷达，队伍列表里直接画出来 */
+  needRadar: Radar
   edition: EditionRef
 }
 
@@ -1409,4 +1465,84 @@ export interface AiSummaryView {
   missing: string[]
   sources: AiSummarySource[]
   channels: AiSummaryChannel[]
+}
+
+// ---------- AI 分析（个人能力分析、队伍招募建议） ----------
+
+/** RULE 本地规则 / LLM 大模型；页面上要标明来源，不能把本地规则说成 AI */
+export type AiSource = 'RULE' | 'LLM'
+
+export interface AiStrength {
+  title: string
+  detail: string
+  /** 资料里的原话 */
+  evidence: string
+}
+
+export interface AiSuggestedSkill {
+  name: string
+  category: string
+  /** 1 入门 / 2 熟练 / 3 精通 */
+  level: number
+  /** 资料里的原话 */
+  evidence: string
+  /** 档案里已经有了 */
+  owned: boolean
+}
+
+export interface AiTrait {
+  trait: string
+  evidence: string
+}
+
+export interface AiAxisHint {
+  key: string
+  label: string
+  reason: string
+}
+
+export interface AiProfileBody {
+  summary: string
+  strengths: AiStrength[]
+  skills: AiSuggestedSkill[]
+  personality: AiTrait[]
+  axisHints: AiAxisHint[]
+}
+
+export interface AiProfileAnalysis {
+  body: AiProfileBody
+  source: AiSource
+  model: string | null
+  createdAt: string
+}
+
+export interface AiAxisGap {
+  key: string
+  label: string
+  need: number
+  best: number
+  status: 'COVERED' | 'PARTIAL' | 'MISSING'
+}
+
+export interface AiSkillGap {
+  name: string
+  minLevel: number
+  bestLevel: number
+  status: 'COVERED' | 'PARTIAL' | 'MISSING'
+}
+
+export interface AiTeamBody {
+  summary: string
+  weakAxes: AiAxisGap[]
+  suggestions: string[]
+  candidateProfile: string[]
+  questions: string[]
+  skillGaps: AiSkillGap[]
+}
+
+export interface AiTeamAdvice {
+  body: AiTeamBody
+  source: AiSource
+  model: string | null
+  createdAt: string
 }
