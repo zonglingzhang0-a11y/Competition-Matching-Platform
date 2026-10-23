@@ -8,6 +8,7 @@ import {
   unconfirmRecognition,
   withdrawMyRecognition,
 } from '@/api/competition'
+import { useUserStore } from '@/stores/user'
 import type { RecognitionBoard, RecognitionEntry } from '@/types/api'
 import { RECOGNITION_STATUS, RECOGNITION_SUGGESTIONS } from '@/utils/labels'
 import { isHttpUrlOrEmpty, safeUrl } from '@/utils/url'
@@ -15,6 +16,7 @@ import { showError } from '@/utils/feedback'
 
 /** 比赛详情页的"加分认定"：本校同学标注、几位同学确认后显示，另外列出其他学校已经确认的 */
 const props = defineProps<{ competitionId: number }>()
+const user = useUserStore()
 
 const board = ref<RecognitionBoard | null>(null)
 const loading = ref(true)
@@ -178,6 +180,9 @@ watch(() => props.competitionId, load, { immediate: true })
         </div>
         <p v-else-if="!school.canContribute" class="hint">认证有效的同学才能标注和确认。</p>
       </section>
+      <p v-else-if="user.isAdmin" class="hint section">
+        各校同学的标注在「<router-link :to="{ name: 'admin-recognitions' }">管理后台 → 加分认定</router-link>」里审核。
+      </p>
       <p v-else class="hint section">
         完成学校认证后，可以标注和确认本校的认定级别。
         <router-link :to="{ name: 'verify' }">去认证</router-link>

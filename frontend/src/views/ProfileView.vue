@@ -110,8 +110,8 @@ onMounted(load)
             <span class="readonly">{{ profile.email }}</span>
           </el-form-item>
           <el-form-item label="学校">
-            <span class="readonly">{{ profile.school?.name ?? '未认证' }}</span>
-            <router-link v-if="profile.verifyStatus !== 'VERIFIED'" to="/verify" class="inline-link">去认证</router-link>
+            <span class="readonly">{{ profile.school?.name ?? (user.isAdmin ? '管理员不用认证学校' : '未认证') }}</span>
+            <router-link v-if="profile.verifyStatus !== 'VERIFIED' && !user.isAdmin" to="/verify" class="inline-link">去认证</router-link>
           </el-form-item>
           <el-form-item label="昵称" prop="nickname">
             <el-input v-model="form.nickname" maxlength="16" />

@@ -107,14 +107,15 @@ watch(() => notifications.latest, load)
         <el-icon><Setting /></el-icon>自定义主页
       </button>
     </div>
-    <div v-if="user.me?.verifyStatus === 'NONE'" class="notice">
+    <!-- 认证和问卷是给参赛的同学的，管理员不提示 -->
+    <div v-if="user.me?.verifyStatus === 'NONE' && !user.isAdmin" class="notice">
       完成学校认证后，就能建队和申请入队。<router-link to="/verify">去认证 →</router-link>
     </div>
-    <div v-if="!loading && !generalDone" class="notice">
+    <div v-if="!loading && !generalDone && !user.isAdmin" class="notice">
       先花 1 分钟填一下组队问卷，推荐队友时才知道你们合不合得来；勾上空闲时段，还能估算每周能投入多少时间。
       <router-link to="/survey">去填问卷 →</router-link>
     </div>
-    <div v-else-if="!loading && generalQuick" class="notice">
+    <div v-else-if="!loading && generalQuick && !user.isAdmin" class="notice">
       你填的是快速版，补全完整版后推荐会更准。<router-link to="/survey">补全问卷 →</router-link>
     </div>
 
