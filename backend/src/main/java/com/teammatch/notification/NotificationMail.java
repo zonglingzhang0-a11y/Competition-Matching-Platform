@@ -42,8 +42,8 @@ final class NotificationMail {
             text.append("还有 ").append(n - MAX_ITEMS).append(" 条，到网站上看。\n\n");
         }
         text.append("打开竞搭查看：").append(siteUrl).append("/notifications\n\n");
-        text.append("——\n这些消息超过 ").append(waitText(delaySeconds))
-                .append("没看，你当时也不在网站上，所以发到邮箱提醒一下。不想收到的话，在竞搭的消息页关掉「邮件提醒」。\n");
+        text.append("——\n有消息超过 ").append(waitText(delaySeconds))
+                .append("没看，你当时也不在网站上，所以把还没看的一起发到邮箱提醒一下。不想收到的话，在竞搭的消息页关掉「邮件提醒」。\n");
         return new Mail(subject, text.toString());
     }
 
