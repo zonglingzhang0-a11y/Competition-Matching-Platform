@@ -3,6 +3,7 @@
 import env  # 公共环境：库、端口、mysql 客户端，见 env.py
 import json
 import re
+import subprocess
 import sys
 import urllib.error
 import urllib.parse
@@ -275,6 +276,32 @@ got = [(b["from"], b["total"], b["accepted"]) for b in cal.get("buckets", []) if
 # s1 发申请时记下了匹配分（都没填问卷，接近 50 分），队长同意了
 check("推荐准不准：s1 的申请发出时记下了匹配分，落在 40–60 分这一段、算成了；没有没记分的老记录",
       s == 200 and len(cal.get("buckets", [])) == 5 and got == [(40, 1, 1)] and cal.get("unscored") == 0, cal)
+
+s, r = call("GET", "/admin/dashboard/ops", token=stu)
+check("学生看不了运营（403）", s == 403, s)
+late = register("late")
+verify(late, "late@stu.example.edu.cn")
+s, r = call("POST", f"/teams/{team}/applications", {}, late)
+late_app = r["data"]
+# 把这条申请改成 5 天前发的，看它算不算积压（只改测试库）
+subprocess.run([*env.mysql_args(), env.DB, "-e",
+                f"UPDATE team_application SET created_at = NOW() - INTERVAL 5 DAY WHERE id = {late_app}"], check=True)
+odd = register("odd")
+verify(odd, "odd@nowhere.edu.cn")
+s, r = call("GET", "/admin/dashboard/ops", token=admin)
+o = r.get("data") or {}
+a = o.get("applications", {})
+check("运营·申请：1 条等了 5 天，算在队长 cap 头上；s1 那条已经处理完",
+      s == 200 and a.get("pending") == 1 and a.get("overdue") == 1 and a.get("handled30d") == 1
+      and [(b["nickname"], b["direction"], b["count"]) for b in a.get("backlog", [])] == [("cap", "APPLY", 1)]
+      and a["backlog"][0]["oldestDays"] >= 5, a)
+v = o.get("verifications", {})
+check("运营·认证：待审核 1 条，没收录的邮箱后缀单独标出来",
+      v.get("pending") == 1 and [(g["label"], g["unknownDomain"], g["count"]) for g in v.get("groups", [])]
+      == [("@nowhere.edu.cn", True, 1)], v)
+check("运营·爬虫来源：预置的来源都还没抓过（或停用）",
+      len(o.get("sources", [])) >= 3 and all(x["status"] in ("NEVER", "DISABLED") for x in o["sources"]), o.get("sources"))
+check("运营·举报：没有待处理的", o.get("reports", {}).get("pending") == 0, o.get("reports"))
 
 print("== 匹配配置")
 s, r = call("GET", "/admin/match-configs", token=admin)

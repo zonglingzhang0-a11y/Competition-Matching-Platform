@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -105,6 +106,101 @@ public class DashboardService {
             buckets.add(new ScoreBucket(b * 20, b * 20 + 20, r == null ? 0 : n(r.total()), r == null ? 0 : n(r.accepted())));
         }
         return new Calibration(buckets, mapper.unscoredHandled());
+    }
+
+    // ---------- 运营：每块都对应一件该做的事 ----------
+
+    /** 等了超过这么多天算积压 */
+    private static final int BACKLOG_DAYS = 3;
+    /** 处理时长按最近这么多天算 */
+    private static final int RECENT_DAYS = 30;
+    /** 开着的来源超过这么多天没抓过，提醒看看定时任务 */
+    private static final int STALE_DAYS = 3;
+
+    public record Ops(ApplicationOps applications, VerifyOps verifications, List<SourceHealth> sources, ReportOps reports) {
+    }
+
+    /**
+     * @param medianHours 最近 30 天处理完的申请和邀请，等待时长的中位数（小时）；没有记录时为空
+     * @param backlog     手上压着等了 3 天以上的人：申请等队长处理，邀请等被邀请的人处理
+     */
+    public record ApplicationOps(long pending, long overdue, Double medianHours, long handled30d, long expired30d,
+                                 List<Backlog> backlog) {
+    }
+
+    public record Backlog(long userId, String nickname, String direction, long count, long oldestDays) {
+    }
+
+    /** groups：按学校分；unknownDomain 的是还没收录的邮箱后缀，收录以后同校的人自动通过 */
+    public record VerifyOps(long pending, Long oldestDays, List<VerifyGroup> groups) {
+    }
+
+    public record VerifyGroup(String label, boolean unknownDomain, long count, long oldestDays) {
+    }
+
+    /** status：OK 正常 / ERROR 上次出错 / STALE 好几天没抓 / NEVER 还没抓过 / DISABLED 停用 */
+    public record SourceHealth(long id, String name, String status, LocalDateTime lastRunAt, String lastResult, long toConfirm) {
+    }
+
+    public record ReportOps(long pending, Long oldestDays, Double medianHours, long suspendedUsers) {
+    }
+
+    public Ops ops() {
+        LocalDateTime now = LocalDateTime.now(clock);
+        LocalDateTime overdueBefore = now.minusDays(BACKLOG_DAYS);
+        LocalDateTime recent = now.minusDays(RECENT_DAYS);
+        Map<String, Long> apps = toMap(mapper.applicationsByStatus());
+        List<Long> waits = mapper.applicationWaitMinutes(recent);
+        ApplicationOps applications = new ApplicationOps(apps.getOrDefault("PENDING", 0L),
+                mapper.pendingApplicationsBefore(overdueBefore), medianHours(waits), waits.size(),
+                mapper.expiredApplicationsSince(recent),
+                mapper.applicationBacklog(overdueBefore).stream()
+                        .map(b -> new Backlog(b.userId(), b.nickname(), b.direction(), n(b.cnt()), days(b.oldest(), now)))
+                        .toList());
+
+        List<VerifyGroup> groups = mapper.pendingVerificationGroups().stream()
+                .map(g -> new VerifyGroup(g.label(), Boolean.TRUE.equals(g.unknownDomain()), n(g.cnt()), days(g.oldest(), now)))
+                .toList();
+        LocalDateTime oldestVerify = mapper.oldestPendingVerification();
+        VerifyOps verifications = new VerifyOps(reviewService.pendingCount(),
+                oldestVerify == null ? null : days(oldestVerify, now), groups);
+
+        List<SourceHealth> sources = mapper.crawlSources().stream()
+                .map(s -> new SourceHealth(s.id(), s.name(), sourceStatus(s, now), s.lastRunAt(), s.lastResult(), n(s.toConfirm())))
+                .toList();
+
+        LocalDateTime oldestReport = mapper.oldestPendingReport();
+        ReportOps reports = new ReportOps(mapper.pendingReports(), oldestReport == null ? null : days(oldestReport, now),
+                medianHours(mapper.reportHandleMinutes(now.minusDays(90))), mapper.suspendedUsers(now));
+        return new Ops(applications, verifications, sources, reports);
+    }
+
+    private static String sourceStatus(DashboardMapper.SourceRow s, LocalDateTime now) {
+        if (!Boolean.TRUE.equals(s.enabled())) {
+            return "DISABLED";
+        }
+        if (s.lastRunAt() == null) {
+            return "NEVER";
+        }
+        if (s.lastResult() != null && s.lastResult().startsWith("出错")) {
+            return "ERROR";
+        }
+        return s.lastRunAt().isBefore(now.minusDays(STALE_DAYS)) ? "STALE" : "OK";
+    }
+
+    /** 中位数，分钟换成小时，保留一位小数 */
+    static Double medianHours(List<Long> minutes) {
+        List<Long> sorted = minutes.stream().filter(m -> m != null && m >= 0).sorted().toList();
+        if (sorted.isEmpty()) {
+            return null;
+        }
+        int mid = sorted.size() / 2;
+        double median = sorted.size() % 2 == 1 ? sorted.get(mid) : (sorted.get(mid - 1) + sorted.get(mid)) / 2.0;
+        return Math.round(median / 6.0) / 10.0;
+    }
+
+    private static long days(LocalDateTime from, LocalDateTime now) {
+        return from == null ? 0 : Math.max(0, Duration.between(from, now).toDays());
     }
 
     public Overview overview() {

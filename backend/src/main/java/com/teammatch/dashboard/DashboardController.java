@@ -5,6 +5,7 @@ import com.teammatch.common.Result;
 import com.teammatch.dashboard.DashboardService.Calibration;
 import com.teammatch.dashboard.DashboardService.EditionStat;
 import com.teammatch.dashboard.DashboardService.Funnel;
+import com.teammatch.dashboard.DashboardService.Ops;
 import com.teammatch.dashboard.DashboardService.Overview;
 import com.teammatch.dashboard.DashboardService.SkillGap;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,12 @@ public class DashboardController {
     @GetMapping("/funnel")
     public Result<Funnel> funnel(@RequestParam long editionId) {
         return Result.ok(dashboardService.funnel(editionId));
+    }
+
+    /** 运营：申请处理时效、认证审核积压、爬虫来源、举报 */
+    @GetMapping("/ops")
+    public Result<Ops> ops() {
+        return Result.ok(dashboardService.ops());
     }
 
     @GetMapping("/calibration")

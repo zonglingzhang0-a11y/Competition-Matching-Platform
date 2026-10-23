@@ -91,6 +91,7 @@ declare module 'vue' {
     NeedDialog: typeof import('./components/NeedDialog.vue')['default']
     NodeListEditor: typeof import('./components/admin/NodeListEditor.vue')['default']
     NodesDialog: typeof import('./components/admin/NodesDialog.vue')['default']
+    OpsPanel: typeof import('./components/admin/OpsPanel.vue')['default']
     PageHeader: typeof import('./components/PageHeader.vue')['default']
     QuickAdd: typeof import('./components/QuickAdd.vue')['default']
     RadarSkillGroups: typeof import('./components/RadarSkillGroups.vue')['default']

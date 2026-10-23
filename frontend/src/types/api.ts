@@ -943,6 +943,37 @@ export interface DashboardFunnel {
   formed: number
 }
 
+/** 看板"运营"：每块都对应一件该做的事 */
+export interface DashboardOps {
+  applications: {
+    pending: number
+    /** 等了 3 天以上的 */
+    overdue: number
+    /** 最近 30 天处理完的，等待时长中位数（小时） */
+    medianHours: number | null
+    handled30d: number
+    expired30d: number
+    /** 手上压着等了 3 天以上的人：申请等队长处理，邀请等被邀请的人处理 */
+    backlog: { userId: number; nickname: string; direction: 'APPLY' | 'INVITE'; count: number; oldestDays: number }[]
+  }
+  verifications: {
+    pending: number
+    oldestDays: number | null
+    /** unknownDomain：还没收录的邮箱后缀，收录以后同校的人自动通过 */
+    groups: { label: string; unknownDomain: boolean; count: number; oldestDays: number }[]
+  }
+  sources: {
+    id: number
+    name: string
+    status: 'OK' | 'ERROR' | 'STALE' | 'NEVER' | 'DISABLED'
+    lastRunAt: string | null
+    lastResult: string | null
+    /** 抽出来等确认的通知 */
+    toConfirm: number
+  }[]
+  reports: { pending: number; oldestDays: number | null; medianHours: number | null; suspendedUsers: number }
+}
+
 /** 推荐准不准：按发出时的匹配分分段，每段处理完的申请和邀请有几条、成了几条 */
 export interface DashboardCalibration {
   buckets: { from: number; to: number; total: number; accepted: number }[]

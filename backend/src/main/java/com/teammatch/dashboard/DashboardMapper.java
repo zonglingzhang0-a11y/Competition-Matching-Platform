@@ -155,7 +155,7 @@ public interface DashboardMapper {
     }
 
     /**
-     * 推荐准不准：处理完的申请和邀请（同意、拒绝、过期；撤回的不算），按发出时的匹配分每 20 分一段，数一数成了几条。
+     * 推荐准不准：处理完的申请和邀请（同意、婉拒、作废；撤回的不算），按发出时的匹配分每 20 分一段，数一数成了几条。
      * bucket 0–4 对应 0–20、20–40……80–100 分。
      */
     @Select("""
@@ -175,6 +175,79 @@ public interface DashboardMapper {
     long unscoredHandled();
 
     record BucketRow(Integer bucket, Long total, Long accepted) {
+    }
+
+    // ---------- 运营：申请处理、认证审核、爬虫来源、举报 ----------
+
+    @Select("SELECT COUNT(*) FROM team_application WHERE status = 'PENDING' AND created_at < #{before}")
+    long pendingApplicationsBefore(@Param("before") LocalDateTime before);
+
+    /** 最近处理完的申请和邀请各等了多少分钟（同意或婉拒的；撤回、作废的不算） */
+    @Select("""
+            SELECT TIMESTAMPDIFF(MINUTE, created_at, handled_at) FROM team_application
+            WHERE status IN ('ACCEPTED', 'REJECTED') AND handled_at >= #{since}
+            """)
+    List<Long> applicationWaitMinutes(@Param("since") LocalDateTime since);
+
+    @Select("SELECT COUNT(*) FROM team_application WHERE status = 'EXPIRED' AND handled_at >= #{since}")
+    long expiredApplicationsSince(@Param("since") LocalDateTime since);
+
+    /** 谁手上压着等了很久的申请或邀请：申请等队长处理，邀请等被邀请的人处理 */
+    @Select("""
+            SELECT u.id AS userId, u.nickname, a.direction, COUNT(*) AS cnt, MIN(a.created_at) AS oldest
+            FROM team_application a
+            JOIN team t ON t.id = a.team_id
+            JOIN sys_user u ON u.id = IF(a.direction = 'APPLY', t.captain_id, a.user_id)
+            WHERE a.status = 'PENDING' AND a.created_at < #{before}
+            GROUP BY u.id, u.nickname, a.direction
+            ORDER BY cnt DESC, oldest
+            LIMIT 5
+            """)
+    List<BacklogRow> applicationBacklog(@Param("before") LocalDateTime before);
+
+    /** 待审核的认证按学校分：学校没收录的教育邮箱按邮箱后缀分，学生证截图单独一组 */
+    @Select("""
+            SELECT COALESCE(s.name, IF(v.method = 'EDU_EMAIL', CONCAT('@', SUBSTRING_INDEX(v.edu_email, '@', -1)), '学生证截图')) AS label,
+                   v.school_id IS NULL AND v.method = 'EDU_EMAIL' AS unknownDomain,
+                   COUNT(*) AS cnt, MIN(v.created_at) AS oldest
+            FROM verification_request v LEFT JOIN school s ON s.id = v.school_id
+            WHERE v.status = 'PENDING'
+            GROUP BY label, unknownDomain
+            ORDER BY cnt DESC, oldest
+            LIMIT 6
+            """)
+    List<VerifyGroupRow> pendingVerificationGroups();
+
+    @Select("SELECT MIN(created_at) FROM verification_request WHERE status = 'PENDING'")
+    LocalDateTime oldestPendingVerification();
+
+    /** 每个抓取来源：上次抓的时间和结果、还有几篇抽出来的通知等管理员确认 */
+    @Select("""
+            SELECT s.id, s.name, s.enabled, s.last_run_at AS lastRunAt, s.last_result AS lastResult,
+                   (SELECT COUNT(*) FROM crawl_record r WHERE r.source_id = s.id AND r.status IN ('NEW', 'EXTRACTED')) AS toConfirm
+            FROM crawl_source s ORDER BY s.id
+            """)
+    List<SourceRow> crawlSources();
+
+    @Select("SELECT COUNT(*) FROM report WHERE status = 'PENDING'")
+    long pendingReports();
+
+    @Select("SELECT MIN(created_at) FROM report WHERE status = 'PENDING'")
+    LocalDateTime oldestPendingReport();
+
+    @Select("SELECT TIMESTAMPDIFF(MINUTE, created_at, handled_at) FROM report WHERE handled_at >= #{since}")
+    List<Long> reportHandleMinutes(@Param("since") LocalDateTime since);
+
+    @Select("SELECT COUNT(*) FROM user_credit WHERE suspended_until > #{now}")
+    long suspendedUsers(@Param("now") LocalDateTime now);
+
+    record BacklogRow(Long userId, String nickname, String direction, Long cnt, LocalDateTime oldest) {
+    }
+
+    record VerifyGroupRow(String label, Boolean unknownDomain, Long cnt, LocalDateTime oldest) {
+    }
+
+    record SourceRow(Long id, String name, Boolean enabled, LocalDateTime lastRunAt, String lastResult, Long toConfirm) {
     }
 
     record KeyCount(String k, Long v) {
