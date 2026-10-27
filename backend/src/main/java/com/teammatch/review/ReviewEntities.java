@@ -122,6 +122,15 @@ public final class ReviewEntities {
                 ORDER BY r.round_id
                 """)
         List<PeerReview> publishedFor(@Param("userId") long userId);
+
+        /** 同上，只要 since 之后揭晓的轮次 */
+        @Select("""
+                SELECT r.* FROM peer_review r
+                JOIN peer_review_round pr ON pr.id = r.round_id AND pr.status = 'PUBLISHED' AND pr.published_at > #{since}
+                WHERE r.ratee_id = #{userId}
+                ORDER BY r.round_id
+                """)
+        List<PeerReview> publishedSince(@Param("userId") long userId, @Param("since") LocalDateTime since);
     }
 
     /** user_credit 以 user_id 为主键，信用分按轮次滚动平均，直接写 SQL */
@@ -147,8 +156,12 @@ public final class ReviewEntities {
                 """)
         int suspend(@Param("userId") long userId, @Param("until") LocalDateTime until);
 
-        @Update("UPDATE user_credit SET suspended_until = NULL WHERE user_id = #{userId} AND suspended_until IS NOT NULL")
-        int lift(@Param("userId") long userId);
+        /**
+         * 管理员解除暂停：结束时间改成现在，不清空。互评里失联、不交付的场次从暂停结束时重新数，
+         * 见 ReviewService#checkSevere；清空了就不知道该从哪儿数起。
+         */
+        @Update("UPDATE user_credit SET suspended_until = #{now} WHERE user_id = #{userId} AND suspended_until > #{now}")
+        int lift(@Param("userId") long userId, @Param("now") LocalDateTime now);
 
         @Select("""
                 SELECT c.user_id AS userId, c.score, c.rated_rounds AS ratedRounds, c.suspended_until AS suspendedUntil

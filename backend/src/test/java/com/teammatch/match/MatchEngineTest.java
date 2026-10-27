@@ -129,6 +129,15 @@ class MatchEngineTest {
     }
 
     @Test
+    void captainDoesNotSeePersonalEventTitle() {
+        MatchResult forCaptain = engine.score(ideal(), team(), new Facts(null, false, "医院复查"), false);
+        assertThat(forCaptain.warnings()).contains("比赛期间TA有个人安排");
+        assertThat(String.join("", forCaptain.warnings())).doesNotContain("医院复查");
+        assertThat(forCaptain.score())
+                .as("分数照样稍微降一点").isLessThan(engine.score(ideal(), team(), Facts.NONE, false).score());
+    }
+
+    @Test
     void knownConstraintsLowerCommitment() {
         Map<String, Object> edition = new HashMap<>(ideal().edition());
         edition.put("P5", List.of("internship", "exam"));

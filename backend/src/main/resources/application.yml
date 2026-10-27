@@ -69,6 +69,9 @@ app:
     ttl-minutes: 10
     resend-seconds: 60
     max-attempts: 5
+    ip-per-hour: 30         # 同一个 IP 一小时最多发几封（防刷光发信邮箱的额度）。全班用校园网一起注册时调大：每人要发两封
+    ip-per-day: 100         # 同一个 IP 24 小时最多发几封
+    total-per-day: 300      # 全站一天最多发几封
   admin-emails: []          # 用这些邮箱注册的账号自动成为管理员，在 application-local.yml 里填
   ai:                       # AI 能力分析 / 招募建议（模型连接用下面的 app.llm）
     enabled: false          # 打开后才会把档案发给模型做分析；关着时用本地规则，页面会标明"本地规则"

@@ -109,9 +109,12 @@ public final class MatchEngine {
         double k = commitment(cand, team, w, warnings);
         double factor = teamRules(cand, team, w, warnings);
         if (facts.personalConflictWith() != null) {
-            // 个人日程和比赛撞了只是提醒、稍微降分，不一票否决：个人安排通常可以调整
+            // 个人日程和比赛撞了只是提醒、稍微降分，不一票否决：个人安排通常可以调整。
+            // 日程标题是私事（"医院复查""面试"），只给本人看；给队长看只说有安排
             factor *= PERSONAL_CONFLICT_FACTOR;
-            warnings.add("比赛期间" + w.who + "有个人日程「" + facts.personalConflictWith() + "」");
+            warnings.add("比赛期间" + w.who + (candidateView
+                    ? "有个人日程「" + facts.personalConflictWith() + "」"
+                    : "有个人安排"));
         }
         if (weightSum == 0) {
             warnings.add(cand.general().isEmpty() && cand.edition().isEmpty()

@@ -37,11 +37,11 @@ public class EduVerifyService {
     private final EmailCodeService codeService;
     private final Clock clock;
 
-    public void sendCode(long userId, String eduEmail) {
+    public void sendCode(long userId, String eduEmail, String ip) {
         String email = normalize(eduEmail);
         checkEduEmail(email);
         checkNotTakenByOthers(userId, email);
-        codeService.send(email, CodePurpose.EDU_VERIFY);
+        codeService.send(email, CodePurpose.EDU_VERIFY, ip);
     }
 
     @Transactional

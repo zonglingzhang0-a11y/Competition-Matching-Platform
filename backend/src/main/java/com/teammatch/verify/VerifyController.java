@@ -1,12 +1,14 @@
 package com.teammatch.verify;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.teammatch.common.ClientIp;
 import com.teammatch.common.Result;
 import com.teammatch.verify.VerifyDtos.EduCodeRequest;
 import com.teammatch.verify.VerifyDtos.EduConfirmRequest;
 import com.teammatch.verify.VerifyDtos.LatestRequest;
 import com.teammatch.verify.VerifyDtos.ScreenshotResult;
 import com.teammatch.verify.VerifyDtos.VerifyResult;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -48,8 +50,8 @@ public class VerifyController {
 
     /** 往教育邮箱发验证码 */
     @PostMapping("/edu/code")
-    public Result<Void> sendEduCode(@Valid @RequestBody EduCodeRequest req) {
-        eduVerifyService.sendCode(StpUtil.getLoginIdAsLong(), req.eduEmail());
+    public Result<Void> sendEduCode(@Valid @RequestBody EduCodeRequest req, HttpServletRequest request) {
+        eduVerifyService.sendCode(StpUtil.getLoginIdAsLong(), req.eduEmail(), ClientIp.of(request));
         return Result.ok();
     }
 
