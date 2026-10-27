@@ -1,0 +1,11 @@
+# 备份竞搭的数据库，由 jingda-backup.timer 触发；放在 /etc/systemd/system/
+[Unit]
+Description=JingDa database backup
+After=mysql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/jingda-backup
+# 备份时让着网站
+Nice=10
+IOSchedulingClass=idle
