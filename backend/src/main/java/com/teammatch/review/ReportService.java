@@ -37,6 +37,7 @@ import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -236,7 +237,9 @@ public class ReportService {
     }
 
     public void lift(long userId) {
-        if (creditMapper.lift(userId, teamSupport.now()) == 0) {
+        // 截到整秒：DATETIME 只存到秒、存的时候四舍五入，10:30:45.7 会存成 10:30:46，
+        // 解除后这不到一秒里还算暂停，再点一次解除也会"成功"
+        if (creditMapper.lift(userId, teamSupport.now().truncatedTo(ChronoUnit.SECONDS)) == 0) {
             throw new BizException(404, "这个人没有被暂停推荐");
         }
         notifications.send(userId, Notification.Type.CREDIT, "已恢复推荐", "管理员复核后，你重新出现在推荐里了。",
