@@ -236,7 +236,7 @@ public class ReportService {
     }
 
     public void lift(long userId) {
-        if (creditMapper.lift(userId) == 0) {
+        if (creditMapper.lift(userId, teamSupport.now()) == 0) {
             throw new BizException(404, "这个人没有被暂停推荐");
         }
         notifications.send(userId, Notification.Type.CREDIT, "已恢复推荐", "管理员复核后，你重新出现在推荐里了。",

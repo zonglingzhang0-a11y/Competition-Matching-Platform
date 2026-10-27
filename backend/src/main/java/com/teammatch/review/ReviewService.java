@@ -253,9 +253,9 @@ public class ReviewService {
             return false;
         }
         LocalDateTime now = teamSupport.now();
-        List<PeerReview> reviews = reviewMapper.selectList(new LambdaQueryWrapper<PeerReview>()
-                .eq(PeerReview::getRoundId, round.getId()));
-        CreditCalculator.Result result = CreditCalculator.evaluate(reviews.stream().map(this::rating).toList());
+        List<Rating> ratings = reviewMapper.selectList(new LambdaQueryWrapper<PeerReview>()
+                .eq(PeerReview::getRoundId, round.getId())).stream().map(this::rating).toList();
+        CreditCalculator.Result result = CreditCalculator.evaluate(ratings);
         for (Pair p : result.flagged()) {
             reviewMapper.update(new LambdaUpdateWrapper<PeerReview>()
                     .eq(PeerReview::getRoundId, round.getId())
@@ -271,23 +271,35 @@ public class ReviewService {
                 .set(ReviewRound::getPublishedAt, now));
         round.setStatus(RoundStatus.PUBLISHED);
 
+        Map<Long, List<Rating>> byRatee = ratings.stream().collect(Collectors.groupingBy(Rating::rateeId));
         Team t = teamMapper.selectById(round.getTeamId());
         for (Long uid : participants) {
             notifications.send(uid, Notification.Type.REVIEW_RESULT, "「" + t.getName() + "」的互评揭晓了",
                     result.scores().containsKey(uid) ? "队友的评价已经计入你的信用分，去看看吧。" : "这轮没有人评价你，信用分不变。",
                     REF_CREDIT, null);
-            checkSevere(uid, now);
+            // 这一轮又被多数队友评为经常失联或不交付，才去看要不要暂停
+            if (CreditCalculator.severe(byRatee.getOrDefault(uid, List.of()))) {
+                checkSevere(uid, now);
+            }
         }
         return true;
     }
 
-    /** 失联或不交付在多场比赛里都被评为"经常"：暂停推荐，并请管理员复核 */
+    /**
+     * 失联或不交付在多场比赛里都被评为"经常"：暂停推荐，并请管理员复核。
+     * <p>
+     * 只数上次暂停结束（到期或管理员解除）之后揭晓的场次。不然解除或到期以后，
+     * 以前那两场还在，下一轮一揭晓又会被暂停。
+     */
     private void checkSevere(long userId, LocalDateTime now) {
         Credit credit = creditMapper.find(userId);
-        if (credit != null && credit.suspendedUntil() != null && credit.suspendedUntil().isAfter(now)) {
+        LocalDateTime lastSuspension = credit == null ? null : credit.suspendedUntil();
+        if (lastSuspension != null && lastSuspension.isAfter(now)) {
             return;
         }
-        long severeRounds = reviewMapper.publishedFor(userId).stream()
+        List<PeerReview> received = lastSuspension == null ? reviewMapper.publishedFor(userId)
+                : reviewMapper.publishedSince(userId, lastSuspension);
+        long severeRounds = received.stream()
                 .collect(Collectors.groupingBy(PeerReview::getRoundId)).values().stream()
                 .filter(list -> CreditCalculator.severe(list.stream().map(this::rating).toList()))
                 .count();
