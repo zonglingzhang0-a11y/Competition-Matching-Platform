@@ -113,6 +113,15 @@ Windows 的 PowerShell 不支持 `<`，而且 `mysql` 一般不在 PATH 里，�
 - 前端改过代码后，运行 `public-demo.bat -Rebuild` 重新打包。
 - 隧道里浏览器的域名是 `*.trycloudflare.com`，后端看到的是 `localhost`，新消息推送默认会被来源检查拦下来；脚本启动后端时加了 `--app.push.allowed-origin-patterns[0]=https://*.trycloudflare.com` 放行。后端如果是你自己另外启动的，推送会退回每分钟查一次，别的功能不受影响。
 
+## 部署到服务器
+
+正式的网站部署在阿里云：<http://47.111.123.178>（队友部署和维护）。脚本和说明都在 [deploy](deploy) 文件夹，服务器上后端、配置、前端、备份各在哪见 [deploy/README.md](deploy/README.md)。
+
+- 服务器只认密钥登录：自己生成一对密钥（`ssh-keygen -t ed25519`），把**公钥**发给管服务器的队友加上。
+- 部署：先把本机切到要发布的分支、拉到最新，确认没有没提交的改动（脚本会把工作区里的代码原样传上去），然后在 **Git Bash** 里运行 `KEY=~/.ssh/你的私钥 bash deploy/deploy.sh`。前端在本机打包；后端把源码传到服务器上打包，因为 OCR 的本地库按打包时的系统选，Windows 上打的包在 Linux 上用不了。
+- 服务器上的 `/opt/jingda/application-local.yml` 是服务器专用的配置（数据库账号、发信邮箱等），不要用本机的覆盖。
+- 每次部署后端重启时，Flyway 会自动升级表结构；数据库每天凌晨 4 点自动备份，留 7 天。
+
 ## 开发时的验证码
 
 默认不真的发邮件，验证码打印在**后端控制台**，像这样：
@@ -122,6 +131,8 @@ Windows 的 PowerShell 不支持 `<`，而且 `mysql` 一般不在 PATH 里，�
 ```
 
 想真的发邮件，在 `application-local.yml` 里配置 SMTP，并把 `app.mail.mode` 改成 `smtp`（模板里有 QQ 邮箱的例子）。
+
+验证码有发送上限，免得有人换着邮箱一直点、把发信邮箱一天的额度刷光：同一个邮箱 60 秒一封；同一个 IP 一小时最多 30 封、24 小时最多 100 封；全站一天最多 300 封。三个数在 `app.code` 里改（`ip-per-hour`、`ip-per-day`、`total-per-day`）。全班用同一个校园网一起注册时，大家共用一个出口 IP，每人还要发注册和学校认证两封，记得先把 `ip-per-hour` 调大。部署在 Nginx 后面时，Nginx 要设 `X-Real-IP`，不然所有人都算成同一个 IP。
 
 **演示教育邮箱认证**：初始数据里有一所"示例大学"，邮箱后缀是 `stu.example.edu.cn`。随便填一个 `xxx@stu.example.edu.cn`，去后端控制台拿验证码，就能认证成功。填其他学校的 `.edu.cn` 邮箱，会进入"学校待管理员确认"状态。
 
