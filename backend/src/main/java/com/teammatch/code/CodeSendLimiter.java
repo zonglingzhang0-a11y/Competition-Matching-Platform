@@ -1,6 +1,7 @@
 package com.teammatch.code;
 
 import com.teammatch.common.BizException;
+import com.teammatch.config.AppProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,9 @@ import java.util.Map;
  * </ul>
  * 同一个邮箱 60 秒内不能重发，由 {@link EmailCodeService} 检查。
  * <p>
+ * 三个上限可以在 app.code 里改（ip-per-hour、ip-per-day、total-per-day），不填用上面的数。
+ * 全班在同一个校园网里一起注册时，每人要发注册和学校认证两封，30 封一小时只够 15 个人，那时把 ip-per-hour 调大。
+ * <p>
  * 只放在内存里：只有一台服务器，重启后清零也没关系。
  */
 @Slf4j
@@ -36,13 +40,20 @@ public class CodeSendLimiter {
     private static final int CLEANUP_SIZE = 10_000;
 
     private final Clock clock;
+    private final int ipPerHour;
+    private final int ipPerDay;
+    private final int totalPerDay;
     /** IP → 最近 24 小时里每次发送的时间，旧的在前 */
     private final Map<String, Deque<Instant>> byIp = new HashMap<>();
     private LocalDate today;
     private int sentToday;
 
-    public CodeSendLimiter(Clock clock) {
+    public CodeSendLimiter(AppProperties props, Clock clock) {
         this.clock = clock;
+        AppProperties.Code cfg = props.code();
+        ipPerHour = cfg.ipPerHour() == null ? IP_PER_HOUR : cfg.ipPerHour();
+        ipPerDay = cfg.ipPerDay() == null ? IP_PER_DAY : cfg.ipPerDay();
+        totalPerDay = cfg.totalPerDay() == null ? TOTAL_PER_DAY : cfg.totalPerDay();
     }
 
     /**
@@ -57,7 +68,7 @@ public class CodeSendLimiter {
             today = date;
             sentToday = 0;
         }
-        if (sentToday >= TOTAL_PER_DAY) {
+        if (sentToday >= totalPerDay) {
             throw new BizException(429, "今天发出的验证码太多了，请明天再试，或者联系管理员");
         }
         if (ip != null) {
@@ -68,18 +79,18 @@ public class CodeSendLimiter {
             while (!sent.isEmpty() && !sent.peekFirst().isAfter(now.minus(DAY))) {
                 sent.pollFirst();
             }
-            if (sent.size() >= IP_PER_DAY) {
+            if (sent.size() >= ipPerDay) {
                 throw new BizException(429, "你所在的网络今天发送验证码太频繁了，请明天再试");
             }
             long lastHour = sent.stream().filter(t -> t.isAfter(now.minus(HOUR))).count();
-            if (lastHour >= IP_PER_HOUR) {
+            if (lastHour >= ipPerHour) {
                 throw new BizException(429, "你所在的网络发送验证码太频繁了，请一小时后再试");
             }
             sent.addLast(now);
         }
         sentToday++;
-        if (sentToday == TOTAL_PER_DAY) {
-            log.warn("今天的验证码已经发了 {} 封，到达全站上限，今天剩下的时间不再发送", TOTAL_PER_DAY);
+        if (sentToday == totalPerDay) {
+            log.warn("今天的验证码已经发了 {} 封，到达全站上限，今天剩下的时间不再发送", totalPerDay);
         }
     }
 }

@@ -48,8 +48,9 @@ class EmailCodeServiceTest {
         mapper = mock(EmailCodeMapper.class);
         mailer = mock(CodeMailer.class);
         Clock clock = Clock.fixed(NOW.atZone(ZONE).toInstant(), ZONE);
-        AppProperties props = new AppProperties(new AppProperties.Mail("log", ""), new AppProperties.Code(10, 60, 5), null);
-        service = new EmailCodeService(mapper, mailer, new CodeSendLimiter(clock), props, clock);
+        AppProperties props = new AppProperties(new AppProperties.Mail("log", ""),
+                new AppProperties.Code(10, 60, 5, null, null, null), null);
+        service = new EmailCodeService(mapper, mailer, new CodeSendLimiter(props, clock), props, clock);
     }
 
     @Test

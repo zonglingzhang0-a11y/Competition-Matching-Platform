@@ -1,6 +1,7 @@
 package com.teammatch.code;
 
 import com.teammatch.common.BizException;
+import com.teammatch.config.AppProperties;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -15,12 +16,27 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class CodeSendLimiterTest {
 
     private final MutableClock clock = new MutableClock();
-    private final CodeSendLimiter limiter = new CodeSendLimiter(clock);
+    private final CodeSendLimiter limiter = new CodeSendLimiter(props(null), clock);
+
+    /** ipPerHour 为空时用默认值 */
+    private static AppProperties props(Integer ipPerHour) {
+        return new AppProperties(null, new AppProperties.Code(10, 60, 5, ipPerHour, null, null), null);
+    }
 
     private void send(String ip, int times) {
         for (int i = 0; i < times; i++) {
             limiter.acquire(ip);
         }
+    }
+
+    @Test
+    void limitComesFromConfig() {
+        // 全班在同一个校园网里注册时把每小时的上限调大
+        CodeSendLimiter wide = new CodeSendLimiter(props(80), clock);
+        for (int i = 0; i < 80; i++) {
+            wide.acquire("1.1.1.1");
+        }
+        assertThatThrownBy(() -> wide.acquire("1.1.1.1")).hasMessageContaining("一小时后");
     }
 
     @Test
