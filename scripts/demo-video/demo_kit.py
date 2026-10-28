@@ -5,6 +5,9 @@
 字幕不录进画面，单独出 SRT：剪映里导入字幕后用"文本朗读"生成 AI 配音；另出一份把字幕画上去的预览版。
 """
 import math
+import os
+import shutil
+import tempfile
 import time
 from pathlib import Path
 
@@ -60,12 +63,13 @@ class Recorder:
         self.marks = {}
         self.pos = (page.viewport_size["width"] / 2, page.viewport_size["height"] * 0.6)
         self.cdp = None
+        self.cams = []            # (开始时间, 用时, 取景框 x, y, w, h)，坐标是页面的 CSS 像素
 
     # ---------- 抓帧 ----------
-    def start(self):
+    def start(self, quality=95):
         self.cdp = self.page.context.new_cdp_session(self.page)
         self.cdp.on("Page.screencastFrame", self._on_frame)
-        self.cdp.send("Page.startScreencast", {"format": "jpeg", "quality": 95, "everyNthFrame": 1})
+        self.cdp.send("Page.startScreencast", {"format": "jpeg", "quality": quality, "everyNthFrame": 1})
 
     def _on_frame(self, params):
         path = self.frames_dir / f"{len(self.frames):06d}.jpg"
@@ -150,8 +154,56 @@ class Recorder:
         """整页跳转后页面上的指针会回到屏幕外，把它放回原位"""
         self.page.mouse.move(*self.pos)
 
+    # ---------- 讲解层：镜头和标注（只加镜头和标注，不改页面内容） ----------
+    def cam(self, target=None, zoom=1.0, seconds=0.9, dx=0.0, dy=0.0):
+        """镜头推到元素上（target 为空就拉回全景）。合成时按缓动从上一个取景框过渡过来"""
+        vw, vh = self.page.viewport_size["width"], self.page.viewport_size["height"]
+        if target is None or zoom <= 1.0:
+            rect = (0.0, 0.0, float(vw), float(vh))
+        else:
+            box = target.bounding_box()
+            w, h = vw / zoom, vh / zoom
+            cx, cy = box["x"] + box["width"] / 2 + dx, box["y"] + box["height"] / 2 + dy
+            x = min(max(cx - w / 2, 0), vw - w)
+            y = min(max(cy - h / 2, 0), vh - h)
+            rect = (x, y, w, h)
+        self.cams.append((time.time(), seconds, *rect))
+
+    def spot(self, target, pad=8):
+        """聚光灯：别的地方压暗，圈出这个元素"""
+        self.page.evaluate("([r, p]) => window.__demo.spot(r, p)", [target.bounding_box(), pad])
+
+    def note(self, target, html, side="right"):
+        """元素旁边的说明气泡"""
+        self.page.evaluate("([r, h, s]) => window.__demo.call(r, h, s)", [target.bounding_box(), html, side])
+
+    def clear_notes(self):
+        self.page.evaluate("window.__demo.clear()")
+
 
 # ---------- 合成 ----------
+def imread(path):
+    """cv2.imread 在 Windows 上读不了带中文的路径：先读成字节再解码"""
+    return cv2.imdecode(np.fromfile(str(path), dtype=np.uint8), cv2.IMREAD_COLOR)
+
+
+class VideoOut:
+    """cv2.VideoWriter 在 Windows 上也写不了带中文的路径：先写到系统临时目录，关闭时再挪过去"""
+
+    def __init__(self, path):
+        self.path = Path(path)
+        fd, self.tmp = tempfile.mkstemp(suffix=".mp4")
+        os.close(fd)
+        self.writer = cv2.VideoWriter(self.tmp, cv2.VideoWriter_fourcc(*"mp4v"), FPS, OUT_SIZE)
+
+    def write(self, frame):
+        self.writer.write(frame)
+
+    def release(self):
+        self.writer.release()
+        shutil.move(self.tmp, self.path)
+
+
 def _font(size):
     for f in ("C:/Windows/Fonts/msyhbd.ttc", "C:/Windows/Fonts/msyh.ttc", "C:/Windows/Fonts/simhei.ttf"):
         if Path(f).exists():
@@ -173,7 +225,7 @@ def _draw_caption(img_bgr, text):
 
 def encode(frames, start, end, out_path, captions=None):
     """frames: [(时间戳, jpg)]，按时间铺成恒定 30fps；captions 给了就把字幕画上去（预览版）"""
-    writer = cv2.VideoWriter(str(out_path), cv2.VideoWriter_fourcc(*"mp4v"), FPS, OUT_SIZE)
+    writer = VideoOut(out_path)
     idx, cur_path, cur_img, cache_key, cache_img = 0, None, None, None, None
     total = int((end - start) * FPS)
     for k in range(total):
@@ -185,7 +237,7 @@ def encode(frames, start, end, out_path, captions=None):
         if cur_path is None:
             cur_path = frames[0][1]
         if cur_img is None:
-            cur_img = cv2.imread(str(cur_path))
+            cur_img = imread(cur_path)
             if (cur_img.shape[1], cur_img.shape[0]) != OUT_SIZE:
                 cur_img = cv2.resize(cur_img, OUT_SIZE, interpolation=cv2.INTER_AREA)
         img = cur_img
@@ -210,3 +262,146 @@ def write_srt(captions, start, path):
     for i, (a, b, text, _) in enumerate(captions, 1):
         lines += [str(i), f"{srt_time(a - start)} --> {srt_time(b - start)}", text, ""]
     Path(path).write_text("\n".join(lines), encoding="utf-8-sig")
+
+
+# ---------- 讲解层：页面上的聚光灯和说明气泡 ----------
+# 只是叠在真实页面上的一层标注（深色气泡、古铜色描边），不改页面本身的任何内容
+ANNOT_JS = r"""
+(() => {
+  if (window.__demoAnnotInstalled) return;
+  window.__demoAnnotInstalled = true;
+  const css = `
+  .__spot{position:fixed;border:3px solid #D79A5B;border-radius:14px;box-shadow:0 0 0 9999px rgba(24,22,19,.55);
+    pointer-events:none;z-index:2147483640;opacity:0;
+    transition:opacity .35s ease,left .55s ease,top .55s ease,width .55s ease,height .55s ease}
+  .__spot.on{opacity:1}
+  .__call{position:fixed;max-width:360px;background:#1B1A17;color:#F7F2EA;
+    font:600 20px/1.45 'MiSans','Microsoft YaHei',sans-serif;padding:10px 16px;border-radius:10px;
+    pointer-events:none;z-index:2147483641;opacity:0;transform:translateY(6px);transition:opacity .35s ease,transform .35s ease}
+  .__call.on{opacity:1;transform:none}
+  .__call small{display:block;font-weight:400;font-size:16px;color:#C9C2B6;margin-top:2px}`;
+  const install = () => {
+    const s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+    const spot = document.createElement('div'); spot.className = '__spot'; document.documentElement.appendChild(spot);
+    const call = document.createElement('div'); call.className = '__call'; document.documentElement.appendChild(call);
+    window.__demo = {
+      spot(r, pad) {
+        Object.assign(spot.style, {left: (r.x - pad) + 'px', top: (r.y - pad) + 'px',
+          width: (r.width + 2 * pad) + 'px', height: (r.height + 2 * pad) + 'px'});
+        spot.classList.add('on');
+      },
+      call(r, html, side) {
+        call.classList.remove('on');
+        call.innerHTML = html;
+        const cw = call.offsetWidth, ch = call.offsetHeight;
+        let x, y;
+        if (side === 'left') { x = r.x - cw - 24; y = r.y + r.height / 2 - ch / 2; }
+        else if (side === 'top') { x = r.x + r.width / 2 - cw / 2; y = r.y - ch - 24; }
+        else if (side === 'bottom') { x = r.x + r.width / 2 - cw / 2; y = r.y + r.height + 24; }
+        else { x = r.x + r.width + 24; y = r.y + r.height / 2 - ch / 2; }
+        call.style.left = Math.max(8, Math.min(innerWidth - cw - 8, x)) + 'px';
+        call.style.top = Math.max(8, Math.min(innerHeight - ch - 8, y)) + 'px';
+        requestAnimationFrame(() => call.classList.add('on'));
+      },
+      clear() { spot.classList.remove('on'); call.classList.remove('on'); }
+    };
+  };
+  if (document.head) install(); else document.addEventListener('DOMContentLoaded', install);
+})();
+"""
+
+
+# ---------- 合成：虚拟镜头 + 段落之间交叉淡化 ----------
+class Segment:
+    """一段画面：一个 Recorder 抓到的帧、截取的时间范围、镜头和台词"""
+
+    def __init__(self, rec, start, end):
+        self.frames = sorted(rec.frames)
+        self.start, self.end = start, end
+        self.cams = sorted(rec.cams)
+        self.captions = list(rec.captions)
+        self.vw, self.vh = rec.page.viewport_size["width"], rec.page.viewport_size["height"]
+
+    @property
+    def duration(self):
+        return self.end - self.start
+
+
+def _ease(k):
+    return k * k * (3 - 2 * k)
+
+
+def _rect_at(cams, t, full):
+    prev = full
+    for t0, dur, *r in cams:
+        if t < t0:
+            break
+        if t < t0 + dur:
+            k = _ease((t - t0) / dur)
+            return tuple(p + (q - p) * k for p, q in zip(prev, r))
+        prev = tuple(r)
+    return prev
+
+
+def segment_frames(seg):
+    """按 30fps 逐帧取画面，按当时的取景框裁剪、缩放到 1080p"""
+    full = (0.0, 0.0, float(seg.vw), float(seg.vh))
+    idx, cur, img, last_key, last_out = 0, None, None, None, None
+    for k in range(int(round(seg.duration * FPS))):
+        t = seg.start + k / FPS
+        while idx < len(seg.frames) and seg.frames[idx][0] <= t:
+            cur = seg.frames[idx][1]
+            idx += 1
+            img = None
+        if cur is None:
+            cur = seg.frames[0][1]
+        if img is None:
+            img = imread(cur)
+        rect = _rect_at(seg.cams, t, full)
+        key = (cur, tuple(round(v, 2) for v in rect))
+        if key != last_key:
+            s = img.shape[1] / seg.vw
+            x, y, w, h = rect
+            crop = img[int(round(y * s)):int(round((y + h) * s)), int(round(x * s)):int(round((x + w) * s))]
+            interp = cv2.INTER_AREA if crop.shape[1] > OUT_SIZE[0] else cv2.INTER_CUBIC
+            last_out, last_key = cv2.resize(crop, OUT_SIZE, interpolation=interp), key
+        yield last_out
+
+
+def compose(segments, out_clean, out_preview=None, fade=0.4):
+    """把几段接成一个视频，段与段之间交叉淡化 fade 秒；返回全片的台词 [(开始, 结束, 台词, 画面说明)]"""
+    nf = int(round(fade * FPS))
+    w_clean = VideoOut(out_clean)
+    w_prev = VideoOut(out_preview) if out_preview else None
+    captions, offset, held, count = [], 0.0, [], 0
+
+    def emit(frame):
+        nonlocal count
+        w_clean.write(frame)
+        if w_prev:
+            t = count / FPS
+            text = next((c[2] for c in captions if c[0] <= t < c[1]), None)
+            w_prev.write(_draw_caption(frame, text) if text else frame)
+        count += 1
+
+    for i, seg in enumerate(segments):
+        shift = offset - seg.start
+        captions += [(a + shift, b + shift, text, scene) for a, b, text, scene in seg.captions]
+        last = i == len(segments) - 1
+        tail = []
+        for j, frame in enumerate(segment_frames(seg)):
+            if j < len(held):
+                alpha = (j + 1) / (len(held) + 1)
+                frame = cv2.addWeighted(held[j], 1 - alpha, frame, alpha, 0)
+            if last:
+                emit(frame)
+                continue
+            tail.append(frame.copy())
+            if len(tail) > nf:
+                emit(tail.pop(0))
+        held = tail
+        offset += seg.duration - (0 if last else fade)
+    w_clean.release()
+    if w_prev:
+        w_prev.release()
+    return captions

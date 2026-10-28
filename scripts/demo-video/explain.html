@@ -1,0 +1,126 @@
+<!doctype html>
+<!-- 演示视频里的讲解动画：片头卡片和"分数是怎么算出来的"。
+     数字全部来自 window.__DATA（录制脚本从后端接口取来注入），这里只负责按步骤播放；
+     录制脚本调用 demo.xxx() 推进每一步，和台词对齐。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/misans-webfont@4.3.1/misans/misans-regular/result.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/misans-webfont@4.3.1/misans/misans-bold/result.min.css">
+<style>
+  :root { --bg:#ECE8E1; --card:#F6F4F0; --ink:#1B1A17; --body:#4A463F; --mute:#6B655C; --line:#D3CCC1;
+          --acc:#8A5A2B; --red:#B03A2E; }
+  * { box-sizing:border-box; margin:0; padding:0 }
+  html, body { width:1536px; height:864px; overflow:hidden; background:var(--bg); color:var(--ink);
+               font-family:'MiSans','Microsoft YaHei',sans-serif; -webkit-font-smoothing:antialiased }
+  .scene { position:absolute; inset:0; padding:72px 96px; display:none }
+  .scene.show { display:block }
+  .eyebrow { font-size:18px; letter-spacing:4px; font-weight:700; color:var(--acc) }
+  h1 { font-size:52px; font-weight:700; margin-top:14px; line-height:1.2 }
+  .fade { opacity:0; transform:translateY(16px); transition:opacity .5s ease, transform .5s ease }
+  .fade.in { opacity:1; transform:none }
+
+  #title.show { display:flex; flex-direction:column; justify-content:center }
+  #title h1 { font-size:76px }
+  #title .sub { font-size:28px; color:var(--body); margin-top:22px }
+  #title .bar { width:0; height:4px; background:var(--acc); margin-top:40px; transition:width 1.2s cubic-bezier(.2,.8,.2,1) }
+
+  .rows { margin-top:56px; display:flex; flex-direction:column; gap:24px; width:900px }
+  .row { display:grid; grid-template-columns:170px 1fr 76px 76px 110px; align-items:center; gap:16px; font-size:28px }
+  .row .name { font-weight:700 }
+  .track { height:16px; background:#DDD6CB; border-radius:8px; overflow:hidden }
+  .fill { height:100%; width:0; background:var(--acc); border-radius:8px; transition:width .9s cubic-bezier(.2,.8,.2,1) }
+  .num { font-variant-numeric:tabular-nums; text-align:right }
+  .w { color:var(--mute); text-align:center }
+  .contrib { font-weight:700; color:var(--acc); text-align:right; font-variant-numeric:tabular-nums }
+  .sum { margin-top:28px; width:900px; display:flex; justify-content:space-between; border-top:2px solid var(--ink);
+         padding-top:16px; font-size:32px; font-weight:700 }
+  .sum .hint { font-weight:400; font-size:20px; color:var(--mute); margin-left:12px }
+  .side { position:absolute; right:96px; top:206px; width:400px; display:flex; flex-direction:column; gap:14px }
+  .chip { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 20px; font-size:20px;
+          line-height:1.45; color:var(--body) }
+  .chip b { font-size:28px; display:block; color:var(--ink) }
+  .chip.red { border-color:#D9A79F } .chip.red b { color:var(--red) }
+  .total { position:absolute; right:96px; bottom:64px; width:400px; background:var(--ink); color:#F6F1E8;
+           border-radius:16px; padding:20px 24px }
+  .total .big { font-size:88px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums }
+  .total .cap { font-size:20px; color:#C9C2B6; margin-top:8px; line-height:1.4 }
+</style>
+</head>
+<body>
+<section id="title" class="scene">
+  <p class="eyebrow fade" id="t-eb"></p>
+  <h1 class="fade" id="t-h"></h1>
+  <p class="sub fade" id="t-sub"></p>
+  <div class="bar" id="t-bar"></div>
+</section>
+
+<section id="explain" class="scene">
+  <p class="eyebrow fade" id="e-eb"></p>
+  <h1 class="fade" id="e-h"></h1>
+  <div class="rows" id="rows"></div>
+  <div class="sum fade" id="sum"><span>加权合计<span class="hint" id="sum-hint"></span></span><span class="num" id="sum-v">0</span></div>
+  <div class="side" id="side"></div>
+  <div class="total fade" id="total"><div class="big" id="total-v">0</div><div class="cap" id="total-cap"></div></div>
+</section>
+
+<script>
+const D = window.__DATA;
+const $ = (id) => document.getElementById(id);
+const fmt = (v) => (Math.round(v * 10) / 10).toString();
+function countUp(el, to, ms) {
+  const t0 = performance.now();
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = fmt(to * e);
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+const show = (el) => requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
+
+window.demo = {
+  title(eb, h, sub) {
+    $('title').classList.add('show');
+    $('t-eb').textContent = eb; $('t-h').textContent = h; $('t-sub').textContent = sub;
+    ['t-eb', 't-h', 't-sub'].forEach((id, i) => setTimeout(() => show($(id)), 150 + i * 220));
+    setTimeout(() => { $('t-bar').style.width = '420px'; }, 700);
+  },
+  explain() {
+    $('explain').classList.add('show');
+    $('e-eb').textContent = D.eyebrow;
+    $('e-h').textContent = D.heading;
+    show($('e-eb')); setTimeout(() => show($('e-h')), 200);
+    $('rows').innerHTML = D.dims.map((d, i) => `
+      <div class="row fade" id="r${i}">
+        <span class="name">${d.name}</span>
+        <div class="track"><div class="fill" id="f${i}"></div></div>
+        <span class="num" id="v${i}">0</span>
+        <span class="w">× ${d.weight}</span>
+        <span class="contrib" id="c${i}"></span>
+      </div>`).join('');
+  },
+  rows() {
+    D.dims.forEach((d, i) => setTimeout(() => {
+      show($('r' + i));
+      setTimeout(() => { $('f' + i).style.width = d.score + '%'; countUp($('v' + i), d.score, 800); }, 150);
+      setTimeout(() => { $('c' + i).textContent = '= ' + fmt(d.score * d.weight); }, 900);
+    }, i * 380));
+  },
+  sum() {
+    $('sum-hint').textContent = D.sumHint;
+    show($('sum')); countUp($('sum-v'), D.weighted, 900);
+  },
+  chips() {
+    $('side').innerHTML = D.chips.map((c, i) =>
+      `<div class="chip fade${c.red ? ' red' : ''}" id="k${i}"><b>${c.title}</b>${c.text}</div>`).join('');
+    D.chips.forEach((c, i) => setTimeout(() => show($('k' + i)), i * 450));
+  },
+  total() {
+    $('total-cap').textContent = D.totalCaption;
+    show($('total')); countUp($('total-v'), D.score, 1200);
+  },
+};
+</script>
+</body>
+</html>
