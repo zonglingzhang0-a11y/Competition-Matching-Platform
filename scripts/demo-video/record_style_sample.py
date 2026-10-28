@@ -190,7 +190,7 @@ segments = [Segment(r, r.marks["start"], r.marks["end"]) for r in (rec_title, re
 first = segments[1].frames[0][1]
 print("UI 段抓了", len(segments[1].frames), "帧，", round(segments[1].duration, 1), "秒；帧尺寸",
       __import__("demo_kit").imread(first).shape[1::-1])
-captions = compose(segments, out / "风格样片.mp4", out / "风格样片_带字幕预览.mp4")
+captions, _, _ = compose(segments, out / "风格样片.mp4", out / "风格样片_带字幕预览.mp4")
 write_srt(captions, 0, out / "风格样片.srt")
 rows = ["# 讲解风格样片 · 文案", "",
         "剪映里：导入「风格样片.mp4」→ 文本 → 本地字幕 → 导入「风格样片.srt」→ 全选字幕 → 朗读。", "",

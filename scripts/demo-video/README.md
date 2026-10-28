@@ -1,35 +1,45 @@
 # 演示视频录制
 
-用脚本驱动浏览器，按分镜操作本机测试环境上的网站，同时逐帧抓高清截图，合成 1080p 的 MP4。
-画面里不带字幕，台词单独出一份 SRT：导入剪映后全选字幕，用"文本朗读"生成 AI 配音。
+用脚本驱动浏览器，在本机测试环境上真实地操作网站，逐帧抓 2 倍清晰度的截图，合成 1080p 60 帧的 H.264 视频，音效直接合在视频里。
+讲解层只改"怎么拍"，不改"拍什么"：页面上叠鼠标指针、聚光灯和说明气泡；合成时加虚拟镜头（推近、平移、慢速漂移）、窗口画框、转场；
+讲解动画（`explain.html`）里的数字都从接口取，脚本先按系统的算法重算一遍，和接口返回的对不上就不出片。
 
-- `demo_kit.py`：录制工具。页面上画鼠标指针和点击圆圈、平滑移动和滚动、记字幕时间轴、抓帧合成 MP4。
-- `serve_video.py`：录制用的后端，端口 18093，库 `team_match_video`，启动时重新导入演示数据。
-- `record_sample.py`：约 1 分钟的样片。林晓登录 → 主页 → 匹配六边形和对比 → 推荐理由 → 数模冲刺队 → 申请加入。
+## 准备
+
+- Python 装好 `playwright`（再运行一次 `playwright install chromium`）、`opencv-python`、`pillow`、`imageio-ffmpeg`（自带有 H.264 和 AAC 的 ffmpeg；没装时退回 mp4v、音效单独一条 WAV）。
+- 一个能随便删库的 MySQL（和接口测试一样，用 `E2E_DB_*` 环境变量指定）。
+- 后端 jar 要是最新代码打的（`backend` 目录 `./mvnw package -DskipTests`），比如湖南高校的邮箱后缀在迁移 V12 里。
 
 ## 怎么录
 
-要求：Python 装好 `playwright`（再运行一次 `playwright install chromium`）、`opencv-python`、`pillow`；有一个能随便删库的 MySQL（和接口测试一样，用 `E2E_DB_*` 环境变量指定）。
+1. 起后端：`python scripts/demo-video/serve_video.py`（18093 端口，库 `team_match_video`，启动时重新导入演示数据），等它打印 `ready`。
+2. 起前端：`.claude/launch.json` 里的 `frontend-video`（5176 端口，`/api` 转到 18093）。
+3. 录模块（输出到项目根目录的 `演示视频/模块_xxx/`，这个文件夹不进仓库）：
 
-1. 打包后端：在 `backend` 目录运行 `./mvnw package -DskipTests`。
-2. 起后端：`python scripts/demo-video/serve_video.py`，等它打印 `ready`。
-3. 起前端：用 `.claude/launch.json` 里的 `frontend-video`，或者 `npm --prefix frontend run dev -- --port 5176`，并把环境变量 `API_TARGET` 设成 `http://127.0.0.1:18093`。
-4. 录：`python scripts/demo-video/record_sample.py`，输出到项目根目录的 `演示视频/样片/`（这个文件夹不进仓库）。
+| 脚本 | 内容 | 改不改演示数据 |
+|---|---|---|
+| `record_module_profile.py` | 个人信息与赛库：新账号用中南大学邮箱认证、域名怎么认学校的动画、比赛页的加分认定和时间节点 | 新增一个测试账号 |
+| `record_module_team.py` | 队伍招募：看需求、申请、队长同意；两个线程同时同意两份申请（真实并发），动画放真实返回 | 改 |
+| `record_module_match.py` | 匹配推荐：六边形、叠上对比、推荐理由；87 分怎么算出来的 | 只读 |
+| `record_module_notify.py` | 消息通知：左右分屏同时录，一边申请、另一边实时弹出提醒；邮件提醒 | 改 |
+| `record_module_review.py` | 互评与日程：钱多多填互评、信用分怎么算、赵子航的信用页、一句话加日程和撞期红框 | 改 |
+| `record_module_admin.py` | 管理看板：风险图、漏斗、运营 | 只读 |
 
-样片会真的发出一条入队申请，重录前把第 2 步的后端重启一次（会重新导入演示数据）。
+   **会改数据的模块，录之前要重启第 1 步的后端**（重新导入演示数据），否则脚本会发现状态不对、直接退出。
+4. 整片：6 个模块都录完后运行 `make_full_video.py`，加上片头片尾首尾相接，输出到 `演示视频/整片/`。
 
 ## 输出
 
-| 文件 | 用途 |
-|---|---|
-| `样片.mp4` | 不带字幕，导入剪映用 |
-| `样片.srt` | 台词字幕，时间和画面对好了 |
-| `样片_带字幕预览.mp4` | 字幕画在画面上，先看效果用 |
-| `文案.md` | 每个镜头的时间、画面、台词 |
-| `配音文稿.txt` | 只有台词，一句一行 |
-| `frames/` | 抓到的原始帧，合成完可以删 |
+每个模块文件夹里：`xxx.mp4`（不带字幕，自己配音用）、`xxx_带字幕.mp4`（字幕画在画面上，直接放进 PPT）、`xxx.srt`、`xxx_音效.wav`、`文案.md`（每句字幕的时间、画面，以及录制时核对过的真实数据）。
 
-## 改分镜
+## 文件
 
-照 `record_sample.py` 写：`rec.say("台词", "画面说明")` 开始一句台词，接着用 `rec.click`、`rec.type`、`rec.move_to`、`rec.scroll_to` 操作页面。
-每句台词按每秒 4 个字留时间，操作做完了台词还没念完，会自动等它念完再开始下一句。
+- `demo_kit.py`：录制和合成工具（抓帧、指针、标注、镜头、画框、分屏、转场、音效、H.264 输出）。
+- `module_common.py`：各模块共用的登录、章节卡、出片。
+- `explain.html`：讲解动画（片头、打分、信用分、抢名额、邮箱认学校、片尾），数据由脚本注入。
+- `record_sample.py`、`record_style_sample.py`、`record_style_v2.py`：早期样片，留作对照。
+
+## 注意
+
+- 电脑上同时开着很占内存的程序时，两路 x264 编码可能申请内存失败（`malloc ... failed`），关掉一些程序再录。
+- 抓帧临时放在 `演示视频/模块_xxx/frames`，一个模块三四百 MB，出片后自动删掉。
