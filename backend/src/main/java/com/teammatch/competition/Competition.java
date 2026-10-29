@@ -28,7 +28,7 @@ public class Competition {
     private LocalDateTime updatedAt;
     private Integer deleted;
 
-    public enum Level { NATIONAL, PROVINCIAL, SCHOOL }
+    public enum Level { INTERNATIONAL, NATIONAL, PROVINCIAL, SCHOOL }
 
     /** 匹配权重预设，对应 match_config 表 */
     public enum MatchPreset { DEFAULT, SHORT_INTENSIVE, LONG_TERM }

@@ -170,8 +170,11 @@ stu = r["data"]["token"]
 
 print("== 比赛库管理")
 s, r = call("GET", "/admin/competitions", token=admin)
-check("列表里 5 个种子比赛", r["data"]["total"] == 5, r["data"]["total"])
-math = next(c for c in r["data"]["records"] if "数学建模" in c["name"])
+# 5 个种子比赛 + V14 收录的中南大学竞赛清单
+check("列表里是库里全部的比赛", r["data"]["total"] == int(env.sql("SELECT COUNT(*) FROM competition WHERE deleted = 0")),
+      r["data"]["total"])
+s, r = call("GET", "/admin/competitions", token=admin, params={"keyword": "全国大学生数学建模"})
+math = next(c for c in r["data"]["records"] if c["name"] == "全国大学生数学建模竞赛")
 E = math["editions"][0]["id"]
 check("届次带状态、阶段、节点数", math["editions"][0]["status"] == "PUBLISHED" and math["editions"][0]["nodes"] == 3, math["editions"][0])
 s, r = call("GET", "/admin/role-templates", token=admin)

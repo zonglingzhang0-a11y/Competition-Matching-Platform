@@ -93,8 +93,9 @@ def by_url(rows, url):
 
 admin = register("admin")
 student = register("stu")
-dianzi = competition_id(admin, "电子设计")
-shumo = competition_id(admin, "数学建模")
+# 用全名找：迁移 V14 收录了美赛、统计建模大赛等，"数学建模"不止一个
+dianzi = competition_id(admin, "全国大学生电子设计竞赛")
+shumo = competition_id(admin, "全国大学生数学建模竞赛")
 
 print("== 来源维护")
 s, r = call("GET", "/admin/crawl/sources", token=admin)

@@ -65,8 +65,11 @@ print("一、全新的库（库都没有，后端自己建库、建表、填初�
 env.drop()
 text = start_stop("fresh")
 check(f"V1 到 V{LATEST} 依次执行", history() == FULL, history())
-check("初始数据在：技能字典、示例学校、抓取来源 4 个", env.sql("SELECT COUNT(*) FROM skill") != "0"
-      and env.sql("SELECT COUNT(*) FROM school") == "1" and env.sql("SELECT COUNT(*) FROM crawl_source") == "4")
+# 学校：示例大学 + V12 湖南 34 所 + V13 985/211 112 所；比赛：5 个种子 + V14 中南大学清单 90 个
+check("初始数据在：技能字典、示例学校和收录的 146 所学校、95 个比赛、抓取来源 4 个", env.sql("SELECT COUNT(*) FROM skill") != "0"
+      and env.sql("SELECT COUNT(*) FROM school WHERE name = '示例大学'") == "1" and env.sql("SELECT COUNT(*) FROM school") == "147"
+      and env.sql("SELECT COUNT(*) FROM competition") == "95" and env.sql("SELECT COUNT(*) FROM crawl_source") == "4",
+      [env.sql("SELECT COUNT(*) FROM school"), env.sql("SELECT COUNT(*) FROM competition")])
 check("比赛官网地址补上了（V4）", env.sql("SELECT COUNT(*) FROM competition WHERE official_url LIKE 'https://%'") == "5")
 check("没有 ERROR 日志", not errors(text), errors(text)[:3])
 FRESH = snapshot()

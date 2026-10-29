@@ -38,7 +38,7 @@ export interface PageResult<T> {
 
 // ---------- 比赛库 ----------
 
-export type CompetitionLevel = 'NATIONAL' | 'PROVINCIAL' | 'SCHOOL'
+export type CompetitionLevel = 'INTERNATIONAL' | 'NATIONAL' | 'PROVINCIAL' | 'SCHOOL'
 
 /** 报名阶段：时间待定 / 未开始 / 报名中 / 即将截止 / 已截止 */
 export type EditionPhase = 'UNKNOWN' | 'UPCOMING' | 'OPEN' | 'CLOSING_SOON' | 'CLOSED'
