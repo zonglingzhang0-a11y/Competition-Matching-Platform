@@ -6,7 +6,9 @@ import com.teammatch.auth.AuthDtos.LoginResponse;
 import com.teammatch.auth.AuthDtos.RegisterRequest;
 import com.teammatch.auth.AuthDtos.ResetPasswordRequest;
 import com.teammatch.auth.AuthDtos.SendCodeRequest;
+import com.teammatch.common.ClientIp;
 import com.teammatch.common.Result;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,8 +25,8 @@ public class AuthController {
 
     /** 发注册验证码 */
     @PostMapping("/register-code")
-    public Result<Void> sendRegisterCode(@Valid @RequestBody SendCodeRequest req) {
-        authService.sendRegisterCode(req.email());
+    public Result<Void> sendRegisterCode(@Valid @RequestBody SendCodeRequest req, HttpServletRequest request) {
+        authService.sendRegisterCode(req.email(), ClientIp.of(request));
         return Result.ok();
     }
 
@@ -36,8 +38,8 @@ public class AuthController {
 
     /** 忘记密码：发验证码。邮箱没注册也返回成功，前端统一提示"注册过的话验证码已发出" */
     @PostMapping("/reset-code")
-    public Result<Void> sendResetCode(@Valid @RequestBody SendCodeRequest req) {
-        authService.sendResetCode(req.email());
+    public Result<Void> sendResetCode(@Valid @RequestBody SendCodeRequest req, HttpServletRequest request) {
+        authService.sendResetCode(req.email(), ClientIp.of(request));
         return Result.ok();
     }
 

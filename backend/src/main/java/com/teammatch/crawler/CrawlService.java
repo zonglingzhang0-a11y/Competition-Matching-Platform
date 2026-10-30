@@ -47,7 +47,7 @@ import java.util.stream.Stream;
  * 同一时间只跑一次抓取（定时任务和管理员手动触发共用），在后台线程里跑，进度看 {@link #status()}。
  * 抓到的内容只进待确认列表，不会直接改比赛库。
  * <p>
- * 字段先用规则抽；配了大模型（{@link LlmProperties}）、来源允许交给大模型、规则又没抽全的，再让大模型补。
+ * 字段先用规则抽；配了大模型（{@link com.teammatch.llm.LlmProperties}）、来源允许交给大模型、规则又没抽全的，再让大模型补。
  */
 @Slf4j
 @Service

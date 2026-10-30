@@ -102,7 +102,9 @@ def reset(demo=False):
 def backend_command(*extra):
     url = (f"jdbc:mysql://{HOST}:{PORT_DB}/{DB}?useUnicode=true&characterEncoding=utf8"
            f"&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&createDatabaseIfNotExist=true")
+    # 测试的请求都来自 127.0.0.1，验证码按 IP 的发送上限会把注册了很多人的套卡住（team_race 一套就要发 40 多封）
     defaults = ["--spring.profiles.active=e2e", "--app.mail.mode=log", "--app.code.resend-seconds=0",
+                "--app.code.ip-per-hour=100000", "--app.code.ip-per-day=100000", "--app.code.total-per-day=100000",
                 "--app.crawler.enabled=false"]
     # 同一个参数传两遍 Spring 会拼成"0,60"，所以测试自己给了的就不再放默认值
     given = {a.split("=", 1)[0] for a in extra}

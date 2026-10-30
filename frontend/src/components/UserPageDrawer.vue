@@ -3,9 +3,11 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Close, Lock } from '@element-plus/icons-vue'
 import { getUserPage } from '@/api/profile'
+import SkillRadar from '@/components/SkillRadar.vue'
+import RadarSkillGroups from '@/components/RadarSkillGroups.vue'
 import { useUserPageStore } from '@/stores/userPage'
 import type { PageExperience, UserPage } from '@/types/api'
-import { DEGREES, SKILL_LEVEL_LABEL, TEAM_RECORD_STATE, creditType } from '@/utils/labels'
+import { DEGREES, TEAM_RECORD_STATE, creditType } from '@/utils/labels'
 import { fmtDate } from '@/utils/time'
 import { safeUrl } from '@/utils/url'
 
@@ -188,17 +190,20 @@ function contactLine(): string {
           </div>
         </section>
 
-        <!-- 技能：三格表示入门、熟练、精通 -->
+        <!-- 技能：先看六维能力形状，再看具体技能（三格表示入门、熟练、精通） -->
         <section class="block">
           <div class="kicker">SKILLS <span class="zh">/ 技能</span></div>
+          <SkillRadar
+            v-if="page.radar.count > 0"
+            :axes="page.radar.axes"
+            :series="[{ name: '能力', values: page.radar.axes.map((a) => a.score), color: '#121310' }]"
+            :height="210"
+            compact
+          />
+          <p v-if="page.radar.count > 0" class="radar-advice">{{ page.radar.advice }}</p>
           <p v-if="page.skills.length === 0" class="empty">还没有填写技能。</p>
-          <div v-for="s in page.skills" :key="s.skillId" class="skill">
-            <span class="skill-name">{{ s.name }}</span>
-            <span class="meter" :aria-label="`${s.name} ${SKILL_LEVEL_LABEL[s.level]}`">
-              <i v-for="n in 3" :key="n" :class="{ on: n <= s.level }" />
-            </span>
-            <span class="skill-level">{{ SKILL_LEVEL_LABEL[s.level] }}</span>
-          </div>
+          <!-- 技能按六类能力归类，雷达图的每一根轴对应下面一块 -->
+          <RadarSkillGroups v-else :axes="page.radar.axes" mode="person" only-filled />
         </section>
 
         <!-- 看不到履历时，像游戏平台的"此资料是私密的"一样给一块提示 -->
@@ -441,6 +446,13 @@ function contactLine(): string {
   font-size: 12px;
 }
 
+.radar-advice {
+  margin: 2px 0 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--jd-muted);
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -510,41 +522,6 @@ function contactLine(): string {
   font-size: 11px;
   color: var(--jd-muted);
   letter-spacing: 0.06em;
-}
-
-.skill {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 4px 0;
-  font-size: 14px;
-}
-
-.skill-name {
-  width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.meter {
-  display: inline-flex;
-  gap: 3px;
-}
-
-.meter i {
-  width: 36px;
-  height: 8px;
-  background: var(--jd-line-lighter);
-}
-
-.meter i.on {
-  background: var(--jd-ink);
-}
-
-.skill-level {
-  font-size: 12px;
-  color: var(--jd-muted);
 }
 
 .locked {

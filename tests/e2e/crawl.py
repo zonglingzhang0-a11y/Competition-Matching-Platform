@@ -93,8 +93,9 @@ def by_url(rows, url):
 
 admin = register("admin")
 student = register("stu")
-dianzi = competition_id(admin, "电子设计")
-shumo = competition_id(admin, "数学建模")
+# 用全名找：迁移 V14 收录了美赛、统计建模大赛等，"数学建模"不止一个
+dianzi = competition_id(admin, "全国大学生电子设计竞赛")
+shumo = competition_id(admin, "全国大学生数学建模竞赛")
 
 print("== 来源维护")
 s, r = call("GET", "/admin/crawl/sources", token=admin)
@@ -236,7 +237,7 @@ nodes1 = [node("报名截止", "REGISTRATION", "2026-11-20T23:59:59"),
           node("比赛", "CONTEST", "2026-12-05T08:00:00", "2026-12-07T20:00:00", busy=True)]
 s, r = call("POST", f"/admin/crawl/records/{n1['id']}/approve",
             {"editionId": None, "edition": edition_form(), "nodes": [node("坏", "OTHER", "2026-12-05T08:00:00", "2026-12-01T00:00:00")]}, admin)
-check("节点时间不对（400），什么都没写进去", s == 400 and sql("SELECT COUNT(*) FROM competition_edition WHERE title = '2026 年'") == [["0"]]
+check("节点时间不对（400），什么都没写进去", s == 400 and sql(f"SELECT COUNT(*) FROM competition_edition WHERE title = '2026 年' AND competition_id = {dianzi}") == [["0"]]
       and sql(f"SELECT status FROM crawl_record WHERE id = {n1['id']}") == [["EXTRACTED"]], r)
 s, r = call("POST", f"/admin/crawl/records/{n1['id']}/approve", {"editionId": None, "edition": edition_form(), "nodes": nodes1}, admin)
 new_edition = r.get("data")

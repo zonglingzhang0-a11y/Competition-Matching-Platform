@@ -27,6 +27,7 @@ type TagType = 'primary' | 'success' | 'info' | 'warning' | 'danger'
 export const CATEGORIES = ['数学', '计算机', '电子', '创新创业', '设计', '外语', '其他']
 
 export const LEVEL_LABEL: Record<CompetitionLevel, string> = {
+  INTERNATIONAL: '国际级',
   NATIONAL: '国家级',
   PROVINCIAL: '省级',
   SCHOOL: '校级',

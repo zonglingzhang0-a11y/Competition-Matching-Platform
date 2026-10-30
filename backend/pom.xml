@@ -134,6 +134,18 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
 			<plugin>
+				<!-- application-local.yml 里有本机的数据库密码等，不打进 jar，免得 jar 发给别人或部署时带出去。
+				     mvnw spring-boot:run 用的是 target/classes，不受影响；直接跑 jar 时用启动参数
+				     spring.config.additional-location=file:src/main/resources/ 读源码目录里的那份（见 README） -->
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>application-local.yml</exclude>
+					</excludes>
+				</configuration>
+			</plugin>
+			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<executions>

@@ -1,5 +1,7 @@
 package com.teammatch.home;
 
+import com.teammatch.match.MatchResult;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -90,8 +92,18 @@ public final class HomeDtos {
                           String consequence) {
     }
 
-    /** 给我当队长、还在招人的队推荐的队员 */
+    /**
+     * 主页自定义（见 {@link HomeLayoutService}）。
+     *
+     * @param order        面板的先后顺序，每一栏里按这个顺序排
+     * @param hidden       隐藏的面板
+     * @param wideCalendar 日历栏加宽（改版前的比例）
+     */
+    public record Layout(List<String> order, List<String> hidden, boolean wideCalendar) {
+    }
+
+    /** 给我当队长、还在招人的队推荐的队员；match 是完整的打分，主页的匹配六边形用 */
     public record Teammate(Long teamId, String teamName, Long userId, String nickname, String major,
-                           Integer enrollYear, double score, String reason, boolean invited) {
+                           Integer enrollYear, double score, String reason, boolean invited, MatchResult match) {
     }
 }

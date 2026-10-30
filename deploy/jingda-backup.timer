@@ -1,0 +1,12 @@
+# 每天凌晨 4 点备份一次数据库；放在 /etc/systemd/system/，systemctl enable --now jingda-backup.timer
+[Unit]
+Description=Daily JingDa database backup
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+RandomizedDelaySec=10min
+# 到点时服务器关着的话，开机后补一次
+Persistent=true
+
+[Install]
+WantedBy=timers.target

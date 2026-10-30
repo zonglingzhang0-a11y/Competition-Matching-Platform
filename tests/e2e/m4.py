@@ -164,6 +164,23 @@ print("== 首页推荐")
 s, r = call("GET", "/recommendations/home", token=cand)
 check("首页推荐里有关注的数学建模", len(r["data"]) == 1 and r["data"][0]["edition"]["editionId"] == E and r["data"][0]["teams"][0]["team"]["name"] == "高手队", r["data"])
 
+print("== 主页自定义")
+PANELS = ["today", "schedule", "semester", "mine", "open", "pending", "recommend", "messages"]
+s, r = call("GET", "/home/layout", token=cand)
+check("没设置过：默认顺序、什么都不隐藏、日历不加宽", s == 200 and r["data"] == {"order": PANELS, "hidden": [], "wideCalendar": False}, r)
+custom = {"order": ["messages", "pending", "open", "mine"], "hidden": ["open", "semester"], "wideCalendar": True}
+s, r = call("PUT", "/home/layout", custom, cand)
+saved = r.get("data") or {}
+check("保存：调过的顺序在前，漏掉的按默认顺序补在后面",
+      s == 200 and saved.get("order") == ["messages", "pending", "open", "mine", "today", "schedule", "semester", "recommend"], saved)
+s, r = call("GET", "/home/layout", token=cand)
+check("再读回来一样（存在账号里）", r["data"] == saved and r["data"]["hidden"] == ["open", "semester"] and r["data"]["wideCalendar"], r["data"])
+s, r = call("PUT", "/home/layout", {"order": ["hack", "today"], "hidden": ["pending", "hack", "messages"], "wideCalendar": False}, cand)
+check("不认识的面板丢掉，待你处理不能隐藏", s == 200 and r["data"]["hidden"] == ["messages"] and "hack" not in r["data"]["order"]
+      and len(r["data"]["order"]) == len(PANELS), r["data"])
+s, r = call("GET", "/home/layout", token=cap_hi)
+check("别人的设置不受影响", r["data"]["hidden"] == [] and r["data"]["order"] == PANELS, r["data"])
+
 print("== 撞期否决")
 s, r = call("GET", "/competitions", token=admin, params={"keyword": "计算机设计"})
 E2 = r["data"]["records"][0]["currentEdition"]["id"]

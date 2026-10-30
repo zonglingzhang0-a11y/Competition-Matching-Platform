@@ -131,13 +131,14 @@ watch(
             <el-icon :size="18"><Bell /></el-icon>
           </el-badge>
         </router-link>
-        <router-link v-if="user.me && user.me.verifyStatus !== 'VERIFIED'" to="/verify" class="unverified">未认证</router-link>
+        <!-- 管理员不用认证学校 -->
+        <router-link v-if="user.me && user.me.verifyStatus !== 'VERIFIED' && !user.isAdmin" to="/verify" class="unverified">未认证</router-link>
         <el-dropdown trigger="click" @command="onCommand">
           <button type="button" class="user" aria-label="个人菜单">
             <span class="avatar" aria-hidden="true">{{ initial }}</span>
             <span class="who">
               <strong>{{ user.me?.nickname }}</strong>
-              <small>{{ user.me?.school?.name ?? '未认证学校' }}</small>
+              <small>{{ user.me?.school?.name ?? (user.isAdmin ? '平台管理员' : '未认证学校') }}</small>
             </span>
           </button>
           <template #dropdown>

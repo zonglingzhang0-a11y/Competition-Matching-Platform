@@ -2,13 +2,23 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import MatchSummary from '@/components/MatchSummary.vue'
+import SkillRadar from '@/components/SkillRadar.vue'
 import UserName from '@/components/UserName.vue'
 import { recommendedTeams } from '@/api/survey'
-import type { EditionDetail, TeamRecommendations } from '@/types/api'
+import type { EditionDetail, TeamRecommendations, TeamSummary } from '@/types/api'
 import { TEAM_STATUS } from '@/utils/labels'
 import { showError } from '@/utils/feedback'
 
 const props = defineProps<{ edition: EditionDetail }>()
+
+/** 队长勾了技能要求才画小雷达 */
+function hasNeedRadar(team: TeamSummary) {
+  return team.needRadar.axes.some((a) => a.score > 0)
+}
+
+function needSeries(team: TeamSummary) {
+  return [{ name: '招募需求', values: team.needRadar.axes.map((a) => a.score), color: '#b0442d' }]
+}
 
 const route = useRoute()
 const data = ref<TeamRecommendations | null>(null)
@@ -73,7 +83,18 @@ onMounted(load)
               <template v-if="r.team.openNeeds.length"> · 在招 {{ r.team.openNeeds.map((n) => n.roleName).join('、') }}</template>
             </span>
           </div>
-          <MatchSummary :match="r.match" compact />
+          <div class="item-body">
+            <MatchSummary :match="r.match" compact class="item-match" />
+            <!-- 招募需求的六维形状，选队之前先看缺的是不是你会的那块 -->
+            <SkillRadar
+              v-if="hasNeedRadar(r.team)"
+              class="mini"
+              compact
+              :axes="r.team.needRadar.axes"
+              :series="needSeries(r.team)"
+              :height="110"
+            />
+          </div>
         </div>
         <el-button v-if="data.items.length > 3" text @click="expanded = !expanded">
           {{ expanded ? '收起' : `看全部 ${data.items.length} 支` }}
@@ -118,6 +139,22 @@ onMounted(load)
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+.item-body {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.item-match {
+  flex: 1;
+  min-width: 0;
+}
+
+.mini {
+  flex: none;
+  width: 120px;
 }
 
 .name {

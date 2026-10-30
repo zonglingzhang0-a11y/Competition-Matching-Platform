@@ -1,0 +1,20 @@
+# 竞搭后端的 systemd 服务：开机自动启动，挂了自动重启
+# 放在 /etc/systemd/system/jingda.service
+[Unit]
+Description=Jingda competition team matching backend
+After=network.target mysql.service
+Requires=mysql.service
+
+[Service]
+User=jingda
+Group=jingda
+# application-local.yml 和 uploads/ 都在这个目录下
+WorkingDirectory=/opt/jingda
+# 2 核 4G 的机器上还跑着 MySQL，后端堆内存给到 1G
+ExecStart=/usr/bin/java -Xms256m -Xmx1g -Duser.timezone=Asia/Shanghai -jar /opt/jingda/app.jar
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

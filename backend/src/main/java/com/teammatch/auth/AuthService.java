@@ -38,11 +38,11 @@ public class AuthService {
     private final LoginThrottle throttle;
     private final Clock clock;
 
-    public void sendRegisterCode(String email) {
+    public void sendRegisterCode(String email, String ip) {
         if (findByEmail(email) != null) {
             throw new BizException(409, "这个邮箱已经注册过了，直接登录吧");
         }
-        codeService.send(email, CodePurpose.REGISTER);
+        codeService.send(email, CodePurpose.REGISTER, ip);
     }
 
     @Transactional
@@ -102,9 +102,9 @@ public class AuthService {
     }
 
     /** 忘记密码：发验证码。没注册的邮箱也照样返回成功（只是不发信），免得被人拿来试哪些邮箱注册过 */
-    public void sendResetCode(String email) {
+    public void sendResetCode(String email, String ip) {
         if (findByEmail(email) != null) {
-            codeService.send(email, CodePurpose.RESET_PASSWORD);
+            codeService.send(email, CodePurpose.RESET_PASSWORD, ip);
         }
     }
 

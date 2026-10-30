@@ -177,6 +177,17 @@ s, _ = call("PUT", "/users/me/email-notify", {"enabled": True}, cap4)
 time.sleep(WAIT)
 check("cap4 重新打开后，3 天内没看的消息补发", len(mails_to("cap4")) == 1, mails_to("cap4"))
 
+print("== 前后差两秒的两条也合成一封")
+# created_at 只到秒：以前前后跨了一秒的两条会拆成两封，现在到点时把这个人还没看的都带上
+cap5, m6, m7 = student("cap5"), student("m6"), student("m7")
+t5 = new_team(cap5, "邮件测试队5")
+apply(m6, t5)
+time.sleep(2)
+apply(m7, t5)
+time.sleep(WAIT)
+got5 = mails_to("cap5")
+check("cap5 只收到 1 封，两条申请都在里面", len(got5) == 1 and got5[0][1].count("· ") == 2, got5)
+
 errors = [l for l in log_text().splitlines() if " ERROR " in l]
 check("后端没有 ERROR 日志", not errors, errors[:3])
 print(f"共 {len(results)} 项，通过 {sum(results)} 项")

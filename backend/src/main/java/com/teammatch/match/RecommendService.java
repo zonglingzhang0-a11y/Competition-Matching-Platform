@@ -263,6 +263,20 @@ public class RecommendService {
                 .toList();
     }
 
+    /**
+     * 一个人和一支队现在的匹配分（被一票否决时是 0）。发申请或邀请时记下来，见 {@link ApplicationScoreRecorder}。
+     *
+     * @param candidateView true：学生申请（学生视角）；false：队长邀请
+     */
+    public double scoreOf(long userId, long teamId, boolean candidateView) {
+        Team t = teamSupport.requireTeam(teamId);
+        CompetitionEdition e = teamSupport.requireEdition(t.getEditionId());
+        TeamContext ctx = contexts(List.of(t), e).get(teamId);
+        Person p = persons(List.of(userId), e.getId()).get(userId);
+        Facts f = facts(List.of(userId), e).get(userId);
+        return engine(e).score(p, ctx, f, candidateView).score();
+    }
+
     // ---------- 准备引擎的输入 ----------
 
     private MatchEngine engine(CompetitionEdition e) {

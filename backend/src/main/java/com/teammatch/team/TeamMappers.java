@@ -54,7 +54,7 @@ public final class TeamMappers {
 
         @Select("""
                 <script>
-                SELECT ns.need_id AS needId, s.id AS skillId, s.name, ns.min_level AS minLevel
+                SELECT ns.need_id AS needId, s.id AS skillId, s.name, s.category, ns.min_level AS minLevel
                 FROM team_need_skill ns JOIN skill s ON s.id = ns.skill_id
                 WHERE ns.need_id IN
                 <foreach collection="needIds" item="id" open="(" separator="," close=")">#{id}</foreach>
@@ -74,7 +74,7 @@ public final class TeamMappers {
                 """)
         int insertAll(@Param("needId") long needId, @Param("skills") List<TeamDtos.NeedSkillInput> skills);
 
-        record NeedSkillRow(Long needId, Long skillId, String name, Integer minLevel) {
+        record NeedSkillRow(Long needId, Long skillId, String name, String category, Integer minLevel) {
         }
     }
 }

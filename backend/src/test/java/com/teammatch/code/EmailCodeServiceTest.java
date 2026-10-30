@@ -31,6 +31,7 @@ class EmailCodeServiceTest {
     private static final ZoneId ZONE = ZoneId.of("Asia/Shanghai");
     private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 10, 12, 0);
     private static final String EMAIL = "a@stu.example.edu.cn";
+    private static final String IP = "203.0.113.7";
 
     private EmailCodeMapper mapper;
     private CodeMailer mailer;
@@ -47,13 +48,14 @@ class EmailCodeServiceTest {
         mapper = mock(EmailCodeMapper.class);
         mailer = mock(CodeMailer.class);
         Clock clock = Clock.fixed(NOW.atZone(ZONE).toInstant(), ZONE);
-        AppProperties props = new AppProperties(new AppProperties.Mail("log", ""), new AppProperties.Code(10, 60, 5), null);
-        service = new EmailCodeService(mapper, mailer, props, clock);
+        AppProperties props = new AppProperties(new AppProperties.Mail("log", ""),
+                new AppProperties.Code(10, 60, 5, null, null, null), null);
+        service = new EmailCodeService(mapper, mailer, new CodeSendLimiter(props, clock), props, clock);
     }
 
     @Test
     void sendStoresHashAndMailsSixDigitCode() {
-        service.send(" A@Stu.Example.edu.cn ", CodePurpose.EDU_VERIFY);
+        service.send(" A@Stu.Example.edu.cn ", CodePurpose.EDU_VERIFY, IP);
 
         ArgumentCaptor<EmailCode> saved = ArgumentCaptor.forClass(EmailCode.class);
         verify(mapper).insert(saved.capture());
@@ -72,7 +74,7 @@ class EmailCodeServiceTest {
     void sendTooSoonIsRejected() {
         when(mapper.selectOne(any())).thenReturn(record("123456", NOW.minusSeconds(20), 0));
 
-        assertThatThrownBy(() -> service.send(EMAIL, CodePurpose.EDU_VERIFY))
+        assertThatThrownBy(() -> service.send(EMAIL, CodePurpose.EDU_VERIFY, IP))
                 .isInstanceOf(BizException.class)
                 .hasMessageContaining("40 秒后再试");
         verify(mailer, never()).sendCode(any(), any(), any(), anyInt());

@@ -28,3 +28,7 @@ __pycache__/
 
 # 公网演示用的 cloudflared.exe（各自下载，不进仓库）
 tools/
+
+# 录演示视频的输出（视频和逐帧截图很大，见 scripts/demo-video）
+/演示视频/
+/结课材料/

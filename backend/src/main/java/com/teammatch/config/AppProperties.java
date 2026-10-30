@@ -24,7 +24,11 @@ public record AppProperties(Mail mail, Code code, List<String> adminEmails) {
     public record Mail(String mode, String from) {
     }
 
-    /** 验证码：有效分钟数、重发间隔秒数、最多尝试次数 */
-    public record Code(int ttlMinutes, int resendSeconds, int maxAttempts) {
+    /**
+     * 验证码：有效分钟数、重发间隔秒数、最多尝试次数；
+     * 发送量上限：同一个 IP 每小时、每 24 小时，全站每天，不填用 CodeSendLimiter 里的默认值
+     */
+    public record Code(int ttlMinutes, int resendSeconds, int maxAttempts,
+                       Integer ipPerHour, Integer ipPerDay, Integer totalPerDay) {
     }
 }

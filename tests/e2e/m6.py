@@ -3,6 +3,7 @@
 import env  # 公共环境：库、端口、mysql 客户端，见 env.py
 import json
 import re
+import subprocess
 import sys
 import urllib.error
 import urllib.parse
@@ -169,10 +170,15 @@ stu = r["data"]["token"]
 
 print("== 比赛库管理")
 s, r = call("GET", "/admin/competitions", token=admin)
-check("列表里 5 个种子比赛", r["data"]["total"] == 5, r["data"]["total"])
-math = next(c for c in r["data"]["records"] if "数学建模" in c["name"])
-E = math["editions"][0]["id"]
-check("届次带状态、阶段、节点数", math["editions"][0]["status"] == "PUBLISHED" and math["editions"][0]["nodes"] == 3, math["editions"][0])
+# 5 个种子比赛 + V14、V15 收录的中南大学竞赛清单
+check("列表里是库里全部的比赛", r["data"]["total"] == int(env.sql("SELECT COUNT(*) FROM competition WHERE deleted = 0")),
+      r["data"]["total"])
+s, r = call("GET", "/admin/competitions", token=admin, params={"keyword": "全国大学生数学建模"})
+math = next(c for c in r["data"]["records"] if c["name"] == "全国大学生数学建模竞赛")
+# 数模还有 V15 按官方通知建的真实届次，看板测的是示例届次
+sample = next(e for e in math["editions"] if e["title"] == "2026 年（示例数据）")
+E = sample["id"]
+check("届次带状态、阶段、节点数", sample["status"] == "PUBLISHED" and sample["nodes"] == 3, sample)
 s, r = call("GET", "/admin/role-templates", token=admin)
 check("分工模板 4 套，带角色", len(r["data"]) == 4 and all(t["roles"] for t in r["data"]), r["data"])
 template = r["data"][0]["id"]
@@ -260,6 +266,47 @@ row = next(e for e in eds if e["editionId"] == E)
 check("届次表：数模 1 支在招、差 2 人、1 人在找队、2 人关注",
       row["recruitingTeams"] == 1 and row["openSlots"] == 2 and row["seekers"] == 1 and row["followers"] == 2, row)
 check("报名中的届次排在已截止的前面", [e["phase"] == "CLOSED" for e in eds] == sorted(e["phase"] == "CLOSED" for e in eds), [e["phase"] for e in eds])
+s, r = call("GET", "/admin/dashboard/funnel", token=stu, params={"editionId": E})
+check("学生看不了组队漏斗（403）", s == 403, s)
+s, r = call("GET", "/admin/dashboard/funnel", token=admin, params={"editionId": E})
+f = r.get("data") or {}
+# 人群：关注的 s1、s2，加上没点关注的队长 cap；s1 申请后入队，cap 建了队；队伍还在招人
+check("组队漏斗：3 人里 0 人填了问卷，2 人申请过或建了队，2 人进了队，0 人的队伍组好了",
+      s == 200 and [f.get(k) for k in ("people", "surveyed", "engaged", "joined", "formed")] == [3, 0, 2, 2, 0], f)
+s, r = call("GET", "/admin/dashboard/calibration", token=stu)
+check("学生看不了推荐准不准（403）", s == 403, s)
+s, r = call("GET", "/admin/dashboard/calibration", token=admin)
+cal = r.get("data") or {}
+got = [(b["from"], b["total"], b["accepted"]) for b in cal.get("buckets", []) if b["total"]]
+# s1 发申请时记下了匹配分（都没填问卷，接近 50 分），队长同意了
+check("推荐准不准：s1 的申请发出时记下了匹配分，落在 40–60 分这一段、算成了；没有没记分的老记录",
+      s == 200 and len(cal.get("buckets", [])) == 5 and got == [(40, 1, 1)] and cal.get("unscored") == 0, cal)
+
+s, r = call("GET", "/admin/dashboard/ops", token=stu)
+check("学生看不了运营（403）", s == 403, s)
+late = register("late")
+verify(late, "late@stu.example.edu.cn")
+s, r = call("POST", f"/teams/{team}/applications", {}, late)
+late_app = r["data"]
+# 把这条申请改成 5 天前发的，看它算不算积压（只改测试库）
+subprocess.run([*env.mysql_args(), env.DB, "-e",
+                f"UPDATE team_application SET created_at = NOW() - INTERVAL 5 DAY WHERE id = {late_app}"], check=True)
+odd = register("odd")
+verify(odd, "odd@nowhere.edu.cn")
+s, r = call("GET", "/admin/dashboard/ops", token=admin)
+o = r.get("data") or {}
+a = o.get("applications", {})
+check("运营·申请：1 条等了 5 天，算在队长 cap 头上；s1 那条已经处理完",
+      s == 200 and a.get("pending") == 1 and a.get("overdue") == 1 and a.get("handled30d") == 1
+      and [(b["nickname"], b["direction"], b["count"]) for b in a.get("backlog", [])] == [("cap", "APPLY", 1)]
+      and a["backlog"][0]["oldestDays"] >= 5, a)
+v = o.get("verifications", {})
+check("运营·认证：待审核 1 条，没收录的邮箱后缀单独标出来",
+      v.get("pending") == 1 and [(g["label"], g["unknownDomain"], g["count"]) for g in v.get("groups", [])]
+      == [("@nowhere.edu.cn", True, 1)], v)
+check("运营·爬虫来源：预置的来源都还没抓过（或停用）",
+      len(o.get("sources", [])) >= 3 and all(x["status"] in ("NEVER", "DISABLED") for x in o["sources"]), o.get("sources"))
+check("运营·举报：没有待处理的", o.get("reports", {}).get("pending") == 0, o.get("reports"))
 
 print("== 匹配配置")
 s, r = call("GET", "/admin/match-configs", token=admin)

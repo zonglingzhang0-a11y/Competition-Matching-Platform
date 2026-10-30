@@ -9,6 +9,9 @@ import NeedDialog from '@/components/NeedDialog.vue'
 import ReportDialog from '@/components/ReportDialog.vue'
 import TeamFormDialog from '@/components/TeamFormDialog.vue'
 import MatchSummary from '@/components/MatchSummary.vue'
+import SkillRadar, { type RadarSeries } from '@/components/SkillRadar.vue'
+import RadarSkillGroups from '@/components/RadarSkillGroups.vue'
+import AiRecruitCard from '@/components/AiRecruitCard.vue'
 import TeamTimeline from '@/components/TeamTimeline.vue'
 import UserCard from '@/components/UserCard.vue'
 import UserName from '@/components/UserName.vue'
@@ -64,6 +67,25 @@ const pendingInvites = computed(() =>
   applications.value.filter((a) => a.status === 'PENDING' && a.direction === 'INVITE'),
 )
 const handled = computed(() => applications.value.filter((a) => a.status !== 'PENDING'))
+
+/** 雷达图上：队伍要什么（虚线红）+ 我会什么（实线黑）。比赛结束后不再比需求 */
+const radarSeries = computed<RadarSeries[]>(() => {
+  const radar = team.value?.radar
+  if (!radar) return []
+  const series: RadarSeries[] = []
+  if (!finished.value) {
+    series.push({ name: '队伍需要', values: radar.need.axes.map((a) => a.score), color: '#b0442d', dashed: true })
+  }
+  if (radar.mine.count > 0) {
+    series.push({ name: '我的能力', values: radar.mine.axes.map((a) => a.score), color: '#121310' })
+  }
+  return series
+})
+
+const fitType = computed(() => {
+  const fit = team.value?.radar.fit ?? 0
+  return fit >= 70 ? 'success' : fit >= 40 ? 'warning' : 'danger'
+})
 const editForm = computed<TeamForm | undefined>(() =>
   team.value
     ? {
@@ -410,6 +432,46 @@ watch(() => route.params.id, load, { immediate: true })
         </div>
       </el-card>
 
+      <!-- 能力雷达：招募需求 + 看的人自己的能力，叠在一张图上比 -->
+      <el-card shadow="never" class="block">
+        <template #header>
+          <div class="card-head">
+            <span>能力雷达</span>
+            <el-tag v-if="!finished && team.radar.fit !== null" size="small" :type="fitType">{{ team.radar.fit }}% 覆盖</el-tag>
+          </div>
+        </template>
+        <p class="radar-hint">
+          虚线是这支队招人时要的能力，实线是你自己填的技能；没填具体技能的轴按基础分估，图上标「推断」。
+          六类能力是编程开发、建模与算法、数据与调研、设计表达、写作答辩、硬件工程。
+        </p>
+        <div class="radar-layout">
+          <SkillRadar :axes="team.radar.need.axes" :series="radarSeries" :height="270" />
+          <div class="radar-side">
+            <p v-if="finished" class="radar-verdict">比赛已经结束，队伍归档，这张图只画你自己的能力形状。</p>
+            <template v-else>
+              <p class="radar-verdict">{{ team.radar.verdict }}</p>
+              <ul v-if="team.radar.gaps.length" class="gaps">
+                <li v-for="g in team.radar.gaps" :key="g.key" :class="g.status.toLowerCase()">
+                  <span class="gap-dot" aria-hidden="true" />
+                  <span>{{ g.text }}</span>
+                </li>
+              </ul>
+              <p v-if="team.radar.mine.count === 0" class="radar-cta">
+                <router-link to="/profile">去档案页补技能</router-link>，图上才会画上你自己那条线。
+              </p>
+            </template>
+          </div>
+        </div>
+        <!-- 需求雷达的每个轴对应哪些具体技能要求、缺的是哪个角色 -->
+        <template v-if="!finished && team.radar.need.count > 0">
+          <div class="groups-title">招募的技能要求，按能力归类</div>
+          <RadarSkillGroups :axes="team.radar.need.axes" mode="need" only-filled />
+        </template>
+      </el-card>
+
+      <!-- 队长：AI 招募建议，看队员的能力和问卷特点该招什么样的人 -->
+      <AiRecruitCard v-if="isCaptain && !finished" :team-id="team.id" class="block" />
+
       <!-- 时间线：官方节点 + 队伍里程碑 -->
       <el-card shadow="never" class="block">
         <TeamTimeline :team-id="team.id" />
@@ -589,6 +651,88 @@ watch(() => route.params.id, load, { immediate: true })
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.radar-hint {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-secondary);
+}
+
+.radar-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) 1fr;
+  gap: 20px;
+  align-items: center;
+}
+
+.radar-side {
+  min-width: 0;
+}
+
+.radar-verdict {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.gaps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gaps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+}
+
+.gap-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--el-text-color-secondary);
+}
+
+.gaps li.covered .gap-dot {
+  background: #121310;
+}
+
+.gaps li.partial .gap-dot {
+  background: #b0442d;
+  opacity: 0.55;
+}
+
+.gaps li.missing .gap-dot {
+  background: #b0442d;
+}
+
+.radar-cta {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.groups-title {
+  margin: 18px 0 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+@media (max-width: 760px) {
+  .radar-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .row {

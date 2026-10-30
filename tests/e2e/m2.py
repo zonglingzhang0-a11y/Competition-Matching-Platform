@@ -50,22 +50,28 @@ check("配置里的邮箱注册后是管理员", adm_me["role"] == "ADMIN", adm_
 check("普通邮箱注册后是学生", stu_me["role"] == "STUDENT")
 
 print("== 比赛列表")
+# 比赛库除了 V2 的 5 个种子比赛，还有 V14 收录的中南大学竞赛清单，个数以库里为准
+total = int(env.sql("SELECT COUNT(*) FROM competition WHERE deleted = 0"))
 s, r = call("GET", "/competitions", token=stu)
-check("不带筛选返回全部 5 个", s == 200 and r["data"]["total"] == 5, r)
+levels = {c["level"] for p in (1, 2, 3) for c in call("GET", "/competitions", token=stu, params={"page": p, "size": 50})[1]["data"]["records"]}
+check(f"不带筛选返回全部 {total} 个（迁移收录的比赛都在，国际级也能正常返回）",
+      s == 200 and r["data"]["total"] == total and total >= 95 and "INTERNATIONAL" in levels, (r["data"]["total"], levels))
 first = r["data"]["records"][0]
 check("高教学会目录里的排在前面", first["inCaheList"] is True)
 s, r = call("GET", "/competitions", token=stu, params={"keyword": "建模"})
-check("按关键字搜到数学建模", r["data"]["total"] == 1 and "数学建模" in r["data"]["records"][0]["name"], r["data"])
-math = r["data"]["records"][0]
+like = int(env.sql("SELECT COUNT(*) FROM competition WHERE deleted = 0 AND (name LIKE '%建模%' OR short_name LIKE '%建模%')"))
+math = next((c for c in r["data"]["records"] if c["name"] == "全国大学生数学建模竞赛"), None)
+check("按关键字搜到数学建模", r["data"]["total"] == like and math is not None, r["data"])
 ed = math["currentEdition"]
 check("当前届是示例届次", ed and ed["title"] == "2026 年（示例数据）", ed)
 check("报名阶段算对了（距截止 5 天内 → 报名中/即将截止）", ed["phase"] in ("OPEN", "CLOSING_SOON"), ed["phase"])
 s, r = call("GET", "/competitions", token=stu, params={"category": "数学"})
-check("按类别筛选", r["data"]["total"] == 1)
+check("按类别筛选", r["data"]["total"] == int(env.sql("SELECT COUNT(*) FROM competition WHERE deleted = 0 AND category = '数学'"))
+      and all(c["category"] == "数学" for c in r["data"]["records"]))
 s, r = call("GET", "/competitions", token=stu, params={"openOnly": "true"})
 check("只看还能报名的：2 个有在报名的届次", r["data"]["total"] == 2, r["data"]["total"])
 s, r = call("GET", "/competitions", token=stu, params={"page": 1, "size": 2})
-check("分页：每页 2 条，总数仍为 5", len(r["data"]["records"]) == 2 and r["data"]["total"] == 5)
+check("分页：每页 2 条，总数不变", len(r["data"]["records"]) == 2 and r["data"]["total"] == total)
 s, r = call("GET", "/competitions")
 check("没登录不能看（401）", s == 401)
 
@@ -85,7 +91,8 @@ print("== 比赛详情")
 s, r = call("GET", f"/competitions/{math['id']}", token=stu)
 d = r["data"]
 check("分工模板 3 个角色", d["roles"] == ["建模", "编程", "论文写作与排版"], d["roles"])
-e0 = d["editions"][0]
+# 数模还有 V15 按官方通知建的真实届次，这里看的是示例届次
+e0 = next(e for e in d["editions"] if e["id"] == ed["id"])
 check("关注人数 1，已关注", e0["followers"] == 1 and e0["followed"])
 check("3 个时间节点，按时间排好", [n["title"] for n in e0["nodes"]] == ["报名截止", "比赛进行（72 小时）", "成绩公布"])
 result_node = e0["nodes"][2]
@@ -93,7 +100,7 @@ result_node = e0["nodes"][2]
 check("成绩公布是区间结束（RANGE）", result_node["endMode"] == "RANGE" and result_node["endLatestAt"].startswith((__import__("datetime").date.today() + __import__("datetime").timedelta(days=55)).isoformat()))
 s, r = call("DELETE", f"/editions/{ed['id']}/follow", token=stu)
 s, r = call("GET", f"/competitions/{math['id']}", token=stu)
-check("取消关注后人数归 0", r["data"]["editions"][0]["followers"] == 0)
+check("取消关注后人数归 0", next(e for e in r["data"]["editions"] if e["id"] == ed["id"])["followers"] == 0)
 s, r = call("GET", "/competitions/99999", token=stu)
 check("比赛不存在（404）", s == 404)
 
@@ -135,7 +142,7 @@ check("发布后学生能看到，节点 2 个", len(eds) == 1 and len(eds[0]["n
 check("OPEN 节点没有结束时间", eds[0]["nodes"][1]["endMode"] == "OPEN" and eds[0]["nodes"][1]["endAt"] is None)
 s, r = call("DELETE", f"/admin/competitions/{cid}", token=adm)
 s, r = call("GET", "/competitions", token=stu)
-check("删除后列表里没有了（逻辑删除）", r["data"]["total"] == 5)
+check("删除后列表里没有了（逻辑删除）", r["data"]["total"] == total)
 
 print("== 个人档案")
 s, r = call("GET", "/profile", token=stu)
@@ -151,7 +158,9 @@ check("昵称改了，me 也跟着变", call("GET", "/users/me", token=stu)[1]["
 s, r = call("PUT", "/profile", {"nickname": "x", "contactQq": "12ab"}, token=stu)
 check("QQ 格式不对（400）", s == 400 and "QQ" in r["message"], r)
 s, skills = call("GET", "/skills", token=stu)
-check("技能字典 31 项", len(skills["data"]) == 31)
+check("技能字典扩充到 70 项以上（V10 之后）", len(skills["data"]) >= 70)
+check("技能字典里有新加的技能", any(x["name"] == "FPGA" for x in skills["data"])
+      and any(x["name"] == "问卷调查" for x in skills["data"]))
 vue = next(x["id"] for x in skills["data"] if x["name"] == "Vue")
 java = next(x["id"] for x in skills["data"] if x["name"] == "Java")
 s, r = call("PUT", "/profile/skills", {"skills": [{"skillId": vue, "level": 3}, {"skillId": vue, "level": 1}]}, token=stu)

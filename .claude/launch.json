@@ -19,6 +19,13 @@
       "runtimeArgs": ["--prefix", "frontend", "run", "dev", "--", "--port", "5174", "--strictPort"],
       "env": { "API_TARGET": "http://127.0.0.1:18090" },
       "port": 5174
+    },
+    {
+      "name": "frontend-video",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "frontend", "run", "dev", "--", "--port", "5176", "--strictPort"],
+      "env": { "API_TARGET": "http://127.0.0.1:18093" },
+      "port": 5176
     }
   ]
 }

@@ -13,6 +13,9 @@ import type {
   CrawlRunStatus,
   CrawlSourceForm,
   CrawlSourceRow,
+  DashboardCalibration,
+  DashboardFunnel,
+  DashboardOps,
   EditionForm,
   EditionStat,
   FlaggedRow,
@@ -101,6 +104,12 @@ export const dashboardOverview = () => get<Overview>('/admin/dashboard/overview'
 export const dashboardEditions = () => get<EditionStat[]>('/admin/dashboard/editions')
 
 export const skillGap = (editionId?: number) => get<SkillGap[]>('/admin/dashboard/skill-gap', { editionId })
+
+export const dashboardFunnel = (editionId: number) => get<DashboardFunnel>('/admin/dashboard/funnel', { editionId })
+
+export const dashboardCalibration = () => get<DashboardCalibration>('/admin/dashboard/calibration')
+
+export const dashboardOps = () => get<DashboardOps>('/admin/dashboard/ops')
 
 // ---------- 举报与信用 ----------
 

@@ -3,16 +3,21 @@ package com.teammatch.match;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
 /**
- * 推荐时要批量查的几样东西。
+ * 推荐时要批量查的几样东西；外加发申请时记下匹配分。
  */
 @Mapper
 public interface MatchMapper {
+
+    /** 发申请或邀请时的匹配分，见 ApplicationScoreRecorder */
+    @Update("UPDATE team_application SET match_score = #{score} WHERE id = #{id}")
+    int saveApplicationScore(@Param("id") long applicationId, @Param("score") double score);
 
     @Select("""
             <script>

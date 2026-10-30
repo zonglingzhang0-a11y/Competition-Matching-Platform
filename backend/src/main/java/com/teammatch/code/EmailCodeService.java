@@ -23,7 +23,7 @@ import java.util.Locale;
  * 邮箱验证码：生成、发送、校验。
  * <ul>
  *   <li>数据库只存摘要，不存明文</li>
- *   <li>同一邮箱、同一用途，重发要隔一段时间</li>
+ *   <li>同一邮箱、同一用途，重发要隔一段时间；同一个 IP 和全站每天的发送量也有上限，见 {@link CodeSendLimiter}</li>
  *   <li>只认最新的一条；输错超过次数就作废</li>
  * </ul>
  */
@@ -35,10 +35,12 @@ public class EmailCodeService {
 
     private final EmailCodeMapper codeMapper;
     private final CodeMailer mailer;
+    private final CodeSendLimiter limiter;
     private final AppProperties props;
     private final Clock clock;
 
-    public void send(String email, CodePurpose purpose) {
+    /** ip：访问者的 IP，用来限制同一个网络的发送量 */
+    public void send(String email, CodePurpose purpose, String ip) {
         String to = normalize(email);
         LocalDateTime now = LocalDateTime.now(clock);
         AppProperties.Code cfg = props.code();
@@ -50,6 +52,7 @@ public class EmailCodeService {
                 throw new BizException(429, "发送太频繁，请 " + (cfg.resendSeconds() - waited) + " 秒后再试");
             }
         }
+        limiter.acquire(ip);
 
         String code = "%06d".formatted(RANDOM.nextInt(1_000_000));
         EmailCode record = new EmailCode();

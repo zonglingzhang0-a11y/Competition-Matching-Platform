@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, inject, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import MatchHexagon from '@/components/MatchHexagon.vue'
 import MatchSummary from '@/components/MatchSummary.vue'
 import UserName from '@/components/UserName.vue'
+import { HOME_LAYOUT, NO_LAYOUT } from '@/components/home/layout'
 import { acceptApplication, rejectApplication } from '@/api/team'
 import { markRead } from '@/api/notification'
 import { useUserPageStore } from '@/stores/userPage'
@@ -14,6 +16,7 @@ import { showError } from '@/utils/feedback'
 
 /**
  * 主页右栏：只放需要你决定的事。待你处理（邀请、申请，附上处理后的影响）、推荐队友（或推荐队伍）、最近的消息。
+ * 顺序和显示按主页自定义（待你处理不能隐藏）。
  */
 const props = defineProps<{
   pending: HomePending[]
@@ -25,6 +28,7 @@ const emit = defineEmits<{ changed: [] }>()
 
 const router = useRouter()
 const userPage = useUserPageStore()
+const layout = inject(HOME_LAYOUT, NO_LAYOUT)
 const busy = ref<number | null>(null)
 
 /** 没有当队长要招人的队时，改为推荐可以加入的队伍（每个关注的比赛取最合适的一支） */
@@ -33,6 +37,30 @@ const teams = computed(() =>
     .flatMap((r) => r.teams.slice(0, 1).map((t) => ({ ...t, edition: r.edition })))
     .slice(0, 3),
 )
+
+/** 匹配六边形：推荐队友（或推荐队伍）里点一个看，再挑一个叠上去对比 */
+const candidates = computed(() =>
+  props.teammates.length
+    ? props.teammates.map((t) => ({ key: `u${t.teamId}-${t.userId}`, name: t.nickname, match: t.match }))
+    : teams.value.map((t) => ({ key: `t${t.team.id}`, name: t.team.name, match: t.match })),
+)
+const selected = ref<string | null>(null)
+const compare = ref<string | null>(null)
+const current = computed(() => candidates.value.find((c) => c.key === selected.value) ?? candidates.value[0])
+const others = computed(() => candidates.value.filter((c) => c.key !== current.value?.key))
+const hexSeries = computed(() => {
+  const second = others.value.find((c) => c.key === compare.value)
+  return current.value ? [current.value, ...(second ? [second] : [])] : []
+})
+
+function pick(key: string) {
+  selected.value = key
+  if (compare.value === key) compare.value = null
+}
+
+function toggleCompare(key: string) {
+  compare.value = compare.value === key ? null : key
+}
 
 /** 影响里带"同时进行""不能""先退出"的是提醒，标红 */
 const risky = (p: HomePending) => !!p.consequence && /同时进行|不能|先退出|满员/.test(p.consequence)
@@ -60,7 +88,7 @@ function openMessage(n: Notification) {
 
 <template>
   <div class="col">
-    <section class="panel">
+    <section class="panel" :style="{ order: layout.pos('pending') }">
       <div class="panel-head">
         <div>
           <div class="kicker">ACTION <span class="zh">/ 需要你决定</span></div>
@@ -94,14 +122,35 @@ function openMessage(n: Notification) {
       </article>
     </section>
 
-    <section v-if="teammates.length" class="panel">
+    <section v-if="teammates.length" v-show="layout.shown('recommend')" class="panel" :style="{ order: layout.pos('recommend') }">
       <div class="panel-head">
         <div>
           <div class="kicker">RECOMMENDED <span class="zh">/ 推荐队友</span></div>
           <h2 class="panel-title">推荐队友 <span class="count">为「{{ teammates[0]!.teamName }}」</span></h2>
         </div>
       </div>
-      <div v-for="t in teammates" :key="t.teamId + '-' + t.userId" class="person">
+      <MatchHexagon v-if="hexSeries.length" :series="hexSeries" commitment-of="TA" />
+      <div v-if="others.length" class="compare">
+        <span>叠上去对比：</span>
+        <button
+          v-for="c in others"
+          :key="c.key"
+          type="button"
+          :class="{ on: compare === c.key }"
+          :aria-pressed="compare === c.key"
+          @click="toggleCompare(c.key)"
+        >
+          {{ c.name }}
+        </button>
+      </div>
+      <p class="hex-hint">点下面的人换着看。总分是五项加权后再乘投入保障，不是六项的平均。</p>
+      <div
+        v-for="t in teammates"
+        :key="t.teamId + '-' + t.userId"
+        class="person"
+        :class="{ active: current?.key === `u${t.teamId}-${t.userId}` }"
+        @click="pick(`u${t.teamId}-${t.userId}`)"
+      >
         <button type="button" class="avatar" :aria-label="`查看 ${t.nickname} 的资料`" @click="userPage.open(t.userId)">
           {{ t.nickname.slice(0, 1) }}
         </button>
@@ -110,21 +159,49 @@ function openMessage(n: Notification) {
           <span class="sub">{{ [t.major, t.enrollYear ? `${t.enrollYear} 级` : null].filter(Boolean).join(' · ') }}</span>
           <span v-if="t.reason" class="sub">{{ t.reason }}</span>
         </div>
-        <span class="score num" :title="'匹配分'">{{ Math.round(t.score) }}</span>
+        <button
+          type="button"
+          class="score num"
+          :aria-label="`匹配分 ${Math.round(t.score)}，在六边形里看 ${t.nickname}`"
+          @click.stop="pick(`u${t.teamId}-${t.userId}`)"
+        >
+          {{ Math.round(t.score) }}
+        </button>
         <router-link :to="{ name: 'team', params: { id: t.teamId } }" class="invite">
           {{ t.invited ? '已邀请' : '去邀请' }}
         </router-link>
       </div>
     </section>
 
-    <section v-else-if="teams.length" class="panel">
+    <section v-else-if="teams.length" v-show="layout.shown('recommend')" class="panel" :style="{ order: layout.pos('recommend') }">
       <div class="panel-head">
         <div>
           <div class="kicker">RECOMMENDED <span class="zh">/ 推荐队伍</span></div>
           <h2 class="panel-title">为你推荐的队伍</h2>
         </div>
       </div>
-      <div v-for="t in teams" :key="t.team.id" class="rec">
+      <MatchHexagon v-if="hexSeries.length" :series="hexSeries" commitment-of="你" />
+      <div v-if="others.length" class="compare">
+        <span>叠上去对比：</span>
+        <button
+          v-for="c in others"
+          :key="c.key"
+          type="button"
+          :class="{ on: compare === c.key }"
+          :aria-pressed="compare === c.key"
+          @click="toggleCompare(c.key)"
+        >
+          {{ c.name }}
+        </button>
+      </div>
+      <p class="hex-hint">点下面的队伍换着看。总分是五项加权后再乘投入保障，不是六项的平均。</p>
+      <div
+        v-for="t in teams"
+        :key="t.team.id"
+        class="rec"
+        :class="{ active: current?.key === `t${t.team.id}` }"
+        @click="pick(`t${t.team.id}`)"
+      >
         <router-link :to="{ name: 'team', params: { id: t.team.id } }" class="rec-name">{{ t.team.name }}</router-link>
         <span class="sub">
           {{ t.edition.competitionName }} · {{ t.team.memberCount }}/{{ t.team.maxMembers }} 人
@@ -134,7 +211,7 @@ function openMessage(n: Notification) {
       </div>
     </section>
 
-    <section class="panel">
+    <section v-show="layout.shown('messages')" class="panel" :style="{ order: layout.pos('messages') }">
       <div class="panel-head">
         <div>
           <div class="kicker">MESSAGES <span class="zh">/ 消息</span></div>
@@ -237,8 +314,55 @@ function openMessage(n: Notification) {
 
 .person,
 .rec {
-  padding: 10px 0;
+  padding: 10px 6px;
+  margin: 0 -6px;
   border-top: 1px solid var(--jd-line-lighter);
+  border-left: 2px solid transparent;
+  cursor: pointer;
+}
+
+.person:hover,
+.rec:hover {
+  background: var(--jd-overlay);
+}
+
+/* 六边形正在看的这一个 */
+.person.active,
+.rec.active {
+  border-left-color: var(--jd-accent);
+  background: var(--jd-accent-soft);
+}
+
+.compare {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--jd-muted);
+}
+
+.compare button {
+  padding: 1px 8px;
+  border: 1px dashed var(--jd-line-strong);
+  background: none;
+  font: inherit;
+  color: var(--jd-ink-2);
+  cursor: pointer;
+}
+
+.compare button.on {
+  border-style: solid;
+  border-color: var(--jd-ink);
+  color: var(--jd-ink);
+  font-weight: 700;
+}
+
+.hex-hint {
+  margin: 6px 0 4px;
+  font-size: 11px;
+  color: var(--jd-muted);
 }
 
 .person {
@@ -277,10 +401,15 @@ function openMessage(n: Notification) {
   place-items: center;
   width: 34px;
   height: 34px;
+  padding: 0;
   border: 2px solid var(--jd-accent);
   border-radius: 50%;
+  background: none;
+  font: inherit;
   font-size: 13px;
   font-weight: 700;
+  color: var(--jd-ink);
+  cursor: pointer;
 }
 
 .invite {

@@ -9,6 +9,9 @@ import { showError } from '@/utils/feedback'
 
 const props = defineProps<{ initial: SkillLevel[] }>()
 
+/** 保存成功后通知外面重新拉一次档案，能力雷达要跟着变 */
+const emit = defineEmits<{ saved: [] }>()
+
 const MAX = 20
 
 const options = ref<SkillOption[]>([])
@@ -49,6 +52,7 @@ async function save() {
     rows.value = await replaceSkills(rows.value.map((r) => ({ skillId: r.skillId, level: r.level })))
     dirty.value = false
     ElMessage.success('技能已保存')
+    emit('saved')
   } catch (e) {
     showError(e)
   } finally {

@@ -65,9 +65,20 @@ print("一、全新的库（库都没有，后端自己建库、建表、填初�
 env.drop()
 text = start_stop("fresh")
 check(f"V1 到 V{LATEST} 依次执行", history() == FULL, history())
-check("初始数据在：技能字典、示例学校、抓取来源 4 个", env.sql("SELECT COUNT(*) FROM skill") != "0"
-      and env.sql("SELECT COUNT(*) FROM school") == "1" and env.sql("SELECT COUNT(*) FROM crawl_source") == "4")
-check("比赛官网地址补上了（V4）", env.sql("SELECT COUNT(*) FROM competition WHERE official_url LIKE 'https://%'") == "5")
+# 学校：示例大学 + V12 湖南 34 所 + V13 985/211 112 所；比赛：5 个种子 + V14 中南大学 2019 版清单 90 个 + V15 2021 版清单新增 35 个
+# 届次：V2 的示例届次之外，V15 按官方通知建了 15 个（直接发布）
+check("初始数据在：技能字典、示例学校和收录的 146 所学校、130 个比赛（其中 V15 改名 8 个）、官方届次 15 个、抓取来源 4 个",
+      env.sql("SELECT COUNT(*) FROM skill") != "0"
+      and env.sql("SELECT COUNT(*) FROM school WHERE name = '示例大学'") == "1" and env.sql("SELECT COUNT(*) FROM school") == "147"
+      and env.sql("SELECT COUNT(*) FROM competition") == "130" and env.sql("SELECT COUNT(*) FROM crawl_source") == "4"
+      and env.sql("SELECT COUNT(*) FROM competition WHERE name IN ('中国大学生工程实践与创新能力大赛', '中国制冷学会创新大赛')") == "2"
+      and env.sql("SELECT COUNT(*) FROM competition WHERE name IN ('全国大学生工程训练综合能力竞赛', '中国制冷协会创新大赛')") == "0"
+      and env.sql("SELECT COUNT(*) FROM competition_edition WHERE status = 'PUBLISHED' AND title NOT LIKE '%示例数据%'") == "15",
+      [env.sql("SELECT COUNT(*) FROM school"), env.sql("SELECT COUNT(*) FROM competition"),
+       env.sql("SELECT COUNT(*) FROM competition_edition WHERE status = 'PUBLISHED' AND title NOT LIKE '%示例数据%'")])
+check("比赛官网地址补上了（V4 的 5 个种子比赛）", env.sql(
+    "SELECT COUNT(*) FROM competition WHERE official_url LIKE 'https://%' AND name IN ('全国大学生数学建模竞赛', "
+    "'全国大学生电子设计竞赛', '中国国际大学生创新大赛', '\"挑战杯\"全国大学生课外学术科技作品竞赛', '中国大学生计算机设计大赛')") == "5")
 check("没有 ERROR 日志", not errors(text), errors(text)[:3])
 FRESH = snapshot()
 parts = [len(x.splitlines()) for x in FRESH.split("\n#\n")]

@@ -38,7 +38,7 @@ export interface PageResult<T> {
 
 // ---------- 比赛库 ----------
 
-export type CompetitionLevel = 'NATIONAL' | 'PROVINCIAL' | 'SCHOOL'
+export type CompetitionLevel = 'INTERNATIONAL' | 'NATIONAL' | 'PROVINCIAL' | 'SCHOOL'
 
 /** 报名阶段：时间待定 / 未开始 / 报名中 / 即将截止 / 已截止 */
 export type EditionPhase = 'UNKNOWN' | 'UPCOMING' | 'OPEN' | 'CLOSING_SOON' | 'CLOSED'
@@ -147,6 +147,54 @@ export interface SkillLevel {
   level: number
 }
 
+// ---------- 能力雷达 ----------
+
+/** 雷达图的一轴：0–100 分，下面带着归到这个轴的具体技能 */
+export interface RadarAxis {
+  key: string
+  label: string
+  hint: string
+  score: number
+  /** 有具体技能：入门 / 熟练 / 精通；没有时：推断 / 基础；需求：要求入门 / 要求熟练 / 要求精通 / 无要求 */
+  band: string
+  /** 这一轴的具体技能；个人雷达是熟练度，需求雷达是要求的最低熟练度 */
+  skills: { name: string; category: string; level: number }[]
+  /** 需求雷达：这一轴对应哪些缺人的角色；个人雷达为空 */
+  roles: string[]
+  /** SKILL 有具体技能 / INFERRED 按专业或相关技能推断 / BASE 基础分 / NEED 有要求 / NONE 没要求 */
+  basis: 'SKILL' | 'INFERRED' | 'BASE' | 'NEED' | 'NONE'
+  /** 推断或基础分的依据，页面上直接显示；有具体技能时为 null */
+  reason: string | null
+}
+
+export interface Radar {
+  axes: RadarAxis[]
+  /** 个人是技能项数，需求是还开着的招募需求条数 */
+  count: number
+  strongestKey: string | null
+  strongestLabel: string | null
+  advice: string
+}
+
+export interface RadarGap {
+  key: string
+  label: string
+  need: number
+  mine: number
+  /** COVERED 达标 / PARTIAL 差一档 / MISSING 还没有 */
+  status: 'COVERED' | 'PARTIAL' | 'MISSING'
+  text: string
+}
+
+export interface TeamRadar {
+  need: Radar
+  mine: Radar
+  /** 0–100，需求里没勾技能、或者我没填技能时为空 */
+  fit: number | null
+  gaps: RadarGap[]
+  verdict: string
+}
+
 export interface Experience {
   id: number
   competitionId: number | null
@@ -186,6 +234,8 @@ export interface Profile {
   contactWechat: string | null
   contactQq: string | null
   skills: SkillLevel[]
+  /** 六维能力雷达 */
+  radar: Radar
   experiences: Experience[]
   /** 个人资料页上的参赛履历和组队记录给谁看 */
   historyVisibility: HistoryVisibility
@@ -252,6 +302,8 @@ export interface UserPage {
   bio: string | null
   joinedAt: string | null
   skills: SkillLevel[]
+  /** 六维能力雷达，和档案页算的是同一套分 */
+  radar: Radar
   /** 互评信用；score 为空表示新用户 */
   credit: { score: number | null; ratedRounds: number }
   /** 问卷开放题：我能给队伍带来的三点 */
@@ -329,7 +381,7 @@ export interface NeedView {
   filled: number
   note: string | null
   status: NeedStatus
-  skills: { skillId: number; name: string; minLevel: number }[]
+  skills: { skillId: number; name: string; category: string; minLevel: number }[]
 }
 
 export interface MemberView {
@@ -368,6 +420,8 @@ export interface TeamDetail {
   captainId: number
   members: MemberView[]
   needs: NeedView[]
+  /** 招募需求雷达 + 我的能力雷达 + 覆盖率 */
+  radar: TeamRadar
   me: MyRelation
   createdAt: string
   /** 比赛结束时录入的奖项 */
@@ -383,6 +437,8 @@ export interface TeamSummary {
   memberCount: number
   captain: UserBrief
   openNeeds: NeedView[]
+  /** 招募需求雷达，队伍列表里直接画出来 */
+  needRadar: Radar
   edition: EditionRef
 }
 
@@ -874,6 +930,57 @@ export interface EditionStat {
   followers: number
 }
 
+/** 一届比赛的组队漏斗；人群是关注了这一届或已经在这一届队里的人 */
+export interface DashboardFunnel {
+  editionId: number
+  people: number
+  /** 填了通用问卷 */
+  surveyed: number
+  /** 申请或邀请过（不管结果），建了队、已在队里的也算 */
+  engaged: number
+  joined: number
+  /** 所在队伍满员、停止招募或已结束 */
+  formed: number
+}
+
+/** 看板"运营"：每块都对应一件该做的事 */
+export interface DashboardOps {
+  applications: {
+    pending: number
+    /** 等了 3 天以上的 */
+    overdue: number
+    /** 最近 30 天处理完的，等待时长中位数（小时） */
+    medianHours: number | null
+    handled30d: number
+    expired30d: number
+    /** 手上压着等了 3 天以上的人：申请等队长处理，邀请等被邀请的人处理 */
+    backlog: { userId: number; nickname: string; direction: 'APPLY' | 'INVITE'; count: number; oldestDays: number }[]
+  }
+  verifications: {
+    pending: number
+    oldestDays: number | null
+    /** unknownDomain：还没收录的邮箱后缀，收录以后同校的人自动通过 */
+    groups: { label: string; unknownDomain: boolean; count: number; oldestDays: number }[]
+  }
+  sources: {
+    id: number
+    name: string
+    status: 'OK' | 'ERROR' | 'STALE' | 'NEVER' | 'DISABLED'
+    lastRunAt: string | null
+    lastResult: string | null
+    /** 抽出来等确认的通知 */
+    toConfirm: number
+  }[]
+  reports: { pending: number; oldestDays: number | null; medianHours: number | null; suspendedUsers: number }
+}
+
+/** 推荐准不准：按发出时的匹配分分段，每段处理完的申请和邀请有几条、成了几条 */
+export interface DashboardCalibration {
+  buckets: { from: number; to: number; total: number; accepted: number }[]
+  /** 处理完了、但发出时还没开始记匹配分的老记录 */
+  unscored: number
+}
+
 export interface SkillGap {
   skillId: number
   name: string
@@ -1241,6 +1348,17 @@ export interface HomeTeammate {
   score: number
   reason: string | null
   invited: boolean
+  /** 完整的打分，主页的匹配六边形用 */
+  match: MatchResult
+}
+
+/** 主页自定义，面板的 key 见 components/home/layout.ts */
+export interface HomeLayout {
+  /** 面板的先后顺序，每一栏里按这个顺序排 */
+  order: string[]
+  hidden: string[]
+  /** 日历栏加宽（改版前的比例） */
+  wideCalendar: boolean
 }
 
 export interface HomeData {
@@ -1323,4 +1441,139 @@ export interface RecognitionAdminRow {
   createdAt: string
   /** 同校同比赛下没被驳回的说法有几种，大于 1 就是有分歧 */
   variants: number
+}
+
+// ---------- AI 总结 ----------
+
+/** 一条要点；quote 是官方通知里的原话，sourceTitle / sourceUrl 是出自哪篇 */
+export interface AiSummaryPoint {
+  label: string
+  text: string
+  quote: string
+  recordId: number
+  sourceTitle: string | null
+  sourceUrl: string | null
+}
+
+export interface AiSummary {
+  points: AiSummaryPoint[]
+  model: string
+  generatedAt: string
+}
+
+/** 平台抓到的这个比赛的通知 */
+export interface AiSummarySource {
+  id: number
+  title: string | null
+  url: string
+  fetchedAt: string
+  /** 来源网站允许内容交给大模型；不允许的只列链接 */
+  aiAllowed: boolean
+  /** 当前的总结用到了这篇 */
+  used: boolean
+}
+
+/** 信息渠道 */
+export interface AiSummaryChannel {
+  name: string
+  /** 外部链接（官网、通知、搜索） */
+  url: string | null
+  hint: string | null
+  /** 给一个"复制"按钮，复制这段文字（比如去微信里搜的比赛全称） */
+  copy: string | null
+  /** 跳到比赛页上的某一块：recognition 加分认定、editions 各届和队伍 */
+  anchor: 'recognition' | 'editions' | null
+}
+
+export interface AiSummaryView {
+  /** 后端打开了大模型 */
+  llmReady: boolean
+  /** 当前用户能重新整理（管理员） */
+  canGenerate: boolean
+  /** 还没整理过时为空 */
+  summary: AiSummary | null
+  /** 报名时间、比赛时间、组队要求里没整理出来的 */
+  missing: string[]
+  sources: AiSummarySource[]
+  channels: AiSummaryChannel[]
+}
+
+// ---------- AI 分析（个人能力分析、队伍招募建议） ----------
+
+/** RULE 本地规则 / LLM 大模型；页面上要标明来源，不能把本地规则说成 AI */
+export type AiSource = 'RULE' | 'LLM'
+
+export interface AiStrength {
+  title: string
+  detail: string
+  /** 资料里的原话 */
+  evidence: string
+}
+
+export interface AiSuggestedSkill {
+  name: string
+  category: string
+  /** 1 入门 / 2 熟练 / 3 精通 */
+  level: number
+  /** 资料里的原话 */
+  evidence: string
+  /** 档案里已经有了 */
+  owned: boolean
+}
+
+export interface AiTrait {
+  trait: string
+  evidence: string
+}
+
+export interface AiAxisHint {
+  key: string
+  label: string
+  reason: string
+}
+
+export interface AiProfileBody {
+  summary: string
+  strengths: AiStrength[]
+  skills: AiSuggestedSkill[]
+  personality: AiTrait[]
+  axisHints: AiAxisHint[]
+}
+
+export interface AiProfileAnalysis {
+  body: AiProfileBody
+  source: AiSource
+  model: string | null
+  createdAt: string
+}
+
+export interface AiAxisGap {
+  key: string
+  label: string
+  need: number
+  best: number
+  status: 'COVERED' | 'PARTIAL' | 'MISSING'
+}
+
+export interface AiSkillGap {
+  name: string
+  minLevel: number
+  bestLevel: number
+  status: 'COVERED' | 'PARTIAL' | 'MISSING'
+}
+
+export interface AiTeamBody {
+  summary: string
+  weakAxes: AiAxisGap[]
+  suggestions: string[]
+  candidateProfile: string[]
+  questions: string[]
+  skillGaps: AiSkillGap[]
+}
+
+export interface AiTeamAdvice {
+  body: AiTeamBody
+  source: AiSource
+  model: string | null
+  createdAt: string
 }
