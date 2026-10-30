@@ -91,7 +91,8 @@ print("== 比赛详情")
 s, r = call("GET", f"/competitions/{math['id']}", token=stu)
 d = r["data"]
 check("分工模板 3 个角色", d["roles"] == ["建模", "编程", "论文写作与排版"], d["roles"])
-e0 = d["editions"][0]
+# 数模还有 V15 按官方通知建的真实届次，这里看的是示例届次
+e0 = next(e for e in d["editions"] if e["id"] == ed["id"])
 check("关注人数 1，已关注", e0["followers"] == 1 and e0["followed"])
 check("3 个时间节点，按时间排好", [n["title"] for n in e0["nodes"]] == ["报名截止", "比赛进行（72 小时）", "成绩公布"])
 result_node = e0["nodes"][2]
@@ -99,7 +100,7 @@ result_node = e0["nodes"][2]
 check("成绩公布是区间结束（RANGE）", result_node["endMode"] == "RANGE" and result_node["endLatestAt"].startswith((__import__("datetime").date.today() + __import__("datetime").timedelta(days=55)).isoformat()))
 s, r = call("DELETE", f"/editions/{ed['id']}/follow", token=stu)
 s, r = call("GET", f"/competitions/{math['id']}", token=stu)
-check("取消关注后人数归 0", r["data"]["editions"][0]["followers"] == 0)
+check("取消关注后人数归 0", next(e for e in r["data"]["editions"] if e["id"] == ed["id"])["followers"] == 0)
 s, r = call("GET", "/competitions/99999", token=stu)
 check("比赛不存在（404）", s == 404)
 

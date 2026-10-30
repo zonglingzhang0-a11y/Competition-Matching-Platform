@@ -170,13 +170,15 @@ stu = r["data"]["token"]
 
 print("== 比赛库管理")
 s, r = call("GET", "/admin/competitions", token=admin)
-# 5 个种子比赛 + V14 收录的中南大学竞赛清单
+# 5 个种子比赛 + V14、V15 收录的中南大学竞赛清单
 check("列表里是库里全部的比赛", r["data"]["total"] == int(env.sql("SELECT COUNT(*) FROM competition WHERE deleted = 0")),
       r["data"]["total"])
 s, r = call("GET", "/admin/competitions", token=admin, params={"keyword": "全国大学生数学建模"})
 math = next(c for c in r["data"]["records"] if c["name"] == "全国大学生数学建模竞赛")
-E = math["editions"][0]["id"]
-check("届次带状态、阶段、节点数", math["editions"][0]["status"] == "PUBLISHED" and math["editions"][0]["nodes"] == 3, math["editions"][0])
+# 数模还有 V15 按官方通知建的真实届次，看板测的是示例届次
+sample = next(e for e in math["editions"] if e["title"] == "2026 年（示例数据）")
+E = sample["id"]
+check("届次带状态、阶段、节点数", sample["status"] == "PUBLISHED" and sample["nodes"] == 3, sample)
 s, r = call("GET", "/admin/role-templates", token=admin)
 check("分工模板 4 套，带角色", len(r["data"]) == 4 and all(t["roles"] for t in r["data"]), r["data"])
 template = r["data"][0]["id"]
